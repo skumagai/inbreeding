@@ -1,0 +1,281 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{hyperref}
+
+% \algrenewcomment[1]{\(\triangleright\) #1}
+\algnewcommand{\LineComment}[1]{\State \(\triangleright\) #1}
+
+\begin{document}
+\title{Designing Forward Simulator for Partially Selfing Population}
+\date{\today}
+\maketitle
+
+\section{Synopsis}
+\label{sec:synopsis}
+
+This document describes design and implementation of a forward
+simulation for studying heterozigosities of linked loci in a
+partially-selfing population, modeled after hermaphrodite plant
+species.
+The simulation is implemented with simuPOP.
+
+\section{Design}
+\label{sec:design}
+
+A simulated population models after panmictic and hermaphroditic plant
+populations with non-overlapping generations.
+In the first part of this document, biological basis of the simulated
+population is fully described.
+
+\subsection{Population Structure}
+\label{sec:population-structure}
+
+The simulated population consists of hermaphroditic diploid organisms
+in a single deme, and its population size \(N\) remains constant
+over generations.
+After a single bout of mating, one generation is entirely replaced by
+their offspring.
+A fraction \(S\) of the population reproduce by selfing,
+and the rest do so by outcrossing.
+In particular outcrossers cannot reproduce by self-fertilization.
+
+\subsection{Mating Scheme}
+\label{sec:mating-scheme}
+
+At mating stage of their life cycle,
+\(S N\) selfing individuals undergo self-fertilization.
+This class of organisms generate exactly \(S N\) offspring.
+Each organism is equilikely to leave an offspring that will eventually
+reproduce.
+Therefore, individuals can have zero, one, or more than one offspring.
+
+The remaining \((1 - S)N\) outcrossing individuals mate with other
+outcrossing individuals, and they produce exactly \((1 - S)N\) offspring.
+Because they are hermaphroditic outcrossers, an individual cannot
+reproduce by selfing.
+At the same time, it can mate with any other oucrossers.
+Therefore, an outcrosser has \((1 - S) N - 1\) potential mating
+partners.
+Again, individuals are equilikely to contribute offspring to next
+generation.
+
+Finally, an offspring becomes a selfer with probability \(S\)
+regardless of whether parents are selfer or not.
+
+\subsection{Recombination}
+\label{sec:recombination}
+
+A simulation is performed on two linked autosomal loci.
+We assume that there is no intra-locus recombination in either locus,
+but inter-loci recombination occurs at rate \(r\) per generation.
+
+\subsection{Mutation}
+\label{sec:mutation}
+
+Evolution of loci is modeled under the infinite-site model of
+mutations with rates \(\mu_{1}\) and \(\mu_{2}\) per generation
+for the first and second loci, respectively.
+Furthermore, these mutations are considered to be neutral, and there
+is no natural, or other kinds of, selection with respect to the target
+loci in the simulated population.
+
+Mutations are restricted to before mating.  However, this condition has
+very little relevance to evolution of loci, as there is no selection
+on the loci.
+The only place this choice affects the evolution is that organisms in
+the initial generation experience mutations in addition to those in
+any subsequent generations.
+
+\section{Implementation}
+\label{sec:implementation}
+
+The simulation is implemented using
+\href{http://simupop.sourceforge.net/}{simuPOP}, a forward population
+genetic simulation framework available as a Python package.
+This framework provides a convenient way to implement forward
+simulations very quickly by providing a lot of ready-made operations
+such as transmission of chromosomes with or without recombination.
+Those provided operations are implemented in C++ in order to make
+simulations run efficiently.
+
+At the same time, a high level of flexibility is also provided in the
+framework by allowing users to plug in additional operations written
+in Python (or C++ for better speed).
+For example, simuPOP does not provide hermaphroditic mating scheme,
+but it is straight forward to implement this mating scheme.
+
+From a user's perspective, one concern about this package is that it
+is sometimes hard to make sure that simulations are implemented as
+designed.
+This is due to difficulties of understanding how various operators
+interact with each other under complex scenarios.
+
+\subsection{Algorithm}
+\label{sec:algorithm}
+
+Having briefly gone over characteristics of simuPOP, simulation
+algorithms for inbreeding.py is described here.
+An overall structure of the simulation is given in code \ref{algo:overall}.
+In words, the simulation goes by alternatively performing
+mutation and reproduction for a user specified number of generations
+after initializing population.
+In the current simulation, initialization of population is done by
+simuPOP-provided function.
+
+Mutations under the infinite-sites model is simply implemented by
+setting an allelic state of a new mutant to be the number of mutations
+occurred at a locus up to that point in time.
+This approach is essentially identical to implementing the
+infinite-alleles model of mutations.
+Unfortunately simuPOP does not provide a code for this model,
+and my implementation is illustrated in code \ref{algo:mutation}.
+
+This simplification is possible for our case because we are only
+interested in heterozygosity so far.
+Heterozygosity merely asks if two genes taken from a single organism
+are identical in state.
+Addressing this question does not require genealogical information,
+which is only present in the infinite-sites model.
+As a consequence, as soon as other summary statistics utilizing
+genealogical information are required, this simple approach ceases to
+work.
+A more formal approach keeping track of states at each segregating
+sites will be necessary for such cases.
+
+A current population is split into two groups after mutations are
+added to the current population.
+The first is a group of selfers, and the second is a group of
+outcrossers.
+This split is performed by randomly assigning \(\lfloor S N\rfloor\)
+individuals into the first group.
+This again is performed by simuPOP-provided function.
+To be precise this grouping is actually performed when offspring are
+generated by simuPOP, but it is listed separately in code
+\ref{algo:overall} to signify what is done.
+Also the placement is different, but it does not affect the outcome of
+simulations.
+
+Finally reproduction takes place.
+Self-fertilization is implemented by randomly picking an organism from
+
+
+\begin{algorithm}
+  \caption{Overall structure}
+  \label{algo:overall}
+  \begin{algorithmic}
+    \State Initialize \(N\) \Comment {population size}
+    \State Initialize \([\mu_{1}, \mu_{2}]\) \Comment {mutation rate
+      at loci 1 and 2}
+    \State Initialize \(r\) \Comment {recombination rate}
+    \State Initialize \(S\) \Comment {selfing rate}
+    \State Initialize \(ngen\) \Comment {number of generations}
+    \State Initialize \(nrep\) \Comment {number of replications}
+
+  \item
+
+    \ForAll {\(nrep\)}
+
+    \LineComment {\(mut_{i}\) is a number of mutation at locus \(i\) so far}
+    \State \([mut_{1}, mut_{2}] \gets [0, 0]\)
+
+    \State \(pop \gets\)  \Call{Create population using simuPOP}{$N$}
+
+    \For {\(ngen\) generations}
+
+    \State \(pop, [mut_{1}, mut_{2}] \gets\) \Call{Add mutations}{$pop, [mut_{1}, mut_{2}]$}
+  \item
+    \LineComment {divide a population into selfers (\(pop_{s}\)) and
+      outcrossers (\(pop_o\))}
+    \State \(pop_{s} \gets\) Randomly choose \(\lfloor S N + 0.5
+    \rfloor\) individuals from \(pop\)
+    \State \(pop_{o} \gets pop \setminus pop_{s}\)
+
+  \item
+    \LineComment {reproduction}
+    \LineComment {\(pop'_{s}, pop'_{o}\) are offspring of selfers and outcrossers}
+    \State \(pop'_{s} \gets\) \Call{Selfing}{$pop_{s}, r$}
+    \State \(pop'_{o} \gets\) \Call{Outcrossing}{$pop_{o}, r$}
+
+  \item
+    \LineComment {update a population}
+    \State \(pop \gets pop'_{s} \cup pop'_{o}\)
+
+    \EndFor
+
+    \State Compute heterozygosity from \(pop\)
+
+    \EndFor
+
+  \end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+  \caption{Mutation}
+  \label{algo:mutation}
+  \begin{algorithmic}
+    % need to use $$ for inline math to workaround a known bug in
+    % ifthen package
+    \Function{Add mutations}{$pop, [mut_{1}, mut_{2}]$}
+    \For {\(i = 1 \to N\)}
+    \For {\(j = 1 \to 2\)} \Comment {iterate over locus}
+    \For {\(k = 1 \to 2\)} \Comment {iterate over chromosome}
+    \If \(rng < S\)
+    \State \(mut_{j} \gets mut_{j} + 1\)
+    \State \(pop_{i}.locus_{j}.chromosome_{k} \gets mut_{j}\)
+    \EndIf
+    \EndFor
+    \EndFor
+    \EndFor
+    \State \Return \(pop, [mut_{1}, mut_{2}]\)
+    \EndFunction
+  \end{algorithmic}
+\end{algorithm}
+
+
+  %   \For {\(j = 1 \to N\)}
+
+  %   \For {\(k = 1 \to 2\)}
+
+  %   \For {\(l = 1 \to 2\)}
+  %   \If {Mutation occurred at locus \(l\)}
+  %   \State \(allele_{l} \gets allele_{l} + 1\)
+  %   \State \(pop[i].chrom_{k}.locus_{l} \gets allele_{l}\)
+  %   \EndIf
+  %   \EndFor
+
+  %   \EndFor
+
+  %   \EndFor
+
+
+  % \item \Comment {reproduction of selfers}
+  %   \State \(pop_{s}' \gets\) empty population of size \(\lfloor S N +
+  %   0.5 \rfloor\)
+  %   \For {\(j = 1 \to \lfloor S N + 0.5 \rfloor\)}
+  %   \State \(parent \gets\) randomly pick one organism from
+  %   \(pop_{s}\)
+  %   \State \(child \gets\) reproduced from \(parent\) with
+  %   recombination rate \(r\)
+  %   \State \(pop_{s}'[j] \gets child\)
+  %   \EndFor
+
+  % \item \Comment {reproduction of outcrossers}
+  %   \State \(pop_{o}' \gets\) empty population of size \(\lfloor (1 -
+  %   S)N + 0.5 \rfloor\)
+  %   \For {\(j = 1 \to \lfloor (1 - S)N + 0.5 \rfloor\)}
+  %   \State \(parents \gets\) randomly pick a unique pair from
+  %   \(pop_{o}\)
+  %   \State \(child \gets\) reproduced from \(parents\) with
+  %   recombination rate \(r\)
+  %   \State \(pop_{o}'[j] \gets child\)
+  %   \EndFor
+
+
+
+\end{document}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
