@@ -17,27 +17,28 @@
 
 This document describes design and implementation of a forward
 simulation for studying heterozigosities of linked loci in a
-partially-selfing population, modeled after hermaphrodite plant
+partially-selfing population, which is modeled after hermaphrodite
 species.
-The simulation is implemented with simuPOP.
+The simulation is implemented using
+\href{http://simupop.sourceforge.net/}{simuPOP}.
 
 \section{Design}
 \label{sec:design}
 
-A simulated population models after panmictic and hermaphroditic plant
-populations with non-overlapping generations.
-In the first part of this document, biological basis of the simulated
-population is fully described.
+A simulated population is modeled after a panmictic population of
+hermaphroditic organisms with non-overlapping generations.
+In the first part of this document
+biological basis of the simulated population is described in detail.
 
 \subsection{Population Structure}
 \label{sec:population-structure}
 
-The simulated population consists of hermaphroditic diploid organisms
+The simulated population consists of hermaphroditic organisms
 in a single deme, and its population size \(N\) remains constant
 over generations.
-After a single bout of mating, one generation is entirely replaced by
-their offspring.
-A fraction \(S\) of the population reproduce by selfing,
+After a single bout of mating, a parental generation immediately dies
+down, and their offspring takes place of their parents.
+A fraction \(S\) of the population are reproduced by selfing,
 and the rest do so by outcrossing.
 In particular outcrossers cannot reproduce by self-fertilization.
 
@@ -47,8 +48,8 @@ In particular outcrossers cannot reproduce by self-fertilization.
 At mating stage of their life cycle,
 \(S N\) selfing individuals undergo self-fertilization.
 This class of organisms generate exactly \(S N\) offspring.
-Each organism is equilikely to leave an offspring that will eventually
-reproduce.
+Each selfer in the parental generation is equilikely to leave an
+offspring that will eventually reproduce in the next mating season.
 Therefore, individuals can have zero, one, or more than one offspring.
 
 The remaining \((1 - S)N\) outcrossing individuals mate with other
@@ -58,11 +59,16 @@ reproduce by selfing.
 At the same time, it can mate with any other oucrossers.
 Therefore, an outcrosser has \((1 - S) N - 1\) potential mating
 partners.
-Again, individuals are equilikely to contribute offspring to next
+Again, individuals are equilikely to contribute offspring to the next
 generation.
 
-Finally, an offspring becomes a selfer with probability \(S\)
-regardless of whether parents are selfer or not.
+In total \(N\) parents leave \(N\) offspring, so population size does
+not change over generations.
+Within the offspring, \(S N\) organisms randomly become selfers, and
+the rest are outcrossers.
+Whether one organism is selfer or not is independent of under which
+mode of reproduction the organism is reproduced.
+
 
 \subsection{Recombination}
 \label{sec:recombination}
@@ -77,13 +83,9 @@ but inter-loci recombination occurs at rate \(r\) per generation.
 Evolution of loci is modeled under the infinite-site model of
 mutations with rates \(\mu_{1}\) and \(\mu_{2}\) per generation
 for the first and second loci, respectively.
-Furthermore, these mutations are considered to be neutral, and there
-is no natural, or other kinds of, selection with respect to the target
-loci in the simulated population.
-
-Mutations are restricted to before mating.  However, this condition has
-very little relevance to evolution of loci, as there is no selection
-on the loci.
+Furthermore, these mutations are considered to be selectively neutral.
+Mutations occurs prior to mating.  However, this condition has
+very little relevance to evolution of loci.
 The only place this choice affects the evolution is that organisms in
 the initial generation experience mutations in addition to those in
 any subsequent generations.
@@ -102,11 +104,13 @@ simulations run efficiently.
 
 At the same time, a high level of flexibility is also provided in the
 framework by allowing users to plug in additional operations written
-in Python (or C++ for better speed).
-For example, simuPOP does not provide hermaphroditic mating scheme,
-but it is straight forward to implement this mating scheme.
+in Python (or C++ for better run time efficiency).
+For example, simuPOP does not provide an operator for hermaphroditic
+mating,
+but it is straight forward to implement this scheme.
 
-From a user's perspective, one concern about this package is that it
+From a perspective of a user, who uses siumPOP to implement forward
+simulations, one concern about this package is that it
 is sometimes hard to make sure that simulations are implemented as
 designed.
 This is due to difficulties of understanding how various operators
@@ -139,22 +143,47 @@ are identical in state.
 Addressing this question does not require genealogical information,
 which is only present in the infinite-sites model.
 As a consequence, as soon as other summary statistics utilizing
-genealogical information are required, this simple approach ceases to
-work.
-A more formal approach keeping track of states at each segregating
-sites will be necessary for such cases.
+genealogical information are required, this approach stops working.
+Instead, more rigorous approaches are necessary for such cases.
 
-A current population is split into two groups after mutations are
-added to the current population.
-The first is a group of selfers, and the second is a group of
-outcrossers.
-This split is performed by randomly assigning \(S N\)
-individuals into the first group.
-This again is performed by simuPOP-provided function.
+For this simulation, simuPOP-provided operations are sufficient for
+all events except mutations and selecting pairs of parents in
+outcrossing reproduction.
 
-Finally reproduction takes place.
-Self-fertilization is implemented by randomly picking an organism from
-selfers in the current generation to be a parent, and a single
+\subsubsection{Initialization}
+\label{sec:initialization}
+
+At initialization, a population is filled with
+\(N\) original organisms.
+All of these organisms carry ancestral alleles at both loci.
+Hence, the population is monomorphic.
+Alleles are encoded by non-negative integers, and the ancestral allele
+is represented by `0'.
+Any mutant allele is represented by positive integers.
+First \(S N\) organisms are then assigned to be selfers, and
+the rest to be outcrossers.
+
+\subsubsection{Iterations}
+\label{sec:iterations}
+
+After the population is initialized, the simulation moves forward by
+alternatively applying mutation and reproduction to the population for
+\(ngen\) generations.
+
+Occurrence of mutations at the first and second locus follows
+Bernoulli distribution with parameter \(\mu_{1}\) and \(\mu_{2}\).
+For each individual, both genes at each locus are tested for the
+presence of mutation.
+When a mutation is present in an organism, an appropriate gene gets
+a novel allele, whose numeric value is one more than the number of
+already observed mutation events at the locus.
+For example, after observing three mutation events at the first locus,
+a new mutation introduces a new allele, whose numeric value is `4.'
+
+After tests of new mutations are performed, reproduction takes place.
+\(S N\) Organisms assigned to be selfers undergo self-fertilization.
+This event is implemented by randomly picking an organism from
+a group of all selfers to be a parent, and a single
 offspring is reproduced from the parent.
 This procedure is repeated until the total number of children reaches
 \(S N\).
@@ -165,14 +194,17 @@ parents.
 Then a single offspring is reproduced from the parents.
 Again, these steps are repeated until total number of children from
 the outcrossers reches \((1 - S)N\) (code \ref{algo:outcrossing}).
-This scheme implies that an organism is likely to mate with multiple
-partners if the individual is to be have multiple children.
+This scheme implies that, even if a parent has multiple offspring,
+another parent of its offspring are not necessarily the same
+organism.
 In both mating schemes, recombination occurs at a rate \(r\).
 
-After iterating for \(ngen\) generations, a final population is
-obtained and a run of the simulation is terminated.
-Using the final population, the fraction of heterozygotes are computed.
+\subsubsection{termination}
+\label{sec:termination}
 
+After iterating for \(ngen\) generations, we have a final population,
+the fraction of heterozygotes among the population is recorded.
+Then, a run of the simulation is terminated.
 
 \begin{algorithm}
   \caption{Overall structure}
