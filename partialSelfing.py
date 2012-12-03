@@ -79,8 +79,9 @@ class InfSiteMutator(sim.PyOperator):
 # select unique a pair of parents, and make sure that father and
 # mother are different individuals.
 def pickTwoParents(pop):
+    parents = list(pop.individuals())
     while True:
-        yield random.sample(list(pop.individuals(subPop = (0, 1))), 2)
+        yield random.sample(parents, 2)
 
 if __name__ == '__main__':
 
@@ -92,18 +93,10 @@ if __name__ == '__main__':
     mut_rates = [float(d) for d in sys.argv[2:4]]
     selfing_rate, recomb_rate = [float(d) for d in sys.argv[4:6]]
     ngen, nrep = [int(i) for i in sys.argv[6:]]
-    sub_pop_sizes = [int(pop_size * selfing_rate), 0]
-    sub_pop_sizes[1] = pop_size - sub_pop_sizes[0]
 
     population = sim.Population(size = pop_size,
                                 ploidy = 2,
                                 loci = 2)
-
-    # Set up virtual subpopulations to partition a population into
-    # selfers and outcrossers.
-    population.setVirtualSplitter(
-        sim.ProportionSplitter([selfing_rate,
-                                1 - selfing_rate]))
 
     # Define evolutionary operators here to avoid long lines later.
     simulator = sim.Simulator(pops = population,
@@ -115,7 +108,7 @@ if __name__ == '__main__':
 
     # (selfing_rate * 100) % of individuals are selfers.
     selfing = sim.SelfMating(ops = sim.Recombinator(rates = recomb_rate),
-                             weight = sub_pop_sizes[0])
+                             weight = pop_size * selfing_rate)
 
     # the rest are outcrossers.
     offspring_func = sim.OffspringGenerator(ops = sim.Recombinator(rates = recomb_rate))
@@ -123,7 +116,7 @@ if __name__ == '__main__':
     parent_chooser = sim.PyParentsChooser(generator = pickTwoParents)
     outcross = sim.HomoMating(chooser = parent_chooser,
                               generator = offspring_func,
-                              weight = sub_pop_sizes[1])
+                              weight = pop_sizes * (1 - selfing_rate))
 
     # Population size is kept constant all the time.
     mating = sim.HeteroMating(matingSchemes = [selfing, outcross],
