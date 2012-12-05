@@ -46,28 +46,12 @@ In particular outcrossers cannot reproduce by self-fertilization.
 \label{sec:mating-scheme}
 
 At mating stage of their life cycle,
-\(S N\) selfing individuals undergo self-fertilization.
-This class of organisms generate exactly \(S N\) offspring.
-Each selfer in the parental generation is equilikely to leave an
-offspring that will eventually reproduce in the next mating season.
-Therefore, individuals can have zero, one, or more than one offspring.
-
-The remaining \((1 - S)N\) outcrossing individuals mate with other
-outcrossing individuals, and they produce exactly \((1 - S)N\) offspring.
-Because they are hermaphroditic outcrossers, an individual cannot
-reproduce by selfing.
-At the same time, it can mate with any other oucrossers.
-Therefore, an outcrosser has \((1 - S) N - 1\) potential mating
-partners.
-Again, individuals are equilikely to contribute offspring to the next
-generation.
-
-In total \(N\) parents leave \(N\) offspring, so population size does
+\(N\) organisms participate in reproduction both via
+self-fertilization or mating with other organisms.
+Any organism can perform both modes of reproduction.
+Selfing and outcrossing result in \(SN\) and \((1-S)N\) offspring.
+In total \(N\) parents leave \(N\) offspring, and population size does
 not change over generations.
-Within the offspring, \(S N\) organisms randomly become selfers, and
-the rest are outcrossers.
-Whether one organism is selfer or not is independent of under which
-mode of reproduction the organism is reproduced.
 
 
 \subsection{Recombination}
@@ -128,23 +112,22 @@ after initializing population.
 In the current simulation, initialization of population is done by
 simuPOP-provided function.
 
-Mutations under the infinite-sites model is simply implemented by
-setting an allelic state of a new mutant to be the number of mutations
-occurred at a locus up to that point in time.
-This approach is essentially identical to implementing the
-infinite-alleles model of mutations.
-Unfortunately simuPOP does not provide a code for this model,
-and my implementation is illustrated in code \ref{algo:mutation}.
-
-This simplification is possible for our case because we are only
-interested in heterozygosity so far.
-Heterozygosity merely asks if two genes taken from a single organism
-are identical in state.
-Addressing this question does not require genealogical information,
-which is only present in the infinite-sites model.
-As a consequence, as soon as other summary statistics utilizing
-genealogical information are required, this approach stops working.
-Instead, more rigorous approaches are necessary for such cases.
+Mutations under the infinite-sites model is approximated by
+\(n\)-sites model with a large \(n\).
+When a new mutation event occurs in a population, one of the unused
+sites are assigned to the mutation.
+Absence and presence of the mutation are coded as binary variable;
+zero is absent, one is present.
+All of \(n\) sites are used up after \(n\)-th mutation.
+When this situation arises, simulator tries to free up some sites,
+which holds information about a mutation either lost from or fixed in
+the population due to genetic drift.
+If no site becomes available after the recycle, an error is reported.
+Additionally, a simulation is aborted.
+Dynamically increasing \(n\) during simulation is considered, but it
+has not been implemented yet.
+The current implementation uses \(n = 256\), and it is illustrated in
+code \ref{algo:mutation}.
 
 For this simulation, simuPOP-provided operations are sufficient for
 all events except mutations and selecting pairs of parents in
@@ -157,11 +140,6 @@ At initialization, a population is filled with
 \(N\) original organisms.
 All of these organisms carry ancestral alleles at both loci.
 Hence, the population is monomorphic.
-Alleles are encoded by non-negative integers, and the ancestral allele
-is represented by `0'.
-Any mutant allele is represented by positive integers.
-First \(S N\) organisms are then assigned to be selfers, and
-the rest to be outcrossers.
 
 \subsubsection{Iterations}
 \label{sec:iterations}
@@ -175,25 +153,23 @@ Bernoulli distribution with parameter \(\mu_{1}\) and \(\mu_{2}\).
 For each individual, both genes at each locus are tested for the
 presence of mutation.
 When a mutation is present in an organism, an appropriate gene gets
-a novel allele, whose numeric value is one more than the number of
-already observed mutation events at the locus.
-For example, after observing three mutation events at the first locus,
-a new mutation introduces a new allele, whose numeric value is `4.'
+a novel allele by assigning an unused site and by setting the value at
+the site to `1' for the organism and `0' in other organisms.
 
 After tests of new mutations are performed, reproduction takes place.
-\(S N\) Organisms assigned to be selfers undergo self-fertilization.
-This event is implemented by randomly picking an organism from
-a group of all selfers to be a parent, and a single
-offspring is reproduced from the parent.
+All organisms have an equal chance of reproduction.
+A fraction \(S\) of offspring is generated by selfing, which is
+implemented by randomly picking an organism from the parental
+population.
+After a parent is selected, single offspring is created.
 This procedure is repeated until the total number of children reaches
 \(S N\).
 
-Outcrossers follow a similar reproduction scheme.
+Outcrossing follow a similar procedure.
 A random pair of organisms from the current generation are chosen as
-parents.
-Then a single offspring is reproduced from the parents.
-Again, these steps are repeated until total number of children from
-the outcrossers reches \((1 - S)N\) (code \ref{algo:outcrossing}).
+parents, and the pair create a single offspring.
+Again, these steps are repeated until the total number of children from
+the outcrossing reaches \((1 - S)N\) (code \ref{algo:outcrossing}).
 This scheme implies that, even if a parent has multiple offspring,
 another parent of its offspring are not necessarily the same
 organism.
@@ -218,38 +194,22 @@ Then, a run of the simulation is terminated.
     \State Initialize \(ngen\) \Comment {number of generations}
     \State Initialize \(nrep\) \Comment {number of replications}
 
-  \item
-
     \ForAll {\(nrep\)}
-
-    \LineComment {\(mut_{i}\) is a number of mutation at locus \(i\) so far}
-    \State \([mut_{1}, mut_{2}] \gets [0, 0]\)
 
     \LineComment {initialize population}
     \State \(pop \gets\) create population of size \(N\)
-    \LineComment {\(pop_{s}, pop_{o}\) are selfers and outcrossers}
-    \State \(pop_{s} \gets\) select \(S N\) individuals from \(pop\) to selfers
-    \State \(pop_{o} \gets\) select \((1 - S)N\) individuals from
-    \(pop\) to outcrossers
 
+    \LineComment {Iteration}
     \For {\(ngen\) generations}
 
-    \State \(pop, [mut_{1}, mut_{2}] \gets\) \Call{Add mutations}{$pop, [mut_{1}, mut_{2}]$}
+    \State \(pop \gets\) \Call{Add mutations}{$pop$}
 
-  \item
     \LineComment {reproduction}
     \LineComment {\(pop'_{s}, pop'_{o}\) are offspring of selfers and outcrossers}
-    \State \(pop'_{s} \gets\) selfing of \(pop_{s}\) with
-    recombination rate \(r\)
-    \State \(pop'_{o} \gets\) \Call{Outcrossing}{$pop_{o},
-      r$}
+    \State \(pop'_{s} \gets\) \Call{Selfing}{$pop, r$}
+    \State \(pop'_{o} \gets\) \Call{Outcrossing}{$pop, r$}
     \LineComment {offspring generation replaces parental generation}
     \State \(pop \gets pop'_{s} \cup pop'_{o}\)
-    \State \(pop_{s} \gets\) randomly select \(SN\) individuals from
-    \(pop\) to selfers
-    \State \(pop_{o} \gets\) randomly select \((1 - S)N\) individuals to
-    outcrossers
-
     \EndFor
 
     \State Compute heterozygosity from \(pop\)
@@ -265,18 +225,41 @@ Then, a run of the simulation is terminated.
   \begin{algorithmic}
     % need to use $$ for inline math to workaround a known bug in
     % ifthen package
-    \Function{Add mutations}{$pop, [mut_{1}, mut_{2}]$}
+    \Function{Add mutations}{$pop$}
     \For {\(i = 1 \to N\)}
     \For {\(j = 1 \to 2\)} \Comment {iterate over locus}
     \For {\(k = 1 \to 2\)} \Comment {iterate over chromosome}
-    \If \(rng < S\)
-    \State \(mut_{j} \gets mut_{j} + 1\)
-    \State \(pop_{i}.locus_{j}.chromosome_{k} \gets mut_{j}\)
+    \If {\(rng < S\)}
+    \If {No unused site}
+    \State Recycle monomorphic sites
+    \If {No unused site}
+    \State Print error and abort
+    \EndIf
+    \EndIf
+    \State Select an unused site \(sites_{l}\)
+    \State \(pop.individual[i].chromosome[k].sites[l] \gets 1\)
     \EndIf
     \EndFor
     \EndFor
     \EndFor
-    \State \Return \(pop, [mut_{1}, mut_{2}]\)
+    \State \Return \(pop\)
+    \EndFunction
+  \end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+  \caption{Selfing}
+  \label{algo:selfing}
+  \begin{algorithmic}
+    \Function{Selfing}{$pop, r$}
+    \State Initialize \(pop_{s}'\) as an empty list
+    \For {\(i = 1 \to SN \)}
+    \State \(parent \gets\) pick an organism from \(pop\)
+    \State \(child \gets\) produced from \(parent\) with recombination
+    rate \(r\)
+    \State Extend \(pop_{s}'\) by adding \(child\)
+    \EndFor
+    \State \Return \(pop_{s}'\)
     \EndFunction
   \end{algorithmic}
 \end{algorithm}
@@ -285,10 +268,10 @@ Then, a run of the simulation is terminated.
   \caption{Outcrossing}
   \label{algo:outcrossing}
   \begin{algorithmic}
-    \Function{Outcrossing}{$pop_o, r$}
+    \Function{Outcrossing}{$pop, r$}
     \State Initialize \(pop_{o}'\) as an empty list
-    \For {\(i = 1 \to N\)}
-    \State \(parents \gets\) pick a unique pair from \(pop_{o}\)
+    \For {\(i = 1 \to (1 - S)N\)}
+    \State \(parents \gets\) pick a unique pair from \(pop\)
     \State \(child \gets\) produced from \(parents\) with
     recombination rate \(r\)
     \State Extend \(pop_{o}'\) by adding \(child\)
