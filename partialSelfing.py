@@ -103,7 +103,8 @@ class InfSiteMutator(sim.PyOperator):
         sim.stat(pop, alleleFreq=sites)
         alleleNum = pop.dvars().alleleNum
         nums = [(i, alleleNum[i][0]) for i in range(stop - start + 1)]
-        available = [start + i for i, num in nums if str(num) == 0 or str(num) == pop_size]
+        dip_size = 2 * pop_size
+        available = [start + i for i, num in nums if num == 0 or num == dip_size]
         for ind in pop.individuals():
             for site in available:
                 ind.setAllele(0, site, ploidy = 0)
@@ -117,6 +118,40 @@ class InfSiteMutator(sim.PyOperator):
     def elongate(self, pop, locus):
         '''Increase the number of sites for a locus when no more site is avaialbe.'''
         raise NotImplementedError
+
+def chunks(l, n):
+    '''Divide a list into equal-length sublists'''
+    for i in xrange(0, len(l), n):
+        yield l[i:i+n]
+
+
+def computeHeterozygosity(pop, allele_len, num_loci):
+    # This only works if each locus has the same number of sites.
+    h = [0] * num_loci                       # number of heterozygotes
+    pop_size = float(pop.popSize())
+
+    for ind in pop.individuals():
+        genotype0 = chunks(ind.genotype(ploidy = 0), allele_len)
+        genotype1 = chunks(ind.genotype(ploidy = 1), allele_len)
+
+        for i, (g0, g1) in enumerate(zip(genotype0, genotype1)):
+            if g0 != g1:
+                h[i] += 1
+            else:
+                print g0, g1
+    return list([i / pop_size for i in h])
+
+
+def computeNumberOfSegregatingSites(pop, allele_len, num_loci):
+    sim.stat(pop, alleleFreq=sim.ALL_AVAIL)
+    pop_size = pop.popSize()
+    alleleNum = pop.dvars().alleleNum
+    alleleNum = [alleleNum[allele][0] for allele in alleleNum]
+    loci = chunks(alleleNum, allele_len)
+    dip_size = 2 * pop_size
+    return list([len([True for site in locus if site != 0 and site != dip_size])
+                 for locus in loci])
+
 
 # select unique a pair of parents, and make sure that father and
 # mother are different individuals.
@@ -186,14 +221,14 @@ if __name__ == '__main__':
         initOps = genotype,
         preOps = mutator,
         matingScheme = mating,
-        finalOps = sim.Stat(heteroFreq = [0,1]),
         gen = ngen)
 
     # Extract heterozigosity (fraction of individuals that are
     # heterozigous) at the end of simulations.
     # Results are printed to STDOUT in CSV file.
-    print('"locus 0","locus 1"')
+    # print('"locus 0","locus 1"')
     for pop in simulator.populations():
-        vars = pop.dvars()
-        print vars.heteroFreq
-        print('{},{}\n'.format(vars.heteroFreq[0], vars.heteroFreq[1])),
+        for ind in pop.individuals():
+            print all([i == 0 for i in ind.genotype()])
+        print computeHeterozygosity(pop, allele_len, num_loci)
+        print computeNumberOfSegregatingSites(pop, allele_len, num_loci)
