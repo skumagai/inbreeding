@@ -60,17 +60,23 @@ class InfSiteMutator(sim.PyOperator):
         for i, ind in enumerate(pop.individuals()):
             for locus in range(self.num_loci):
                 for ploidy in range(2):
-                  if rng.randUniform() < mu[locus]:
-                      try:
-                          idx = self.available[rep][locus].pop()
-                      except IndexError:
-                          if self.reclaim(pop, rep, locus):
-                              idx = self.available[rep][locus].pop()
-                          else:
-                              # self.elongate(pop, rep, locus)
-                              # idx = self.available[locus].pop()
-                              sys.exit('maximum number of storable polymorphic sites reached')
-                      ind.setAllele(1, idx, ploidy = ploidy)
+                    if rng.randUniform() < mu[locus]:
+                        try:
+                            # At this step, idx holds intra-locus index
+                            # of an available site.
+                            idx = self.available[rep][locus].pop()
+                        except IndexError:
+                            if self.reclaim(pop, rep, locus):
+                                idx = self.available[rep][locus].pop()
+                            else:
+                                # self.elongate(pop, rep, locus)
+                                # idx = self.available[locus].pop()
+                                sys.exit('maximum number of storable polymorphic sites reached')
+                        # We need to convert intra-locus index to
+                        # inter-loci index starting from the beginning
+                        # of a chromosome.
+                        idx += locus * self.allele_len
+                        ind.setAllele(1, idx, ploidy = ploidy)
 
         return True
 
