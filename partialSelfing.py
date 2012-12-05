@@ -23,58 +23,94 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from collections import deque
 import sys
 import random
 
 import simuOpt
-simuOpt.setOptions(alleleType = 'long',
+simuOpt.setOptions(alleleType = 'binary',
                    optimized = False,
                    quiet = True)
 
 import simuPOP as sim
 
-# Implement infinite-sites mutation model.  Whenever a new mutation
-# arises, assign n + 1-th allele to a mutatnt, for n the maximum
-# observed allele.  Alleles are encoded as non-negative integer, where
-# zero indicates ancestral type.  The largest allele indicates the
-# number of mutations occurred to each locus
+# Implement infinite-sites mutation model.  As new mutations arise,
+# number of polymorphic sites increases.  In the current
+# implementation a fix number of slots are pre-allocated to store
+# polymorphic sites.  Once all available space is exhausted, sites
+# that are monomorphic (due to random drift) are recycled.  When the
+# recycle is failed to open up any new space, simulations are
+# terminated.
+#
+# Dynamically increasing the number of slots is planned but not
+# implemented.
 class InfSiteMutator(sim.PyOperator):
 
-    def __init__(self, mu, pop_size, *args, **kwargs):
+    def __init__(self, mu, num_loci, allele_len, rep, *args, **kwargs):
         self.mu = mu
-        self.idx = [0, 0]
-        self.pop_size = pop_size
+        self.num_loci = num_loci
+        self.allele_len = allele_len
+        self.available = {r: [deque(range(allele_len)) for i in range(2)] for r in range(rep)}
         super(InfSiteMutator, self).__init__(func = self.mutate, *args, **kwargs)
 
     def mutate(self, pop):
+        rep = pop.dvars().rep
         rng = sim.getRNG()
-        (mu0, mu1) = self.mu
-        (idx0, idx1) = self.idx
-        rngs = [rng.randUniform() for i in range(4 * self.pop_size)]
+        mu = self.mu
         for i, ind in enumerate(pop.individuals()):
-            # manually unrolling inner loops to (hopefully) speed up
-            # simulation.
+            for locus in range(self.num_loci):
+                for ploidy in range(2):
+                  if rng.randUniform() < mu[locus]:
+                      try:
+                          idx = self.available[rep][locus].pop()
+                      except IndexError:
+                          if self.reclaim(pop, rep, locus):
+                              idx = self.available[rep][locus].pop()
+                          else:
+                              # self.elongate(pop, rep, locus)
+                              # idx = self.available[locus].pop()
+                              sys.exit('maximum number of storable polymorphic sites reached')
+                      ind.setAllele(1, idx, ploidy = ploidy)
 
-            # The first two elements are for the first locus (both chromosomes)
-            if rngs[i] < mu0:
-                idx0 += 1
-                ind.setAllele(idx0, 0)
-
-            if rngs[i+1] < mu0:
-                idx0 += 1
-                ind.setAllele(idx0, 2)
-
-            # The last two elements are for the second locus (both chromosomes)
-            if rngs[i+2] < mu1:
-                idx1 += 1
-                ind.setAllele(idx1, 1)
-
-            if rngs[i+3] < mu1:
-                idx1 += 1
-                ind.setAllele(idx1, 3)
-
-        self.idx = [idx0, idx1]
         return True
+
+    def reclaim(self, pop, rep, locus):
+        '''Recycle sites, that are already fixed.'''
+
+        # by deseign, simulations use a single chromosome.
+        if locus == 0 and self.num_loci == 1:
+            # only locus in single locus simulations
+            start = 0
+            stop = pop.totNumLoci() - 1
+        elif locus == self.num_loci - 1:
+            # last locus in multi loci simulation
+            start = pop.locusByName(str(locus))
+            stop = pop.totNumLoci() - 1
+        else:
+            # intermediate locus in multi locus simulation
+            start = pop.locusByName(str(locus))
+            stop = pop.locusByName(str(locus + 1)) - 1
+
+        sites = range(start, stop + 1)
+
+        pop_size = pop.popSize()
+        sim.stat(pop, alleleFreq=sites)
+        alleleNum = pop.dvars().alleleNum
+        nums = [(i, alleleNum[i][0]) for i in range(stop - start + 1)]
+        available = [start + i for i, num in nums if str(num) == 0 or str(num) == pop_size]
+        for ind in pop.individuals():
+            for site in available:
+                ind.setAllele(0, site, ploidy = 0)
+                ind.setAllele(0, site, ploidy = 1)
+        if available == list():
+            return False
+        else:
+            self.available[rep][locus] = deque(available)
+            return True
+
+    def elongate(self, pop, locus):
+        '''Increase the number of sites for a locus when no more site is avaialbe.'''
+        raise NotImplementedError
 
 # select unique a pair of parents, and make sure that father and
 # mother are different individuals.
@@ -82,6 +118,13 @@ def pickTwoParents(pop):
     parents = list(pop.individuals())
     while True:
         yield random.sample(parents, 2)
+
+def build_loci_names(num_loci, allele_len):
+    '''attach names to the first site of each locus.'''
+    names = ['' if i % allele_len != 0 else str(i / allele_len)
+             for i in range(allele_len * num_loci)]
+    return names
+
 
 if __name__ == '__main__':
 
@@ -94,9 +137,15 @@ if __name__ == '__main__':
     selfing_rate, recomb_rate = [float(d) for d in sys.argv[4:6]]
     ngen, nrep = [int(i) for i in sys.argv[6:]]
 
+    num_loci = 2                          # number of loci
+    allele_len = 256                      # number of storable polymorphic sites per locus
+
+    loci_names = build_loci_names(num_loci, allele_len)
+
     population = sim.Population(size = pop_size,
                                 ploidy = 2,
-                                loci = 2)
+                                loci = num_loci * allele_len,
+                                lociNames = loci_names)
 
     # Define evolutionary operators here to avoid long lines later.
     simulator = sim.Simulator(pops = population,
@@ -104,7 +153,10 @@ if __name__ == '__main__':
 
     genotype = sim.InitGenotype(genotype = [0, 0, 0, 0])
 
-    mutator = InfSiteMutator(mut_rates, pop_size)
+    mutator = InfSiteMutator(mu = mut_rates,
+                             num_loci = num_loci,
+                             allele_len = allele_len,
+                             rep = nrep)
 
     # (selfing_rate * 100) % of individuals are selfers.
     selfing = sim.SelfMating(ops = sim.Recombinator(rates = recomb_rate),
@@ -116,7 +168,7 @@ if __name__ == '__main__':
     parent_chooser = sim.PyParentsChooser(generator = pickTwoParents)
     outcross = sim.HomoMating(chooser = parent_chooser,
                               generator = offspring_func,
-                              weight = pop_sizes * (1 - selfing_rate))
+                              weight = pop_size * (1 - selfing_rate))
 
     # Population size is kept constant all the time.
     mating = sim.HeteroMating(matingSchemes = [selfing, outcross],
@@ -134,7 +186,8 @@ if __name__ == '__main__':
     # Extract heterozigosity (fraction of individuals that are
     # heterozigous) at the end of simulations.
     # Results are printed to STDOUT in CSV file.
-    print('"locus 0","locus 1"\n')
+    print('"locus 0","locus 1"')
     for pop in simulator.populations():
         vars = pop.dvars()
+        print vars.heteroFreq
         print('{},{}\n'.format(vars.heteroFreq[0], vars.heteroFreq[1])),
