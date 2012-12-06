@@ -132,7 +132,7 @@ def chunks(l, n):
         yield l[i:i+n]
 
 
-def computeHeterozygosity(pop, allele_len, num_loci):
+def computeHeterozygosity(pop, num_loci, allele_len):
     # This only works if each locus has the same number of sites.
     h = [0] * num_loci                       # number of heterozygotes
     pop_size = float(pop.popSize())
@@ -155,7 +155,7 @@ def areAllelesMonomorphic(pop, alleleFreq = sim.ALL_AVAIL):
             for allele in alleleNum]
 
 
-def computeNumberOfSegregatingSites(pop, allele_len, num_loci):
+def computeNumberOfSegregatingSites(pop, num_loci, allele_len):
     alleleStates = areAllelesMonomorphic(pop)
     loci = chunks(alleleStates, allele_len)
     return list([len([True for site in locus if site == False]) for locus in loci])
