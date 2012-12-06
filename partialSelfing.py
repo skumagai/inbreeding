@@ -122,12 +122,10 @@ def computeHeterozygosity(pop, allele_len, num_loci):
         for i, (g0, g1) in enumerate(zip(genotype0, genotype1)):
             if g0 != g1:
                 h[i] += 1
-            else:
-                print g0, g1
     return list([i / pop_size for i in h])
 
 def areAllelesMonomorphic(pop, alleleFreq = sim.ALL_AVAIL):
-    sim.state(pop, alleleFreq = alleleFreq)
+    sim.stat(pop, alleleFreq = alleleFreq)
     pop_size = pop.popSize()
     alleleNum = pop.dvars().alleleNum
     dip_size = 2 * pop_size
@@ -137,7 +135,7 @@ def areAllelesMonomorphic(pop, alleleFreq = sim.ALL_AVAIL):
 
 def computeNumberOfSegregatingSites(pop, allele_len, num_loci):
     alleleStates = areAllelesMonomorphic(pop)
-    loci = chunks(alleleState, allele_len)
+    loci = chunks(alleleStates, allele_len)
     return list([len([True for site in locus if site == False]) for locus in loci])
 
 
