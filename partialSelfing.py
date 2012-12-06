@@ -169,8 +169,6 @@ if __name__ == '__main__':
     simulator = sim.Simulator(pops = population,
                               rep = nrep)
 
-    genotype = sim.InitGenotype(genotype = [0, 0, 0, 0])
-
     mutator = InfSiteMutator(mu = mut_rates,
                              num_loci = num_loci,
                              allele_len = allele_len,
@@ -195,7 +193,6 @@ if __name__ == '__main__':
 
     # Perform simulation.
     simulator.evolve(
-        initOps = genotype,
         preOps = mutator,
         matingScheme = mating,
         gen = ngen)
@@ -204,8 +201,11 @@ if __name__ == '__main__':
     # heterozigous) at the end of simulations.
     # Results are printed to STDOUT in CSV file.
     # print('"locus 0","locus 1"')
+    print('"rep","gen","1-f (locus 0)","1-f (locus1)","# segre (locus 0)", "# segre (locus 1)"')
     for pop in simulator.populations():
-        for ind in pop.individuals():
-            print all([i == 0 for i in ind.genotype()])
-        print computeHeterozygosity(pop, allele_len, num_loci)
-        print computeNumberOfSegregatingSites(pop, allele_len, num_loci)
+        dvars = pop.dvars()
+        print("{},{},{},{},{},{}".format(
+            dvars.rep,
+            dvars.gen,
+            *(computeHeterozygosity(pop, allele_len, num_loci) + \
+          computeNumberOfSegregatingSites(pop, allele_len, num_loci))))
