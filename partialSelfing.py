@@ -110,7 +110,7 @@ class InfSiteMutator(sim.PyOperator):
         sites = range(start, stop)
 
         alleleStates = areAllelesMonomorphic(pop, sites)
-        available = [start + i for i, state in enumerate(alleleStates) if state == True]
+        available = [i for i, state in enumerate(alleleStates) if state == True]
 
         if list(available) == list():
             return False
