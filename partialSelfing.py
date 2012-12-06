@@ -82,27 +82,15 @@ class InfSiteMutator(sim.PyOperator):
 
     def reclaim(self, pop, rep, locus):
         '''Recycle sites, that are already fixed.'''
-
-        # by deseign, simulations use a single chromosome.
-        if locus == 0 and self.num_loci == 1:
-            # only locus in single locus simulations
-            start = 0
-            stop = pop.totNumLoci() - 1
-        elif locus == self.num_loci - 1:
-            # last locus in multi loci simulation
-            start = pop.locusByName(str(locus))
-            stop = pop.totNumLoci() - 1
-        else:
-            # intermediate locus in multi locus simulation
-            start = pop.locusByName(str(locus))
-            stop = pop.locusByName(str(locus + 1)) - 1
-
-        sites = range(start, stop + 1)
+        allele_len = self.allele_len
+        start = locus * allele_len
+        stop = (locus + 1) * allele_len
+        sites = range(start, stop)
 
         pop_size = pop.popSize()
         sim.stat(pop, alleleFreq=sites)
         alleleNum = pop.dvars().alleleNum
-        nums = [(i, alleleNum[i][0]) for i in range(stop - start + 1)]
+        nums = [(i, alleleNum[i][0]) for i in range(allele_len)]
         dip_size = 2 * pop_size
         available = [start + i for i, num in nums if num == 0 or num == dip_size]
         for ind in pop.individuals():
@@ -160,12 +148,6 @@ def pickTwoParents(pop):
     while True:
         yield random.sample(parents, 2)
 
-def build_loci_names(num_loci, allele_len):
-    '''attach names to the first site of each locus.'''
-    names = ['' if i % allele_len != 0 else str(i / allele_len)
-             for i in range(allele_len * num_loci)]
-    return names
-
 
 if __name__ == '__main__':
 
@@ -181,12 +163,9 @@ if __name__ == '__main__':
     num_loci = 2                          # number of loci
     allele_len = 256                      # number of storable polymorphic sites per locus
 
-    loci_names = build_loci_names(num_loci, allele_len)
-
     population = sim.Population(size = pop_size,
                                 ploidy = 2,
-                                loci = num_loci * allele_len,
-                                lociNames = loci_names)
+                                loci = num_loci * allele_len)
 
     # Define evolutionary operators here to avoid long lines later.
     simulator = sim.Simulator(pops = population,
