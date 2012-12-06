@@ -41,6 +41,28 @@ import simuPOP as sim
 # that are monomorphic (due to random drift) are recycled.  When the
 # recycle is failed to open up any new space, simulations are
 # terminated.
+
+class Store(sim.PyOperator):
+
+    def __init__(self, num_loci, allele_len, rep, gen, *args, **kwargs):
+        self.num_loci = num_loci
+        self.allele_len = allele_len
+        self.h = [[[0] * num_loci] * gen] * rep
+        self.segre = [[[0] * num_loci] * gen] * rep
+        super(Store, self).__init__(func = self.store, *args, **kwargs)
+
+    def store(self, pop):
+        dvars = pop.dvars()
+        rep = dvars.rep
+        gen = dvars.gen
+        num_loci = self.num_loci
+        allele_len = self.allele_len
+        self.h[rep][gen][:] = computeHeterozygosity(pop, num_loci, allele_len)
+        self.segre[rep][gen][:] = computeNumberOfSegregatingSites(pop, num_loci, allele_len)
+        return True
+
+
+
 #
 # Dynamically increasing the number of slots is planned but not
 # implemented.
@@ -190,11 +212,13 @@ if __name__ == '__main__':
     mating = sim.HeteroMating(matingSchemes = [selfing, outcross],
                               subPopSize = pop_size)
 
+    store = Store(num_loci, allele_len, nrep, ngen)
 
     # Perform simulation.
     simulator.evolve(
         preOps = mutator,
         matingScheme = mating,
+        postOps = store,
         gen = ngen)
 
     # Extract heterozigosity (fraction of individuals that are
@@ -202,10 +226,15 @@ if __name__ == '__main__':
     # Results are printed to STDOUT in CSV file.
     # print('"locus 0","locus 1"')
     print('"rep","gen","1-f (locus 0)","1-f (locus1)","# segre (locus 0)", "# segre (locus 1)"')
-    for pop in simulator.populations():
-        dvars = pop.dvars()
-        print("{},{},{},{},{},{}".format(
-            dvars.rep,
-            dvars.gen,
-            *(computeHeterozygosity(pop, allele_len, num_loci) + \
-          computeNumberOfSegregatingSites(pop, allele_len, num_loci))))
+    # for pop in simulator.populations():
+    #     dvars = pop.dvars()
+    #     print("{},{},{},{},{},{}".format(
+    #         dvars.rep,
+    #         dvars.gen,
+    #         *(computeHeterozygosity(pop, num_loci, allele_len) + \
+    #       computeNumberOfSegregatingSites(pop, num_loci, allele_len))))
+    for r in xrange(nrep):
+        for n in xrange(ngen):
+            print('{},{},{},{},{},{}'.format(r,
+                                             n,
+                                             *(store.h[r][n] + store.segre[r][n])))
