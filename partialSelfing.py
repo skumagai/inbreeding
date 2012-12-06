@@ -87,21 +87,18 @@ class InfSiteMutator(sim.PyOperator):
         stop = (locus + 1) * allele_len
         sites = range(start, stop)
 
-        pop_size = pop.popSize()
-        sim.stat(pop, alleleFreq=sites)
-        alleleNum = pop.dvars().alleleNum
-        nums = [(i, alleleNum[i][0]) for i in range(allele_len)]
-        dip_size = 2 * pop_size
-        available = [start + i for i, num in nums if num == 0 or num == dip_size]
+        alleleStates = areAllelesMonomorphic(pop, sites)
+        available = [start + i for i, state in enumerate(alleleStates) if state == True]
+
+        if list(available) == list():
+            return False
+
         for ind in pop.individuals():
             for site in available:
                 ind.setAllele(0, site, ploidy = 0)
                 ind.setAllele(0, site, ploidy = 1)
-        if available == list():
-            return False
-        else:
-            self.available[rep][locus] = deque(available)
-            return True
+        self.available[rep][locus] = deque(available)
+        return True
 
     def elongate(self, pop, locus):
         '''Increase the number of sites for a locus when no more site is avaialbe.'''
@@ -129,16 +126,19 @@ def computeHeterozygosity(pop, allele_len, num_loci):
                 print g0, g1
     return list([i / pop_size for i in h])
 
-
-def computeNumberOfSegregatingSites(pop, allele_len, num_loci):
-    sim.stat(pop, alleleFreq=sim.ALL_AVAIL)
+def areAllelesMonomorphic(pop, alleleFreq = sim.ALL_AVAIL):
+    sim.state(pop, alleleFreq = alleleFreq)
     pop_size = pop.popSize()
     alleleNum = pop.dvars().alleleNum
-    alleleNum = [alleleNum[allele][0] for allele in alleleNum]
-    loci = chunks(alleleNum, allele_len)
     dip_size = 2 * pop_size
-    return list([len([True for site in locus if site != 0 and site != dip_size])
-                 for locus in loci])
+    return [False if alleleNum[allele][0] != 0 and alleleNum[allele][0] != dip_size else True
+            for allele in alleleNum]
+
+
+def computeNumberOfSegregatingSites(pop, allele_len, num_loci):
+    alleleStates = areAllelesMonomorphic(pop)
+    loci = chunks(alleleState, allele_len)
+    return list([len([True for site in locus if site == False]) for locus in loci])
 
 
 # select unique a pair of parents, and make sure that father and
