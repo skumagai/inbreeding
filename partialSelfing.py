@@ -237,7 +237,6 @@ if __name__ == '__main__':
     #     sys.exit(1)
 
     args = parseArgs()
-    print args
     pop_size = args.POP
     ngen = args.NGEN
     nrep = args.NREP
