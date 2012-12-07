@@ -28,10 +28,77 @@ from collections import deque
 import sys
 import random
 
+def parseArgs():
+    parser = argparse.ArgumentParser(description="run partial selfing simulations")
+    parser.add_argument('POP',
+                        type=int,
+                        help='population size')
+    parser.add_argument('NGEN',
+                        type=int,
+                        help='number of generations excluding burn-in period')
+    parser.add_argument('NREP',
+                        type=int,
+                        help='number of replicates')
+    parser.add_argument('OUTPUT',
+                        nargs='?',
+                        type=argparse.FileType('w'),
+                        default=sys.stdout,
+                        help='output file name (default: STDOUT)')
+    parser.add_argument('-r', '--recombination-rate',
+                        metavar='R',
+                        type=float,
+                        default=0.5,
+                        help='recombination rate (default: 0.5)')
+    parser.add_argument('-s', '--selfing-rate',
+                        metavar='S',
+                        type=float,
+                        default=0,
+                        help='selfing rate (default: 0)')
+    parser.add_argument('-m', '--mutation-rate',
+                        metavar='M',
+                        type=float,
+                        nargs='*',
+                        default=[0, 0],
+                        help='mutation rate (default:0)')
+    parser.add_argument('-b', '--burn-in',
+                        metavar='B',
+                        type=int,
+                        default=0,
+                        help='burn-in (default: 0)')
+    parser.add_argument('-n', '--num_loci',
+                        metavar='NLOCI',
+                        type=int,
+                        default=2,
+                        help='number of loci (default: 2)')
+    parser.add_argument('--num-segre-sites',
+                        metavar='NSITES',
+                        type=int,
+                        default=256,
+                        help='maximum number of segregating sites per locus (default: 256)')
+    parser.add_argument('--seed',
+                        type=int,
+                        default=0,
+                        help='random number seed (default: use posix time)')
+    parser.add_argument('--explore',
+                        action='store_true',
+                        help='record heterozygosity and number of segregating sites each generation for later inspection to determine an appropriate durtion of burn-in')
+    parser.add_argument('--infinite-alleles',
+                        action='store_true',
+                        help='use the infinite-alleles model instead of the infinite-sites model')
+    return parser.parse_args()
+
+
+args = parseArgs()
+
 import simuOpt
-simuOpt.setOptions(alleleType = 'binary',
-                   optimized = False,
-                   quiet = True)
+if args.infinite_alleles == True:
+    mode = 'long'
+else:
+    mode = 'binary'
+
+simuOpt.setOptions(alleleType = mode)# ,
+                   # optimized = False,
+                   # quiet = True)
 
 import simuPOP as sim
 
@@ -175,62 +242,6 @@ def pickTwoParents(pop):
     while True:
         yield random.sample(parents, 2)
 
-def parseArgs():
-    parser = argparse.ArgumentParser(description="run partial selfing simulations")
-    parser.add_argument('POP',
-                        type=int,
-                        help='population size')
-    parser.add_argument('NGEN',
-                        type=int,
-                        help='number of generations excluding burn-in period')
-    parser.add_argument('NREP',
-                        type=int,
-                        help='number of replicates')
-    parser.add_argument('OUTPUT',
-                        nargs='?',
-                        type=argparse.FileType('w'),
-                        default=sys.stdout,
-                        help='output file name (default: STDOUT)')
-    parser.add_argument('-r', '--recombination-rate',
-                        metavar='R',
-                        type=float,
-                        default=0.5,
-                        help='recombination rate (default: 0.5)')
-    parser.add_argument('-s', '--selfing-rate',
-                        metavar='S',
-                        type=float,
-                        default=0,
-                        help='selfing rate (default: 0)')
-    parser.add_argument('-m', '--mutation-rate',
-                        metavar='M',
-                        type=float,
-                        nargs='*',
-                        default=[0, 0],
-                        help='mutation rate (default:0)')
-    parser.add_argument('-b', '--burn-in',
-                        metavar='B',
-                        type=int,
-                        default=0,
-                        help='burn-in (default: 0)')
-    parser.add_argument('-n', '--num_loci',
-                        metavar='NLOCI',
-                        type=int,
-                        default=2,
-                        help='number of loci (default: 2)')
-    parser.add_argument('--num-segre-sites',
-                        metavar='NSITES',
-                        type=int,
-                        default=256,
-                        help='maximum number of segregating sites per locus (default: 256)')
-    parser.add_argument('--seed',
-                        type=int,
-                        default=0,
-                        help='random number seed (default: use posix time)')
-    parser.add_argument('--explore',
-                        action='store_true',
-                        help='record heterozygosity and number of segregating sites each generation for later inspection to determine an appropriate durtion of burn-in')
-    return parser.parse_args()
-
 
 
 if __name__ == '__main__':
@@ -239,7 +250,7 @@ if __name__ == '__main__':
     #     print('usage: inbreeding.py pop_size mut_rate0 mut_rate1 selfing_rate recomb_rate ngen nrep')
     #     sys.exit(1)
 
-    args = parseArgs()
+
     pop_size = args.POP
     ngen = args.NGEN
     nrep = args.NREP
