@@ -39,6 +39,8 @@ This is implemented with simuPOP_, and tested with version 1.0.8.
      --explore             record heterozygosity and number of segregating sites
                            each generation for later inspection to determine an
                            appropriate durtion of burn-in
+     --infinite-alleles    use the infinite-alleles model instead of the
+                           infinite-sites model
 
 Population heterozygosities for each run are printed to STDOUTAll in CSV format.
 
