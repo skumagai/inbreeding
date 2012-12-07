@@ -9,7 +9,36 @@ This is implemented with simuPOP_, and tested with version 1.0.8.
 
 .. _simuPOP: http://simupop.sourceforge.net/
 
-   usage: partialSelfing.py pop_size mut_rate0 mut_rate1 selfing_rate recomb_rate ngen nrep
+   usage: partialSelfing.py [-h] [-r R] [-s S] [-m [M [M ...]]] [-b B] [-n NLOCI]
+                         [--num-segre-sites NSITES] [--seed SEED] [--explore]
+                         POP NGEN NREP [OUTPUT]
+
+   run partial selfing simulations
+
+   positional arguments:
+     POP                   population size
+     NGEN                  number of generations excluding burn-in period
+     NREP                  number of replicates
+     OUTPUT                output file name (default: STDOUT)
+
+   optional arguments:
+     -h, --help            show this help message and exit
+     -r R, --recombination-rate R
+                           recombination rate (default: 0.5)
+     -s S, --selfing-rate S
+                           selfing rate (default: 0)
+     -m [M [M ...]], --mutation-rate [M [M ...]]
+                           mutation rate (default:0)
+     -b B, --burn-in B     burn-in (default: 0)
+     -n NLOCI, --num_loci NLOCI
+                           number of loci (default: 2)
+     --num-segre-sites NSITES
+                           maximum number of segregating sites per locus
+                           (default: 256)
+     --seed SEED           random number seed (default: use posix time)
+     --explore             record heterozygosity and number of segregating sites
+                           each generation for later inspection to determine an
+                           appropriate durtion of burn-in
 
 Population heterozygosities for each run are printed to STDOUTAll in CSV format.
 
