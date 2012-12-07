@@ -27,7 +27,6 @@ import argparse
 from collections import deque
 import sys
 import random
-import time
 
 import simuOpt
 simuOpt.setOptions(alleleType = 'binary',
@@ -222,7 +221,7 @@ def parseArgs():
                         help='maximum number of segregating sites per locus (default: 256)')
     parser.add_argument('--seed',
                         type=int,
-                        default=int(time.time()),
+                        default=0,
                         help='random number seed (default: use posix time)')
     parser.add_argument('--explore',
                         action='store_true',
@@ -251,6 +250,10 @@ if __name__ == '__main__':
     output = args.OUTPUT
     seed = args.seed
     to_explore = args.explore
+
+    if seed > 0:
+        sim.getRNG().set(seed = seed)
+
 
     if len(mut_rates) != 1 and len(mut_rates) != num_loci:
         sys.exit('number of mutation rates must be 1 or equal to the number of loci')
