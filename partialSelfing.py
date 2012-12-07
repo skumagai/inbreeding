@@ -23,9 +23,11 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import argparse
 from collections import deque
 import sys
 import random
+import time
 
 import simuOpt
 simuOpt.setOptions(alleleType = 'binary',
@@ -171,20 +173,87 @@ def pickTwoParents(pop):
     while True:
         yield random.sample(parents, 2)
 
+def parseArgs():
+    parser = argparse.ArgumentParser(description="run partial selfing simulations")
+    parser.add_argument('POP',
+                        type=int,
+                        help='population size')
+    parser.add_argument('NGEN',
+                        type=int,
+                        help='number of generations excluding burn-in period')
+    parser.add_argument('NREP',
+                        type=int,
+                        help='number of replicates')
+    parser.add_argument('OUTPUT',
+                        nargs='?',
+                        type=argparse.FileType('w'),
+                        default=sys.stdout,
+                        help='output file name (default: STDOUT)')
+    parser.add_argument('-r', '--recombination-rate',
+                        metavar='R',
+                        type=float,
+                        default=0.5,
+                        help='recombination rate (default: 0.5)')
+    parser.add_argument('-s', '--selfing-rate',
+                        metavar='S',
+                        type=float,
+                        default=0,
+                        help='selfing rate (default: 0)')
+    parser.add_argument('-m', '--mutation-rate',
+                        metavar='M',
+                        type=float,
+                        nargs='*',
+                        default=[0, 0],
+                        help='mutation rate (default:0)')
+    parser.add_argument('-b', '--burn-in',
+                        metavar='B',
+                        type=int,
+                        default=0,
+                        help='burn-in (default: 0)')
+    parser.add_argument('-n', '--num_loci',
+                        metavar='NLOCI',
+                        type=int,
+                        default=2,
+                        help='number of loci (default: 2)')
+    parser.add_argument('--num-segre-sites',
+                        metavar='NSITES',
+                        type=int,
+                        default=256,
+                        help='maximum number of segregating sites per locus (default: 256)')
+    parser.add_argument('--seed',
+                        type=int,
+                        default=int(time.time()),
+                        help='random number seed (default: use posix time)')
+    parser.add_argument('--explore',
+                        action='store_true',
+                        help='record heterozygosity and number of segregating sites each generation for later inspection to determine an appropriate durtion of burn-in')
+    return parser.parse_args()
+
+
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 8:
-        print('usage: inbreeding.py pop_size mut_rate0 mut_rate1 selfing_rate recomb_rate ngen nrep')
-        sys.exit(1)
+    # if len(sys.argv) != 8:
+    #     print('usage: inbreeding.py pop_size mut_rate0 mut_rate1 selfing_rate recomb_rate ngen nrep')
+    #     sys.exit(1)
 
-    pop_size = int(sys.argv[1])
-    mut_rates = [float(d) for d in sys.argv[2:4]]
-    selfing_rate, recomb_rate = [float(d) for d in sys.argv[4:6]]
-    ngen, nrep = [int(i) for i in sys.argv[6:]]
+    args = parseArgs()
+    print args
+    pop_size = args.POP
+    ngen = args.NGEN
+    nrep = args.NREP
+    selfing_rate = args.selfing_rate
+    recomb_rate = args.recombination_rate
+    num_loci = args.num_loci
+    burnin = args.burn_in
+    allele_len = args.num_segre_sites
+    mut_rates = args.mutation_rate
+    output = args.OUTPUT
+    seed = args.seed
+    to_explore = args.explore
 
-    num_loci = 2                          # number of loci
-    allele_len = 256                      # number of storable polymorphic sites per locus
+    if len(mut_rates) != 1 and len(mut_rates) != num_loci:
+        sys.exit('number of mutation rates must be 1 or equal to the number of loci')
 
     population = sim.Population(size = pop_size,
                                 ploidy = 2,
@@ -228,16 +297,18 @@ if __name__ == '__main__':
     # heterozigous) at the end of simulations.
     # Results are printed to STDOUT in CSV file.
     # print('"locus 0","locus 1"')
-    print('"rep","gen","1-f (locus 0)","1-f (locus1)","# segre (locus 0)", "# segre (locus 1)"')
-    # for pop in simulator.populations():
-    #     dvars = pop.dvars()
-    #     print("{},{},{},{},{},{}".format(
-    #         dvars.rep,
-    #         dvars.gen,
-    #         *(computeHeterozygosity(pop, num_loci, allele_len) + \
-    #       computeNumberOfSegregatingSites(pop, num_loci, allele_len))))
-    for r in xrange(nrep):
-        for n in xrange(ngen):
-            print('{},{},{},{},{},{}'.format(r,
-                                             n,
-                                             *(store.h[r][n] + store.segre[r][n])))
+    output.write('"rep","gen","1-f (locus 0)","1-f (locus1)","# segre (locus 0)", "# segre (locus 1)"\n')
+    if to_explore == True:
+        for r in xrange(nrep):
+            for n in xrange(ngen):
+                output.write('{},{},{},{},{},{}\n'.format(r,
+                                                          n,
+                                                          *(store.h[r][n] + store.segre[r][n])))
+    else:
+        for pop in simulator.populations():
+            dvars = pop.dvars()
+            vals = computeHeterozygosity(pop, num_loci, allele_len) + \
+                   computeNumberOfSegregatingSites(pop, num_loci, allele_len)
+            output.write("{},{},{},{},{},{}\n".format(dvars.rep,
+                                                      dvars.gen,
+                                                      *vals))
