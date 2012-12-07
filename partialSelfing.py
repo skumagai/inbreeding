@@ -47,7 +47,8 @@ class Store(sim.PyOperator):
     def __init__(self, num_loci, allele_len, rep, gen, *args, **kwargs):
         self.num_loci = num_loci
         self.allele_len = allele_len
-        self.h = [[[0] * num_loci] * gen] * rep
+        self.h = {r: {n: [0] * num_loci for n in range(gen)}
+                  for r in range(rep)}
         self.segre = [[[0] * num_loci] * gen] * rep
         super(Store, self).__init__(func = self.store, *args, **kwargs)
 
@@ -57,8 +58,10 @@ class Store(sim.PyOperator):
         gen = dvars.gen
         num_loci = self.num_loci
         allele_len = self.allele_len
-        self.h[rep][gen][:] = computeHeterozygosity(pop, num_loci, allele_len)
-        self.segre[rep][gen][:] = computeNumberOfSegregatingSites(pop, num_loci, allele_len)
+        for i, val in enumerate(computeHeterozygosity(pop, num_loci, allele_len)):
+            self.h[rep][gen][i] = val
+        for i, val in enumerate(computeNumberOfSegregatingSites(pop, num_loci, allele_len)):
+            self.segre[rep][gen][i] = val
         return True
 
 
