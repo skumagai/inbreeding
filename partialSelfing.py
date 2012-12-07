@@ -45,24 +45,21 @@ import simuPOP as sim
 
 class Store(sim.PyOperator):
 
-    def __init__(self, num_loci, allele_len, rep, gen, *args, **kwargs):
+    def __init__(self, num_loci, allele_len, rep, gen, output, *args, **kwargs):
         self.num_loci = num_loci
         self.allele_len = allele_len
-        self.h = {r: {n: [0] * num_loci for n in range(gen)}
-                  for r in range(rep)}
-        self.segre = [[[0] * num_loci] * gen] * rep
+        self.output = output
         super(Store, self).__init__(func = self.store, *args, **kwargs)
 
     def store(self, pop):
         dvars = pop.dvars()
-        rep = dvars.rep
-        gen = dvars.gen
         num_loci = self.num_loci
         allele_len = self.allele_len
-        for i, val in enumerate(computeHeterozygosity(pop, num_loci, allele_len)):
-            self.h[rep][gen][i] = val
-        for i, val in enumerate(computeNumberOfSegregatingSites(pop, num_loci, allele_len)):
-            self.segre[rep][gen][i] = val
+        vals = computeHeterozygosity(pop, num_loci, allele_len) + \
+          computeNumberOfSegregatingSites(pop, num_loci, allele_len)
+        self.output.write('{},{},{},{},{},{}\n'.format(dvars.rep,
+                                                       dvars.gen,
+                                                       *vals))
         return True
 
 
@@ -80,7 +77,9 @@ class InfSiteMutator(sim.PyOperator):
         super(InfSiteMutator, self).__init__(func = self.mutate, *args, **kwargs)
 
     def mutate(self, pop):
-        rep = pop.dvars().rep
+        dvars = pop.dvars()
+        rep = dvars.rep
+        gen = dvars.gen
         rng = sim.getRNG()
         mu = self.mu
         for i, ind in enumerate(pop.individuals()):
@@ -97,7 +96,11 @@ class InfSiteMutator(sim.PyOperator):
                             else:
                                 # self.elongate(pop, rep, locus)
                                 # idx = self.available[locus].pop()
-                                sys.exit('maximum number of storable polymorphic sites reached')
+                                sys.stderr.write(
+                                    'rep={}, gen={}: '.format(rep, gen) +
+                                    'maximum number of +  storable ' +
+                                    'polymorphic sites reached')
+                                return False
                         # We need to convert intra-locus index to
                         # inter-loci index starting from the beginning
                         # of a chromosome.
@@ -270,11 +273,9 @@ if __name__ == '__main__':
                              allele_len = allele_len,
                              rep = nrep)
 
-    # (selfing_rate * 100) % of individuals are selfers.
     selfing = sim.SelfMating(ops = sim.Recombinator(rates = recomb_rate),
                              weight = pop_size * selfing_rate)
 
-    # the rest are outcrossers.
     offspring_func = sim.OffspringGenerator(ops = sim.Recombinator(rates = recomb_rate))
 
     parent_chooser = sim.PyParentsChooser(generator = pickTwoParents)
@@ -286,7 +287,14 @@ if __name__ == '__main__':
     mating = sim.HeteroMating(matingSchemes = [selfing, outcross],
                               subPopSize = pop_size)
 
-    store = Store(num_loci, allele_len, nrep, ngen)
+    if to_explore == True:
+        store = Store(num_loci, allele_len, nrep, ngen, output)
+    else:
+        store = []
+
+    # write a header of result file here.  This is necessary as the
+    # output is printed at each generation during exploration runs.
+    output.write('"rep","gen","1-f (locus 0)","1-f (locus1)","# segre (locus 0)", "# segre (locus 1)"\n')
 
     # Perform simulation.
     simulator.evolve(
@@ -295,22 +303,11 @@ if __name__ == '__main__':
         postOps = store,
         gen = ngen)
 
-    # Extract heterozigosity (fraction of individuals that are
-    # heterozigous) at the end of simulations.
-    # Results are printed to STDOUT in CSV file.
-    # print('"locus 0","locus 1"')
-    output.write('"rep","gen","1-f (locus 0)","1-f (locus1)","# segre (locus 0)", "# segre (locus 1)"\n')
-    if to_explore == True:
-        for r in xrange(nrep):
-            for n in xrange(ngen):
-                output.write('{},{},{},{},{},{}\n'.format(r,
-                                                          n,
-                                                          *(store.h[r][n] + store.segre[r][n])))
-    else:
-        for pop in simulator.populations():
-            dvars = pop.dvars()
-            vals = computeHeterozygosity(pop, num_loci, allele_len) + \
-                   computeNumberOfSegregatingSites(pop, num_loci, allele_len)
-            output.write("{},{},{},{},{},{}\n".format(dvars.rep,
-                                                      dvars.gen,
-                                                      *vals))
+    # save the result if not in exploration runs.
+    for pop in simulator.populations():
+        dvars = pop.dvars()
+        vals = computeHeterozygosity(pop, num_loci, allele_len) + \
+          computeNumberOfSegregatingSites(pop, num_loci, allele_len)
+        output.write("{},{},{},{},{},{}\n".format(dvars.rep,
+                                                  dvars.gen,
+                                                  *vals))
