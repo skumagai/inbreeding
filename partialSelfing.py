@@ -276,6 +276,30 @@ class InfSiteMutator(sim.PyOperator):
         '''Increase the number of sites for a locus when no more site is avaialbe.'''
         raise NotImplementedError
 
+class InfAlleleMutator(sim.PyOperator):
+
+    def __init__(self, mu, num_loci, rep, *args, **kwargs):
+        self.mu = mu
+        self.num_loci = num_loci
+        self.idx = [0] * num_loci
+        super(InfAlleleMutator, self).__init__(func = self.mutate, *args, **kwargs)
+
+    def mutate(self, pop):
+        dvars = pop.dvars()
+        rep = dvars.rep
+        gen = dvars.gen
+        rng = sim.getRNG()
+        mu = self.mu
+        for i, ind in enumerate(pop.individuals()):
+            for locus in range(self.num_loci):
+                for ploidy in range(2):
+                    if rng.randUniform() < mu[locus]:
+                        self.idx[locus] += 1
+                        ind.setAllele(self.idx[locus], locus, ploidy = ploidy)
+
+        return True
+
+
 def chunks(l, n):
     '''Divide a list into equal-length sublists'''
     for i in xrange(0, len(l), n):
@@ -339,6 +363,8 @@ if __name__ == '__main__':
     output = args.OUTPUT
     seed = args.seed
     to_explore = args.explore
+    is_inf_alleles = args.infinite_alleles
+
 
     if seed > 0:
         sim.getRNG().set(seed = seed)
@@ -351,18 +377,36 @@ if __name__ == '__main__':
         mut_rates = [v for i in xrange(num_loci)]
 
     # Define evolutionary operators here to avoid long lines later.
-    simulator = sim.Simulator(pops = population,
-                              rep = nrep)
 
-    mutator = InfSiteMutator(mu = mut_rates,
-                             num_loci = num_loci,
-                             allele_len = allele_len,
-                             rep = nrep)
+    if is_inf_alleles == False:
+        population = sim.Population(size = pop_size,
+                                    ploidy = 2,
+                                    loci = num_loci * allele_len)
+        mutator = InfSiteMutator(mu = mut_rates,
+                                 num_loci = num_loci,
+                                 allele_len = allele_len,
+                                 rep = nrep)
+        rec_sites = [i * allele_len for i in xrange(num_loci)]
+        selfing = sim.SelfMating(ops = sim.Recombinator(rates = recomb_rate,
+                                                        loci = rec_sites),
+                                weight = pop_size * selfing_rate)
+        offspring_func = sim.OffspringGenerator(
+            ops = sim.Recombinator(rates = recomb_rate,
+                                   loci = rec_sites))
+        writer = ResultWriter(output, is_inf_alleles, num_loci, allele_len)
+    else:
+        allele_len = 1
+        population = sim.Population(size = pop_size,
+                                    ploidy = 2,
+                                    loci = num_loci * allele_len)
+        mutator = InfAlleleMutator(mu = mut_rates,
+                                   num_loci = num_loci,
+                                   rep = nrep)
+        selfing = sim.SelfMating(ops = sim.Recombinator(rates = recomb_rate),
+                                 weight = pop_size * selfing_rate)
+        offspring_func = sim.OffspringGenerator(ops = sim.Recombinator(rates = recomb_rate))
+        writer = ResultWriter(output, is_inf_alleles, num_loci, 1)
 
-    selfing = sim.SelfMating(ops = sim.Recombinator(rates = recomb_rate),
-                             weight = pop_size * selfing_rate)
-
-    offspring_func = sim.OffspringGenerator(ops = sim.Recombinator(rates = recomb_rate))
 
     parent_chooser = sim.PyParentsChooser(generator = pickTwoParents)
     outcross = sim.HomoMating(chooser = parent_chooser,
