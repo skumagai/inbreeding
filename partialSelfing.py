@@ -28,6 +28,15 @@ from collections import deque
 import sys
 import random
 
+# Command line arguments have to be processed before importing
+# simuOpt, because the right module to import depends on what mutation
+# model is used.  Furthermore, a mutation model is specified via a
+# command line flag.  Without any additional flag, the infinite-sites
+# model is assumed.  With --infinite-alleles flag, the
+# infinite-alleles model is used.
+#
+# In the former, 'binary' version of simuPOP is required, and 'long'
+# version of simuPOP is required in case of the latter.
 def parseArgs():
     parser = argparse.ArgumentParser(description="run partial selfing simulations")
     parser.add_argument('POP',
@@ -102,6 +111,7 @@ simuOpt.setOptions(alleleType = mode)# ,
 
 import simuPOP as sim
 
+# Unify the handling of result reporting.
 class Writer(sim.PyOperator):
     '''Interface of writing output'''
 
@@ -262,6 +272,9 @@ class InfSiteMutator(sim.PyOperator):
         '''Increase the number of sites for a locus when no more site is avaialbe.'''
         raise NotImplementedError
 
+# Implement the infinite-alleles model of mutation.  A storage for a
+# locus is long int. When a new mutation arises, a new and unique
+# value is assigned.  Therefore, we have to keep track of unused values.
 class InfAlleleMutator(sim.PyOperator):
 
     def __init__(self, mu, num_loci, rep, *args, **kwargs):
