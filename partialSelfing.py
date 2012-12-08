@@ -139,11 +139,10 @@ class InfAlleleWriter(sim.PyOperator):
     def write(self, pop):
         dvars = pop.dvars()
         num_loci = self.num_loci
-        allele_len = self.allele_len
         vals = computeHeterozygosity(pop, num_loci, 1)
-        self.output.write('{},{},{},{}\n'.format(dvars.rep,
-                                                 dvars.gen,
-                                                 *vals))
+        self.output.write('{},{},'.format(dvars.rep, dvars.gen))
+        cols = ''.join(['{}' for i in xrange(num_loci)]).format(*vals)
+        self.output.write(cols + '\n')
         return True
 
 
@@ -178,11 +177,6 @@ class ResultWriter():
 
     def write_inf_allele(self, pop):
         self.write_common_data(pop)
-        self.output.write(',')
-        self.output.write(','.join(['{}'.format(val)
-                                    for val in computeNumberOfSegregatingSites(pop,
-                                                                               self.num_loci,
-                                                                               self.allele_len)]))
         self.output.write('\n')
 
     def write_common_header(self):
