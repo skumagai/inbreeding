@@ -118,11 +118,12 @@ class InfSiteWriter(sim.PyOperator):
         dvars = pop.dvars()
         num_loci = self.num_loci
         allele_len = self.allele_len
-        vals = computeHeterozygosity(pop, num_loci, allele_len) + \
-          computeNumberOfSegregatingSites(pop, num_loci, allele_len)
-        self.output.write('{},{},{},{},{},{}\n'.format(dvars.rep,
-                                                       dvars.gen,
-                                                       *vals))
+        self.output.write('{},{},'.format(dvars.rep, dvars.gen))
+        template = ''.join(['{}' for i in xrange(num_loci)])
+        self.output.write(template.format(
+            *computeHeterozygosity(pop, num_loci, allele_len)) + ',')
+        self.output.write(template.format(
+            *computeNumberOfSegregatingSites(pop, num_loci, allele_len)) + '\n')
         return True
 
 class InfAlleleWriter(sim.PyOperator):
@@ -166,14 +167,14 @@ class ResultWriter():
 
     def write_inf_site_header(self):
         self.write_common_header()
-        self.output.write(',')
-        self.output.write(','.join(['"# segre (locus {})"'.format(i)
-                                    for i in xrange(self.num_loci)]))
-        self.output.write('\n')
+        self.output.write(',' + ','.join(['"# segre (locus {})"'.format(i)
+                                          for i in xrange(self.num_loci)]) + '\n')
 
     def write_inf_site(self, pop):
         self.write_common_data(pop)
-        self.output.write('\n')
+        self.output.write(',' + ','.join(['{}'.format(val)
+                                          for val in computeNumberOfSegregatingSites(
+                                                  pop, num_loci, allele_len)]) + '\n')
 
     def write_inf_allele(self, pop):
         self.write_common_data(pop)
