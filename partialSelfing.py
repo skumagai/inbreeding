@@ -58,7 +58,7 @@ def parseArgs():
                         metavar='M',
                         type=float,
                         nargs='*',
-                        default=[0, 0],
+                        default=0,
                         help='mutation rate (default:0)')
     parser.add_argument('-b', '--burn-in',
                         metavar='B',
@@ -367,7 +367,7 @@ if __name__ == '__main__':
     if len(mut_rates) != 1 and len(mut_rates) != num_loci:
         sys.exit('number of mutation rates must be 1 or equal to the number of loci')
     elif len(mut_rates) == 1:
-        v = mut_rates
+        v = mut_rates[0]
         mut_rates = [v for i in xrange(num_loci)]
 
     # Define evolutionary operators here to avoid long lines later.
