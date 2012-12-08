@@ -346,10 +346,9 @@ if __name__ == '__main__':
 
     if len(mut_rates) != 1 and len(mut_rates) != num_loci:
         sys.exit('number of mutation rates must be 1 or equal to the number of loci')
-
-    population = sim.Population(size = pop_size,
-                                ploidy = 2,
-                                loci = num_loci * allele_len)
+    elif len(mut_rates) == 1:
+        v = mut_rates
+        mut_rates = [v for i in xrange(num_loci)]
 
     # Define evolutionary operators here to avoid long lines later.
     simulator = sim.Simulator(pops = population,
