@@ -102,23 +102,19 @@ simuOpt.setOptions(alleleType = mode)# ,
 
 import simuPOP as sim
 
-# Implement infinite-sites mutation model.  As new mutations arise,
-# number of polymorphic sites increases.  In the current
-# implementation a fix number of slots are pre-allocated to store
-# polymorphic sites.  Once all available space is exhausted, sites
-# that are monomorphic (due to random drift) are recycled.  When the
-# recycle is failed to open up any new space, simulations are
-# terminated.
+class InfSiteWriter(sim.PyOperator):
+    '''Write heterozigosities and number of segregating sites at each generation.
 
-class Store(sim.PyOperator):
+    This class is intended to be used in explorative runs and only
+    under the infinite-sites model.'''
 
-    def __init__(self, num_loci, allele_len, rep, gen, output, *args, **kwargs):
+    def __init__(self, output, num_loci, allele_len, *args, **kwargs):
         self.num_loci = num_loci
         self.allele_len = allele_len
         self.output = output
-        super(Store, self).__init__(func = self.store, *args, **kwargs)
+        super(InfSiteWriter, self).__init__(func = self.write, *args, **kwargs)
 
-    def store(self, pop):
+    def write(self, pop):
         dvars = pop.dvars()
         num_loci = self.num_loci
         allele_len = self.allele_len
@@ -129,7 +125,87 @@ class Store(sim.PyOperator):
                                                        *vals))
         return True
 
+class InfAlleleWriter(sim.PyOperator):
+    '''Write heterozigosities at each generation.
 
+    This class is intended to be used in explorative runs and only
+    under the infinite-alleles model.'''
+
+    def __init__(self, output, num_loci, *args, **kwargs):
+        self.num_loci = num_loci
+        self.output = output
+        super(InfAlleleWriter, self).__init__(func = self.write, *args, **kwargs)
+
+    def write(self, pop):
+        dvars = pop.dvars()
+        num_loci = self.num_loci
+        allele_len = self.allele_len
+        vals = computeHeterozygosity(pop, num_loci, 1)
+        self.output.write('{},{},{},{}\n'.format(dvars.rep,
+                                                 dvars.gen,
+                                                 *vals))
+        return True
+
+
+class ResultWriter():
+
+    def __init__(self, output, is_inf_alleles, num_loci, allele_len=1):
+        self.output = output
+        self.num_loci = num_loci
+        self.allele_len = allele_len
+        if is_inf_alleles == True:
+            self.write_data = self.write_inf_allele
+            self.write_header = self.write_inf_allele_header
+        else:
+            self.write_data = self.write_inf_site
+            self.write_header = self.write_inf_site_header
+
+
+    def write_inf_allele_header(self):
+        self.write_common_header()
+        self.output.write('\n')
+
+    def write_inf_site_header(self):
+        self.write_common_header()
+        self.output.write(',')
+        self.output.write(','.join(['"# segre (locus {})"'.format(i)
+                                    for i in xrange(self.num_loci)]))
+        self.output.write('\n')
+
+    def write_inf_site(self, pop):
+        self.write_common_data(pop)
+        self.output.write('\n')
+
+    def write_inf_allele(self, pop):
+        self.write_common_data(pop)
+        self.output.write(',')
+        self.output.write(','.join(['{}'.format(val)
+                                    for val in computeNumberOfSegregatingSites(pop,
+                                                                               self.num_loci,
+                                                                               self.allele_len)]))
+        self.output.write('\n')
+
+    def write_common_header(self):
+        self.output.write('"rep","gen",')
+        self.output.write(','.join(['"1-f (locus {})"'.format(i)
+                                    for i in xrange(self.num_loci)]))
+
+    def write_common_data(self, pop):
+        dvars = pop.dvars()
+        self.output.write('{},{},'.format(dvars.rep, dvars.gen))
+        self.output.write(','.join(['{}'.format(val)
+                                    for val in computeHeterozygosity(pop,
+                                                                     self.num_loci,
+                                                                     self.allele_len)]))
+
+
+# Implement infinite-sites mutation model.  As new mutations arise,
+# number of polymorphic sites increases.  In the current
+# implementation a fix number of slots are pre-allocated to store
+# polymorphic sites.  Once all available space is exhausted, sites
+# that are monomorphic (due to random drift) are recycled.  When the
+# recycle is failed to open up any new space, simulations are
+# terminated.
 
 #
 # Dynamically increasing the number of slots is planned but not
@@ -299,26 +375,27 @@ if __name__ == '__main__':
                               subPopSize = pop_size)
 
     if to_explore == True:
-        store = Store(num_loci, allele_len, nrep, ngen, output)
+        if is_inf_alleles == True:
+            expl_writer = InfAlleleWriter(output, num_loci)
+        else:
+            expl_writer = InfSiteWriter(output, num_loci, allele_len)
     else:
-        store = []
+        expl_writer = []
+
+    simulator = sim.Simulator(pops = population,
+                              rep = nrep)
 
     # write a header of result file here.  This is necessary as the
     # output is printed at each generation during exploration runs.
-    output.write('"rep","gen","1-f (locus 0)","1-f (locus1)","# segre (locus 0)", "# segre (locus 1)"\n')
+    writer.write_header()
 
     # Perform simulation.
     simulator.evolve(
         preOps = mutator,
         matingScheme = mating,
-        postOps = store,
+        postOps = expl_writer,
         gen = ngen)
 
     # save the result if not in exploration runs.
     for pop in simulator.populations():
-        dvars = pop.dvars()
-        vals = computeHeterozygosity(pop, num_loci, allele_len) + \
-          computeNumberOfSegregatingSites(pop, num_loci, allele_len)
-        output.write("{},{},{},{},{},{}\n".format(dvars.rep,
-                                                  dvars.gen,
-                                                  *vals))
+        writer.write_data(pop)
