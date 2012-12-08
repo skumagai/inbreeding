@@ -58,7 +58,7 @@ def parseArgs():
                         metavar='M',
                         type=float,
                         nargs='*',
-                        default=0,
+                        default=[0],
                         help='mutation rate (default:0)')
     parser.add_argument('-b', '--burn-in',
                         metavar='B',
