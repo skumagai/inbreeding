@@ -235,7 +235,7 @@ class InfSiteMutator(sim.PyOperator):
                                 # idx = self.available[locus].pop()
                                 sys.stderr.write(
                                     'rep={}, gen={}: '.format(rep, gen) +
-                                    'maximum number of +  storable ' +
+                                    'maximum number of storable ' +
                                     'polymorphic sites reached')
                                 return False
                         # We need to convert intra-locus index to
