@@ -263,7 +263,6 @@ class Mutator(sim.PyOperator):
 class InfSiteMutator(Mutator):
 
     def __init__(self, mu, num_loci, allele_len, rep, *args, **kwargs):
-        allele_len = 5
         self.available = {r: [deque(xrange(allele_len))
                               for i in range(num_loci)]
                           for r in range(rep)}
