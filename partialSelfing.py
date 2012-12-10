@@ -467,7 +467,7 @@ if __name__ == '__main__':
         # write a header of result file here.  This is necessary as the
         # output is printed at each generation during exploration runs.
         if to_explore == True:
-            writer = InfAlleleWriter(traj_file, num_loci, 1)
+            writer = InfAlleleWriter(traj_file, num_loci)
             dump = [writer]
             writer.write_header()
         else:
