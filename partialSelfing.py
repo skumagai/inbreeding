@@ -445,4 +445,5 @@ if __name__ == '__main__':
 
     # save the result if not in exploration runs.
     for pop in simulator.populations():
-        writer.write(pop)
+        if to_explore:
+            writer.write(pop)
