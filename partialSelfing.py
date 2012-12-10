@@ -370,11 +370,6 @@ if __name__ == '__main__':
         traj_file = args.trajectory
     is_inf_alleles = args.infinite_alleles
 
-    print args
-
-    sys.exit()
-
-
     if seed > 0:
         sim.getRNG().set(seed = seed)
 
