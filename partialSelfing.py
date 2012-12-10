@@ -27,6 +27,7 @@ import argparse
 from collections import deque
 import sys
 import random
+import os.path
 
 # Command line arguments have to be processed before importing
 # simuOpt, because the right module to import depends on what mutation
@@ -427,8 +428,6 @@ if __name__ == '__main__':
     else:
         dump = []
 
-    finaldump = [sim.SavePopulation(output = filename)]
-
     simulator = sim.Simulator(pops = population,
                               rep = nrep)
 
@@ -440,10 +439,21 @@ if __name__ == '__main__':
         preOps = mutator,
         matingScheme = mating,
         postOps = dump,
-        finalOps = finaldump,
         gen = ngen)
+
+
+    # Because simuPOP only supports saving populations one-per-file, I
+    # need to generate a bunch of file names.
+    (path, ext) = os.path.splitext(output)
+    if ext == '':                         # no extension
+        filename = path + '.{}.pop'
+    elif ext == '.pop':
+        filename = path + '.{}' + ext
+    else:
+        filename = path + ext + '.{}.pop'
 
     # save the result if not in exploration runs.
     for pop in simulator.populations():
         if to_explore:
             writer.write(pop)
+        pop.save(filename.format(pop.dvars().rep))
