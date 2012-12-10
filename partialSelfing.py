@@ -49,10 +49,8 @@ def parseArgs():
                         type=int,
                         help='number of replicates')
     parser.add_argument('OUTPUT',
-                        nargs='?',
-                        type=argparse.FileType('w'),
-                        default=sys.stdout,
-                        help='output file name (default: STDOUT)')
+                        type=str,
+                        help='save final populations')
     parser.add_argument('-r', '--recombination-rate',
                         metavar='R',
                         type=float,
@@ -88,9 +86,13 @@ def parseArgs():
                         type=int,
                         default=0,
                         help='random number seed (default: use posix time)')
-    parser.add_argument('--explore',
-                        action='store_true',
-                        help='record heterozygosity and number of segregating sites each generation for later inspection to determine an appropriate durtion of burn-in')
+    parser.add_argument('--trajectory',
+                        metavar='TRAJ_FILE',
+                        nargs='?',
+                        type=argparse.FileType('w'),
+                        default=None,
+                        const=sys.stdout,
+                        help='record heterozygosity and number of segregating sites each generation for later inspection to determine an appropriate durtion of burn-in.  (default: STDOUT)')
     parser.add_argument('--infinite-alleles',
                         action='store_true',
                         help='use the infinite-alleles model instead of the infinite-sites model')
@@ -361,8 +363,16 @@ if __name__ == '__main__':
     mut_rates = args.mutation_rate
     output = args.OUTPUT
     seed = args.seed
-    to_explore = args.explore
+    if args.trajectory == None:
+        to_explore = False
+    else:
+        to_explore = True
+        traj_file = args.trajectory
     is_inf_alleles = args.infinite_alleles
+
+    print args
+
+    sys.exit()
 
 
     if seed > 0:
@@ -392,7 +402,7 @@ if __name__ == '__main__':
         offspring_func = sim.OffspringGenerator(
             ops = sim.Recombinator(rates = recomb_rate,
                                    loci = rec_sites))
-        writer = InfSiteWriter(output, num_loci, allele_len)
+        writer = InfSiteWriter(traj_file, num_loci, allele_len)
     else:
         allele_len = 1
         population = sim.Population(size = pop_size,
@@ -404,7 +414,7 @@ if __name__ == '__main__':
         selfing = sim.SelfMating(ops = sim.Recombinator(rates = recomb_rate),
                                  weight = pop_size * selfing_rate)
         offspring_func = sim.OffspringGenerator(ops = sim.Recombinator(rates = recomb_rate))
-        writer = InfAlleleWriter(output, num_loci, 1)
+        writer = InfAlleleWriter(traj_file, num_loci, 1)
 
 
     parent_chooser = sim.PyParentsChooser(generator = pickTwoParents)
@@ -418,21 +428,24 @@ if __name__ == '__main__':
 
     if to_explore == True:
         dump = [writer]
+        writer.write_header()
     else:
         dump = []
+
+    finaldump = [sim.SavePopulation(output = filename)]
 
     simulator = sim.Simulator(pops = population,
                               rep = nrep)
 
     # write a header of result file here.  This is necessary as the
     # output is printed at each generation during exploration runs.
-    writer.write_header()
 
     # Perform simulation.
     simulator.evolve(
         preOps = mutator,
         matingScheme = mating,
         postOps = dump,
+        finalOps = finaldump,
         gen = ngen)
 
     # save the result if not in exploration runs.
