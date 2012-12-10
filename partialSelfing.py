@@ -63,11 +63,11 @@ def parseArgs():
                         default=0,
                         help='selfing rate (default: 0)')
     parser.add_argument('-m', '--mutation-rate',
-                        metavar='M',
-                        type=float,
-                        nargs='*',
-                        default=[0],
-                        help='mutation rate (default:0)')
+                        metavar=('POS', 'M'),
+                        type=str,
+                        nargs=2,
+                        action='append',
+                        help='positions and rates of mutation. (default:["all", "0"])')
     parser.add_argument('-b', '--burn-in',
                         metavar='B',
                         type=int,
@@ -209,14 +209,70 @@ class InfAlleleWriter(Writer):
 #
 # Dynamically increasing the number of slots is planned but not
 # implemented.
-class InfSiteMutator(sim.PyOperator):
+
+class Mutator(sim.PyOperator):
+    '''base class for custom Mutator classes'''
+    def __init__(self, mu, num_loci, allele_len, rep, *args, **kwargs):
+        self.num_loci = num_loci
+        self._build_mutation_rates(mu)
+        self.allele_len = allele_len
+        super(Mutator, self).__init__(func = self.mutate, *args, **kwargs)
+
+    def mutate(self, pop):
+        '''stub for mutation method.  To be implemented in children.'''
+        raise NotImplementedError
+
+
+    def _build_mutation_rates(self, mut):
+        '''build per-locus mutation rate usable in Mutator classes.
+
+        Rates can be specified for all loci (all), arange of loci (e.g. 0-10),
+        or list of loci (e.g. 0,2,4).  If more than one entries are present for
+        a single locus, the last one is effective.'''
+
+        num_loci = self.num_loci
+        mut_rates = [0.0] * num_loci
+
+        for m in mut:
+            loc, val = m
+            val = float(val)
+            parts = loc.split(',')
+            for part in parts:
+                if part == 'all':
+                    mut_rates = [val] * num_loci
+                elif part.find('-') >= 0:
+                    boundaries = part.split('-')
+                    if len(boundaries) != 2:
+                        sys.exit('loc spec range must has the form "start-stop"')
+                    start, stop = [int(d) for d  in boundaries]
+                    # stop is not inclusive following python's convension.
+                    if 0 <= start < num_loci and 0 <= stop <= num_loci:
+                        for pos in xrange(start, stop):
+                            mut_rates[pos] = val
+                    else:
+                        sys.exit('mutation loc spec: range out of loci')
+                else:
+                    pos = int(part)
+                    if 0 <= pos < num_loci:
+                        mut_rates[int(part)] = val
+                    else:
+                        sys.exit('mutation loc spec: position out of loci')
+        self.mu = mut_rates
+
+
+class InfSiteMutator(Mutator):
 
     def __init__(self, mu, num_loci, allele_len, rep, *args, **kwargs):
-        self.mu = mu
-        self.num_loci = num_loci
-        self.allele_len = allele_len
-        self.available = {r: [deque(range(allele_len)) for i in range(2)] for r in range(rep)}
-        super(InfSiteMutator, self).__init__(func = self.mutate, *args, **kwargs)
+        allele_len = 5
+        self.available = {r: [deque(xrange(allele_len))
+                              for i in range(num_loci)]
+                          for r in range(rep)}
+        super(InfSiteMutator, self).__init__(mu,
+                                             num_loci,
+                                             allele_len,
+                                             rep,
+                                             *args,
+                                             **kwargs)
 
     def mutate(self, pop):
         dvars = pop.dvars()
@@ -278,13 +334,16 @@ class InfSiteMutator(sim.PyOperator):
 # Implement the infinite-alleles model of mutation.  A storage for a
 # locus is long int. When a new mutation arises, a new and unique
 # value is assigned.  Therefore, we have to keep track of unused values.
-class InfAlleleMutator(sim.PyOperator):
+class InfAlleleMutator(Mutator):
 
     def __init__(self, mu, num_loci, rep, *args, **kwargs):
-        self.mu = mu
-        self.num_loci = num_loci
         self.idx = [0] * num_loci
-        super(InfAlleleMutator, self).__init__(func = self.mutate, *args, **kwargs)
+        super(InfAlleleMutator, self).__init__(mu,
+                                               num_loci,
+                                               1,
+                                               rep,
+                                               *args,
+                                               **kwargs)
 
     def mutate(self, pop):
         dvars = pop.dvars()
@@ -300,6 +359,7 @@ class InfAlleleMutator(sim.PyOperator):
                         ind.setAllele(self.idx[locus], locus, ploidy = ploidy)
 
         return True
+
 
 
 def chunks(l, n):
@@ -348,11 +408,6 @@ def pickTwoParents(pop):
 
 if __name__ == '__main__':
 
-    # if len(sys.argv) != 8:
-    #     print('usage: inbreeding.py pop_size mut_rate0 mut_rate1 selfing_rate recomb_rate ngen nrep')
-    #     sys.exit(1)
-
-
     pop_size = args.POP
     ngen = args.NGEN
     nrep = args.NREP
@@ -374,13 +429,6 @@ if __name__ == '__main__':
     if seed > 0:
         sim.getRNG().set(seed = seed)
 
-
-    if len(mut_rates) != 1 and len(mut_rates) != num_loci:
-        sys.exit('number of mutation rates must be 1 or equal to the number of loci')
-    elif len(mut_rates) == 1:
-        v = mut_rates[0]
-        mut_rates = [v for i in xrange(num_loci)]
-
     # Define evolutionary operators here to avoid long lines later.
 
     if is_inf_alleles == False:
@@ -398,7 +446,14 @@ if __name__ == '__main__':
         offspring_func = sim.OffspringGenerator(
             ops = sim.Recombinator(rates = recomb_rate,
                                    loci = rec_sites))
-        writer = InfSiteWriter(traj_file, num_loci, allele_len)
+        # write a header of result file here.  This is necessary as the
+        # output is printed at each generation during exploration runs.
+        if to_explore == True:
+            writer = InfSiteWriter(traj_file, num_loci, allele_len)
+            dump = [writer]
+            writer.write_header()
+        else:
+            dump = []
     else:
         allele_len = 1
         population = sim.Population(size = pop_size,
@@ -410,8 +465,14 @@ if __name__ == '__main__':
         selfing = sim.SelfMating(ops = sim.Recombinator(rates = recomb_rate),
                                  weight = pop_size * selfing_rate)
         offspring_func = sim.OffspringGenerator(ops = sim.Recombinator(rates = recomb_rate))
-        writer = InfAlleleWriter(traj_file, num_loci, 1)
-
+        # write a header of result file here.  This is necessary as the
+        # output is printed at each generation during exploration runs.
+        if to_explore == True:
+            writer = InfAlleleWriter(traj_file, num_loci, 1)
+            dump = [writer]
+            writer.write_header()
+        else:
+            dump = []
 
     parent_chooser = sim.PyParentsChooser(generator = pickTwoParents)
     outcross = sim.HomoMating(chooser = parent_chooser,
@@ -422,17 +483,8 @@ if __name__ == '__main__':
     mating = sim.HeteroMating(matingSchemes = [selfing, outcross],
                               subPopSize = pop_size)
 
-    if to_explore == True:
-        dump = [writer]
-        writer.write_header()
-    else:
-        dump = []
-
     simulator = sim.Simulator(pops = population,
                               rep = nrep)
-
-    # write a header of result file here.  This is necessary as the
-    # output is printed at each generation during exploration runs.
 
     # Perform simulation.
     simulator.evolve(
