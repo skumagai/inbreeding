@@ -73,7 +73,7 @@ def parseArgs():
                         type=int,
                         default=0,
                         help='burn-in (default: 0)')
-    parser.add_argument('-n', '--num_loci',
+    parser.add_argument('-n', '--num-loci',
                         metavar='NLOCI',
                         type=int,
                         default=2,
