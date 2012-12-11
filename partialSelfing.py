@@ -118,10 +118,11 @@ import simuPOP as sim
 class Writer(sim.PyOperator):
     '''Interface of writing output'''
 
-    def __init__(self, output, num_loci, allele_len, *args, **kwargs):
+    def __init__(self, output, num_loci, allele_len, burnin, *args, **kwargs):
         self.num_loci = num_loci
         self.allele_len = allele_len
         self.output = output
+        self.burnin = burnin
         self.has_header_printed = False
         super(Writer, self).__init__(func = self.write, *args, **kwargs)
 
@@ -135,7 +136,7 @@ class Writer(sim.PyOperator):
 
     def _write_common(self, pop):
         dvars = pop.dvars()
-        self.output.write('{},{},'.format(dvars.rep, dvars.gen))
+        self.output.write('{},{},'.format(dvars.rep, dvars.gen - self.burnin))
         self.output.write(','.join(['{}'.format(val)
                                     for val in computeHeterozygosity(pop,
                                                                      self.num_loci,
@@ -156,10 +157,11 @@ class InfSiteWriter(Writer):
     This class is intended to be used in explorative runs and only
     under the infinite-sites model.'''
 
-    def __init__(self, output, num_loci, allele_len, *args, **kwargs):
+    def __init__(self, output, num_loci, allele_len, burnin, *args, **kwargs):
         super(InfSiteWriter, self).__init__(output,
                                             num_loci,
                                             allele_len,
+                                            burnin,
                                             *args,
                                             **kwargs)
 
@@ -181,10 +183,11 @@ class InfAlleleWriter(Writer):
     This class is intended to be used in explorative runs and only
     under the infinite-alleles model.'''
 
-    def __init__(self, output, num_loci, *args, **kwargs):
+    def __init__(self, output, num_loci, burnin, *args, **kwargs):
         super(InfAlleleWriter, self).__init__(output,
                                               num_loci,
                                               1,
+                                              burnin,
                                               *args,
                                               **kwargs)
 
@@ -212,10 +215,11 @@ class InfAlleleWriter(Writer):
 
 class Mutator(sim.PyOperator):
     '''base class for custom Mutator classes'''
-    def __init__(self, mu, num_loci, allele_len, rep, *args, **kwargs):
+    def __init__(self, mu, num_loci, allele_len, rep, burnin, *args, **kwargs):
         self.num_loci = num_loci
         self._build_mutation_rates(mu)
         self.allele_len = allele_len
+        self.burnin = burnin
         super(Mutator, self).__init__(func = self.mutate, *args, **kwargs)
 
     def mutate(self, pop):
@@ -262,7 +266,7 @@ class Mutator(sim.PyOperator):
 
 class InfSiteMutator(Mutator):
 
-    def __init__(self, mu, num_loci, allele_len, rep, *args, **kwargs):
+    def __init__(self, mu, num_loci, allele_len, rep, burnin, *args, **kwargs):
         self.available = {r: [deque(xrange(allele_len))
                               for i in range(num_loci)]
                           for r in range(rep)}
@@ -270,13 +274,14 @@ class InfSiteMutator(Mutator):
                                              num_loci,
                                              allele_len,
                                              rep,
+                                             burnin,
                                              *args,
                                              **kwargs)
 
     def mutate(self, pop):
         dvars = pop.dvars()
         rep = dvars.rep
-        gen = dvars.gen
+        gen = dvars.gen - self.burnin
         rng = sim.getRNG()
         mu = self.mu
         for i, ind in enumerate(pop.individuals()):
@@ -294,7 +299,7 @@ class InfSiteMutator(Mutator):
                                 # self.elongate(pop, rep, locus)
                                 # idx = self.available[locus].pop()
                                 sys.stderr.write(
-                                    'rep={}, gen={}: '.format(rep, gen) +
+                                    'rep={}, gen={}: '.format(rep, gen - burnin) +
                                     'maximum number of storable ' +
                                     'polymorphic sites reached')
                                 return False
@@ -347,7 +352,7 @@ class InfAlleleMutator(Mutator):
     def mutate(self, pop):
         dvars = pop.dvars()
         rep = dvars.rep
-        gen = dvars.gen
+        gen = dvars.gen - self.burnin
         rng = sim.getRNG()
         mu = self.mu
         for i, ind in enumerate(pop.individuals()):
@@ -437,7 +442,8 @@ if __name__ == '__main__':
         mutator = InfSiteMutator(mu = mut_rates,
                                  num_loci = num_loci,
                                  allele_len = allele_len,
-                                 rep = nrep)
+                                 rep = nrep,
+                                 burnin = burnin)
         rec_sites = [i * allele_len for i in xrange(num_loci)]
         selfing = sim.SelfMating(ops = sim.Recombinator(rates = recomb_rate,
                                                         loci = rec_sites),
@@ -448,7 +454,7 @@ if __name__ == '__main__':
         # write a header of result file here.  This is necessary as the
         # output is printed at each generation during exploration runs.
         if to_explore == True:
-            writer = InfSiteWriter(traj_file, num_loci, allele_len)
+            writer = InfSiteWriter(traj_file, num_loci, allele_len, burnin)
             dump = [writer]
             writer.write_header()
         else:
@@ -460,14 +466,15 @@ if __name__ == '__main__':
                                     loci = num_loci * allele_len)
         mutator = InfAlleleMutator(mu = mut_rates,
                                    num_loci = num_loci,
-                                   rep = nrep)
+                                   rep = nrep,
+                                   burnin = burnin)
         selfing = sim.SelfMating(ops = sim.Recombinator(rates = recomb_rate),
                                  weight = pop_size * selfing_rate)
         offspring_func = sim.OffspringGenerator(ops = sim.Recombinator(rates = recomb_rate))
         # write a header of result file here.  This is necessary as the
         # output is printed at each generation during exploration runs.
         if to_explore == True:
-            writer = InfAlleleWriter(traj_file, num_loci)
+            writer = InfAlleleWriter(traj_file, num_loci, burnin)
             dump = [writer]
             writer.write_header()
         else:
@@ -490,7 +497,7 @@ if __name__ == '__main__':
         preOps = mutator,
         matingScheme = mating,
         postOps = dump,
-        gen = ngen)
+        gen = ngen + burnin)
 
 
     # Because simuPOP only supports saving populations one-per-file, I
