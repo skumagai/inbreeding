@@ -55,7 +55,7 @@ def parseArgs():
     parser.add_argument('-r', '--recombination-rate',
                         metavar='RHO',
                         type=float,
-                        help='recombination rate (default: free recombinaton)')
+                        help='scaled recombination rate (default: free recombinaton)')
     parser.add_argument('-s', '--selfing-rate',
                         metavar='S',
                         type=float,
