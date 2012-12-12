@@ -53,21 +53,20 @@ def parseArgs():
                         type=str,
                         help='save final populations')
     parser.add_argument('-r', '--recombination-rate',
-                        metavar='R',
+                        metavar='RHO',
                         type=float,
-                        default=0.5,
-                        help='recombination rate (default: 0.5)')
+                        help='recombination rate (default: free recombinaton)')
     parser.add_argument('-s', '--selfing-rate',
                         metavar='S',
                         type=float,
                         default=0,
                         help='selfing rate (default: 0)')
     parser.add_argument('-m', '--mutation-rate',
-                        metavar=('POS', 'M'),
+                        metavar=('POS', 'THETA'),
                         type=str,
                         nargs=2,
                         action='append',
-                        help='positions and rates of mutation. (default:["all", "0"])')
+                        help='positions and scaled rates of mutation. (default:["all", "0"])')
     parser.add_argument('-b', '--burn-in',
                         metavar='B',
                         type=int,
@@ -417,10 +416,18 @@ if __name__ == '__main__':
     nrep = args.NREP
     selfing_rate = args.selfing_rate
     recomb_rate = args.recombination_rate
+    if recomb_rate == None:
+        recomb_rate = 0.5
+    else:
+        recomb_rate /= (4. * pop_size)
+        if recomb_rate > 0.5:
+            sys.stderr.write('per-generation recombination rate > 0.5: use 0.5 instead\n')
+            recomb_rate = 0.5
     num_loci = args.num_loci
     burnin = args.burn_in
     allele_len = args.num_segre_sites
-    mut_rates = args.mutation_rate
+    # convert scaled mutation rates to per-generation rates.
+    mut_rates = [[pos, float(val) / (4. * pop_size)] for pos, val in args.mutation_rate]
     output = args.OUTPUT
     seed = args.seed
     if args.trajectory == None:
