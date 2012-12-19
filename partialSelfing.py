@@ -24,6 +24,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import json
 from collections import deque
 import sys
 import random
@@ -516,6 +517,23 @@ if __name__ == '__main__':
         filename = path + '.{}' + ext
     else:
         filename = path + ext + '.{}.pop'
+
+
+    with open('conf.json', 'w') as wf:
+        if args.infinite_alleles:
+            mmode = 'infinite-alleles'
+        else:
+            mmode = 'infinite-sites'
+        files = [filename.format(i) for i in xrange(nrep)]
+
+        info = {u'mutation rate': mut_rate,
+                u'recombination rate': recomb_rate,
+                u'selfing rate': selfing_rate,
+                u'mode': mmode,
+                u'number of loci': num_loci,
+                u'files': files}
+
+        json.dump(info, wf)
 
     # save the result if not in exploration runs.
     for pop in simulator.populations():
