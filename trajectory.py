@@ -66,7 +66,7 @@ if __name__ == '__main__':
     nmax = data.shape[1]
 
     for start, stop in get_range(args.columns, nmin, nmax):
-        data.ix[:,start:(stop-1)].plot()
+        data.ix[:,start:stop].plot()
         lgd = plt.legend()
         lgd.set_visible(False)
     plt.show()
