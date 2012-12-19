@@ -29,16 +29,10 @@ from collections import deque
 import sys
 import random
 import os.path
+import simuOpt
 
-# Command line arguments have to be processed before importing
-# simuOpt, because the right module to import depends on what mutation
-# model is used.  Furthermore, a mutation model is specified via a
-# command line flag.  Without any additional flag, the infinite-sites
-# model is assumed.  With --infinite-alleles flag, the
-# infinite-alleles model is used.
-#
-# In the former, 'binary' version of simuPOP is required, and 'long'
-# version of simuPOP is required in case of the latter.
+# For the infinite-sites model, binary' version of simuPOP is required, and 'long'
+# version of simuPOP is required in case of the infinite-alleles model.
 def parseArgs():
     parser = argparse.ArgumentParser(description="run partial selfing simulations")
     parser.add_argument('POP',
@@ -99,20 +93,6 @@ def parseArgs():
                         help='use the infinite-alleles model instead of the infinite-sites model')
     return parser.parse_args()
 
-
-args = parseArgs()
-
-import simuOpt
-if args.infinite_alleles == True:
-    mode = 'long'
-else:
-    mode = 'binary'
-
-simuOpt.setOptions(alleleType = mode)# ,
-                   # optimized = False,
-                   # quiet = True)
-
-import simuPOP as sim
 
 # Unify the handling of result reporting.
 class Writer(sim.PyOperator):
@@ -408,9 +388,17 @@ def pickTwoParents(pop):
     while True:
         yield random.sample(parents, 2)
 
-
-
-if __name__ == '__main__':
+def main():
+    # Import the correct version of simuPOP
+    args = parseArgs()
+    if args.infinite_alleles == True:
+        mode = 'long'
+    else:
+        mode = 'binary'
+    simuOpt.setOptions(alleleType = mode)# ,
+                   # optimized = False,
+                   # quiet = True)
+    import simuPOP as sim
 
     pop_size = args.POP
     ngen = args.NGEN
@@ -500,13 +488,6 @@ if __name__ == '__main__':
     simulator = sim.Simulator(pops = population,
                               rep = nrep)
 
-    # Perform simulation.
-    simulator.evolve(
-        preOps = mutator,
-        matingScheme = mating,
-        postOps = dump,
-        gen = ngen + burnin)
-
 
     # Because simuPOP only supports saving populations one-per-file, I
     # need to generate a bunch of file names.
@@ -519,6 +500,7 @@ if __name__ == '__main__':
         filename = path + ext + '.{}.pop'
 
 
+    # write settings of simulations into a file.
     with open('conf.json', 'w') as wf:
         if args.infinite_alleles:
             mmode = 'infinite-alleles'
@@ -535,8 +517,19 @@ if __name__ == '__main__':
 
         json.dump(info, wf)
 
+    # Perform simulation.
+    simulator.evolve(
+        preOps = mutator,
+        matingScheme = mating,
+        postOps = dump,
+        gen = ngen + burnin)
+
+
     # save the result if not in exploration runs.
     for pop in simulator.populations():
         if to_explore:
             writer.write(pop)
         pop.save(filename.format(pop.dvars().rep))
+
+if __name__ == '__main__':
+    main()
