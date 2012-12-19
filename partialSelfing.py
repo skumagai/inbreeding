@@ -410,7 +410,7 @@ def pickTwoParents(pop):
 
 
 
-if __name__ == '__main__':
+def main():
 
     pop_size = args.POP
     ngen = args.NGEN
@@ -519,6 +519,7 @@ if __name__ == '__main__':
         filename = path + ext + '.{}.pop'
 
 
+    # save information about simulations to a file.
     with open('conf.json', 'w') as wf:
         if args.infinite_alleles:
             mmode = 'infinite-alleles'
@@ -540,3 +541,6 @@ if __name__ == '__main__':
         if to_explore:
             writer.write(pop)
         pop.save(filename.format(pop.dvars().rep))
+
+if __name__ == '__main__':
+    main()
