@@ -67,7 +67,7 @@ simuOpt.setOptions(alleleType = mode)
 
 import simuPOP as sim
 
-if __name__ == '__main__':
+def main():
     pop = sim.loadPopulation(args.INPUT)
     output = args.OUTPUT
 
@@ -104,3 +104,6 @@ if __name__ == '__main__':
                     loci_dict[locus]['index'] += 1
                     output.write('\t' + str(loci_dict[locus][l]))
         output.write('\n')
+
+if __name__ == '__main__':
+    main()
