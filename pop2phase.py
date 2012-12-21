@@ -23,7 +23,12 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from __future__ import print_function
+
 import argparse
+import csv
+import itertools
+import json
 import sys
 import random
 
@@ -31,43 +36,135 @@ import random
 # respectively the infinite-alleles and infinite-sites models, command
 # line arguments have to be processed before the import.
 def parseArgs():
-    parser = argparse.ArgumentParser(description="convert simuPOP's Population object to a usable form to something else.")
-    parser.add_argument('SIZE',
-                        type=int,
-                        help='sample size')
-    parser.add_argument('LOCI',
-                        type=int,
-                        help='number of sampled loci')
-    parser.add_argument('INPUT',
-                        type=str,
-                        help='input file containing Population object (.pop)')
-    parser.add_argument('OUTPUT',
-                        type=argparse.FileType('w'),
-                        default=sys.stdout,
-                        help='output file')
-    parser.add_argument('--num-segre-sites',
-                        metavar='NSITES',
-                        type=int,
-                        default=256,
-                        help='maximum number of segregating sites per locus (default: 256)')
-    parser.add_argument('--infinite-alleles',
-                        action='store_true',
-                        help='use the infinite-alleles model instead of the infinite-sites model')
+    parser = argparse.ArgumentParser(
+        description="convert simuPOP's Population object to genotype data format used in phase.")
+
+    subparsers = parser.add_subparsers()
+
+    # command-line arguments for storing genotype data of an entire
+    # population into CSV file.
+    prepare_parser = subparsers.add_parser('prepare',
+                                           help='save genotype into CSV')
+    prepare_parser.add_argument('DIR',
+                                nargs='*',
+                                type=str,
+                                help='name of directories storing simuPOP.Population object')
+    prepare_parser.set_defaults(func=prepare)
+
+    conv_parser = subparsers.add_parser('generate',
+                                        help='generate phase files')
+
+    conv_parser.add_argument('-r', '--random',
+                             action='store_true',
+                             help='randomize order of samples')
+    conv_parser.add_argument('-s', '--sample-size',
+                             type=int,
+                             nargs='?',
+                             help='sample size from each CSV file')
+    conv_parser.add_argument('-o', '--output',
+                             metavar='FILE',
+                             type=argparse.FileType('w'),
+                             default=sys.stdout,
+                             help='save converted data into FILE')
+    conv_parser.add_argument('-i', '--input',
+                             metavar='FILE',
+                             nargs='*',
+                             type=argparse.FileType('r'),
+                             default=sys.stdin,
+                             help='list of input files')
+    conv_parser.set_defaults(func=generate)
+
     return parser.parse_args()
 
-args = parseArgs()
 
-import simuOpt
-if args.infinite_alleles == True:
-    mode = 'long'
-else:
-    mode = 'binary'
+def get_info(dir):
+    with open(os.path.join(dir, 'conf.json'), 'r') as rf:
+        info = json.load(rf)
+    return info
 
-simuOpt.setOptions(alleleType = mode)
+def get_data(dir):
+    info = get_info(dir)
+    num_loci = info[u'number of loci']
+    data = []
+    for pop in [sim.loadPopulation(filename) for filename in info[u'files']]:
+        num_sites = pop.totalNumLoci() % num_loci
+        if num_sites != 0:
+            print('[ERROR] total number of sites is not multiple of ' +
+                  'sites per locus {}'.format(num_loci),
+                  file=sys.stderr)
+            sys.exit(1)
+        locus_dict = [{'idx': 1} for i in xrange(num_loci)]
+        genotypes = [[] for i in xrange(num_loci)]
 
-import simuPOP as sim
+        for ind in pop.individuals():
+            geno0 = ind.genotype(ploidy = 0)
+            geno1 = ind.genotype(ploidy = 1)
+            for locus in xrange(num_loci):
+                start = locus * num_sites
+                stop = (locus + 1) * num_sites
+                l0_code = encode(geno0[start:stop], locus_dict[locus])
+                l1_code = encode(geno1[start:stop], locus_dict[locus])
+                genotypes[locus].append((l0_code, l1_code))
+
+    return data
+
+
+def encode(locus, codes):
+    locus = str(locus)
+    try:
+        code = codes[locus]
+    except:
+        codes[locus] = codes['idx']
+        code = codes['idx']
+        codes['idx'] += 1
+    return codes
+
+
+
+
+# entry point to subcommand 'prepare'
+def prepare(args):
+    import an appropriate
+    try:
+        import simuOpt
+        info = get_info(args.DIR[0])
+        if u'mode' in info and info[u'mode'] == 'infinite-allele':
+            simuOpt.setOptions(alleleType = 'long')
+        else:
+            simuOpt.setOptions(alleleType = 'binary')
+        import simuPOP as sim
+    except:
+        print('[ERROR] prepare command needs simuPOP', file=sys.stderr)
+        sys.exit(1)
+
+    for directory in args.DIR:
+        data = get_data(directory)
+        try:
+            values[triplet].append(data)
+        except:
+            values[triplet] = [data]
+
+        with open(directory + '.csv', 'w') as wf:
+            writer = csv.writer(wf)
+            writer.writerow(['population size', len(data[0])])
+            writer.writerow(['mutation rate', triplet[0]])
+            writer.writerow(['recombination rate', triplet[1]])
+            wirter.writerow(['selfing rate', triplet[2]])
+            for d in zip(*data):
+                writer.writerow(itertools.chain(*d))
+
+
+# entry point to subcommand 'generate'
+def generate(args):
+
+
 
 def main():
+    args = parseArgs()
+    args.func(args)
+    sys.exit(0)
+
+    # if args:
     pop = sim.loadPopulation(args.INPUT)
     output = args.OUTPUT
 
