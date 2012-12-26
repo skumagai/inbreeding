@@ -529,7 +529,7 @@ def main():
             mmode = 'infinite-alleles'
         else:
             mmode = 'infinite-sites'
-        files = [filename.format(i) for i in xrange(nrep)]
+        files = [filename.format(i, width=width) for i in xrange(nrep)]
 
         info = {u'mutation rate': {u'unscaled': mutator.mu,
                                    u'scaled': [scaleParam(m, pop_size) for m in mutator.mu]},
