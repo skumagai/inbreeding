@@ -531,8 +531,15 @@ def main():
             mmode = 'infinite-sites'
         files = [filename.format(i, width=width) for i in xrange(nrep)]
 
-        info = {u'mutation rate': {u'unscaled': mutator.mu,
-                                   u'scaled': [scaleParam(m, pop_size) for m in mutator.mu]},
+        if len(set(mutator.mu)) == 1:
+            m = mutator.mu[0]
+            sm = scaleParam(m, pop_size)
+        else:
+            m = mutator.mu
+            sm = [scaleParam(mm, pop_size) for mm in m]
+
+        info = {u'mutation rate': {u'unscaled': m,
+                                   u'scaled': sm},
                 u'recombination rate': {u'unscaled': recomb_rate,
                                         u'scaled': scaleParam(recomb_rate, pop_size)},
                 u'selfing rate': selfing_rate,
