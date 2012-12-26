@@ -581,6 +581,7 @@ def main():
                                     ploidy = 2,
                                     loci = [num_loci * allele_len] * nrep)
         # run only a single run of a simulation
+        true_nrep = nrep
         nrep = 1
 
 
@@ -645,9 +646,9 @@ def main():
         files = [filename.format(i, width=width) for i in xrange(nrep)]
 
         if args.force_replication:
-            rmode = u'by chromosomes'
-        else:
             rmode = u'by repeated simulations'
+        else:
+            rmode = u'by chromosomes'
 
         if len(set(mutator.mu)) == 1:
             m = mutator.mu[0]
@@ -657,15 +658,15 @@ def main():
             sm = [scaleParam(mm, pop_size) for mm in m]
 
         info = {u'mutation rate': {u'unscaled': m,
-                                   u'scaled': sm},
+                                   u'scaled': sm,
+                                   u'mode': mmode},
                 u'recombination rate': {u'unscaled': recomb_rate,
                                         u'scaled': scaleParam(recomb_rate, pop_size)},
                 u'selfing rate': selfing_rate,
                 u'population size': pop_size,
-                u'number of replications': nrep,
-                u'replication mode': rmode,
-                u'mutation mode': mmode,
                 u'number of loci': num_loci,
+                u'replicates': {u'size': true_nrep,
+                                u'mode': rmode},
                 u'files': files,
                 u'seed': hex(sim.getRNG().seed())}
 
