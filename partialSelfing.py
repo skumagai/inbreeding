@@ -581,9 +581,6 @@ def main():
                                     ploidy = 2,
                                     loci = [num_loci * allele_len] * nrep)
         # run only a single run of a simulation
-        true_nrep = nrep
-        nrep = 1
-
 
     # Define operators used during simulations.
     mutator = mutator(mu = mut_rates,
@@ -665,7 +662,7 @@ def main():
                 u'selfing rate': selfing_rate,
                 u'population size': pop_size,
                 u'number of loci': num_loci,
-                u'replicates': {u'size': true_nrep,
+                u'replicates': {u'size': nrep,
                                 u'mode': rmode},
                 u'files': files,
                 u'seed': hex(sim.getRNG().seed())}
