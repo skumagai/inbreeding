@@ -183,7 +183,7 @@ class InfAlleleWriter(Writer):
     This class is intended to be used in explorative runs and only
     under the infinite-alleles model.'''
 
-    def __init__(self, output, num_loci, burnin, *args, **kwargs):
+    def __init__(self, output, num_loci, allele_len, burnin, *args, **kwargs):
         super(InfAlleleWriter, self).__init__(output,
                                               num_loci,
                                               1,
@@ -340,7 +340,7 @@ class InfSiteMutator(Mutator):
 # value is assigned.  Therefore, we have to keep track of unused values.
 class InfAlleleMutator(Mutator):
 
-    def __init__(self, mu, num_loci, rep, *args, **kwargs):
+    def __init__(self, mu, num_loci, allele_len, rep, *args, **kwargs):
         self.idx = [0] * num_loci
         super(InfAlleleMutator, self).__init__(mu,
                                                num_loci,
