@@ -408,7 +408,23 @@ def pickTwoParents(pop):
     while True:
         yield random.sample(parents, 2)
 
+def scaleParam(param, pop_size):
+    return 4. * pop_size * float(param)
 
+def unscaleParam(param, pop_size):
+    return float(param) / (4. * pop_size)
+
+def buildOutputFileName(output):
+    (path, ext) = os.path.splitext(output)
+    subst = '.{:0{width}d}'
+    if ext == '':                         # no extension
+        filename = path + subst + '.pop'
+    elif ext == '.pop':
+        filename = path + subst + ext
+    else:
+        filename = path + ext + subst + '.pop'
+
+    return filename
 
 def main():
 
@@ -420,7 +436,7 @@ def main():
     if recomb_rate == None:
         recomb_rate = 0.5
     else:
-        recomb_rate /= (4. * pop_size)
+        recomb_rate = unscaleParam(recomb_rate, pop_size)
         if recomb_rate > 0.5:
             sys.stderr.write('per-generation recombination rate > 0.5: use 0.5 instead\n')
             recomb_rate = 0.5
@@ -428,7 +444,7 @@ def main():
     burnin = args.burn_in
     allele_len = args.num_segre_sites
     # convert scaled mutation rates to per-generation rates.
-    mut_rates = [[pos, float(val) / (4. * pop_size)] for pos, val in args.mutation_rate]
+    mut_rates = [[pos, unscaleParam(val, pop_size)] for pos, val in args.mutation_rate]
     output = args.OUTPUT
     seed = args.seed
     if args.trajectory == None:
@@ -441,52 +457,33 @@ def main():
     if seed > 0:
         sim.getRNG().set(seed = seed)
 
-    # Define evolutionary operators here to avoid long lines later.
-
-    if is_inf_alleles == False:
-        population = sim.Population(size = pop_size,
-                                    ploidy = 2,
-                                    loci = num_loci * allele_len)
-        mutator = InfSiteMutator(mu = mut_rates,
-                                 num_loci = num_loci,
-                                 allele_len = allele_len,
-                                 rep = nrep,
-                                 burnin = burnin)
-        rec_sites = [i * allele_len for i in xrange(num_loci)]
-        selfing = sim.SelfMating(ops = sim.Recombinator(rates = recomb_rate,
-                                                        loci = rec_sites),
-                                weight = pop_size * selfing_rate)
-        offspring_func = sim.OffspringGenerator(
-            ops = sim.Recombinator(rates = recomb_rate,
-                                   loci = rec_sites))
-        # write a header of result file here.  This is necessary as the
-        # output is printed at each generation during exploration runs.
-        if to_explore == True:
-            writer = InfSiteWriter(traj_file, num_loci, allele_len, burnin)
-            dump = [writer]
-            writer.write_header()
-        else:
-            dump = []
-    else:
+    if is_inf_alleles == True:
         allele_len = 1
-        population = sim.Population(size = pop_size,
-                                    ploidy = 2,
-                                    loci = num_loci * allele_len)
-        mutator = InfAlleleMutator(mu = mut_rates,
-                                   num_loci = num_loci,
-                                   rep = nrep,
-                                   burnin = burnin)
-        selfing = sim.SelfMating(ops = sim.Recombinator(rates = recomb_rate),
-                                 weight = pop_size * selfing_rate)
-        offspring_func = sim.OffspringGenerator(ops = sim.Recombinator(rates = recomb_rate))
-        # write a header of result file here.  This is necessary as the
-        # output is printed at each generation during exploration runs.
-        if to_explore == True:
-            writer = InfAlleleWriter(traj_file, num_loci, burnin)
-            dump = [writer]
-            writer.write_header()
-        else:
-            dump = []
+        mutator = InfAlleleMutator
+        writer = InfAlleleWriter
+        rec_sites = sim.ALL_AVAIL
+    else:
+        mutator = InfSiteMutator
+        writer = InfSiteWriter
+        rec_sites = [i * allele_len for i in xrange(num_loci)]
+
+    # construct a blue-print of a population.
+    population = sim.Population(size = pop_size,
+                                ploidy = 2,
+                                loci = num_loci * allele_len)
+
+    # Define operators used during simulations.
+    mutator = mutator(mu = mut_rates,
+                      num_loci = num_loci,
+                      allele_len = allele_len,
+                      rep = nrep,
+                      burnin = burnin)
+    selfing = sim.SelfMating(ops = sim.Recombinator(rates = recomb_rate,
+                                                    loci = rec_sites),
+                                                    weight = pop_size * selfing_rate)
+    offspring_func = sim.OffspringGenerator(
+        ops = sim.Recombinator(rates = recomb_rate,
+                               loci = rec_sites))
 
     parent_chooser = sim.PyParentsChooser(generator = pickTwoParents)
     outcross = sim.HomoMating(chooser = parent_chooser,
@@ -497,6 +494,23 @@ def main():
     mating = sim.HeteroMating(matingSchemes = [selfing, outcross],
                               subPopSize = pop_size)
 
+    # Because simuPOP only supports saving populations one-per-file, I
+    # need to generate a bunch of file names.
+    filename = buildOutputFileName(output)
+    width = str(len(str(nrep - 1)))
+    finalops = [sim.SavePopulation('!"' + filename + '".format(rep, width=' + width + ')')]
+
+    if to_explore == True:
+        traj_writer = writer(traj_file, num_loci, allele_len, burnin)
+        finalops.append(traj_writer)
+        # write a header of result file here.  This is necessary as the
+        # output is printed at each generation during exploration runs.
+        traj_writer.write_header()
+        dump = traj_writer
+    else:
+        dump = []
+
+
     simulator = sim.Simulator(pops = population,
                               rep = nrep)
 
@@ -505,18 +519,8 @@ def main():
         preOps = mutator,
         matingScheme = mating,
         postOps = dump,
+        finalOps = finalops,
         gen = ngen + burnin)
-
-
-    # Because simuPOP only supports saving populations one-per-file, I
-    # need to generate a bunch of file names.
-    (path, ext) = os.path.splitext(output)
-    if ext == '':                         # no extension
-        filename = path + '.{}.pop'
-    elif ext == '.pop':
-        filename = path + '.{}' + ext
-    else:
-        filename = path + ext + '.{}.pop'
 
 
     # save information about simulations to a file.
@@ -527,20 +531,18 @@ def main():
             mmode = 'infinite-sites'
         files = [filename.format(i) for i in xrange(nrep)]
 
-        info = {u'mutation rate': mut_rate,
-                u'recombination rate': recomb_rate,
+        info = {u'mutation rate': {u'unscaled': mutator.mu,
+                                   u'scaled': [scaleParam(m, pop_size) for m in mutator.mu]},
+                u'recombination rate': {u'unscaled': recomb_rate,
+                                        u'scaled': scaleParam(recomb_rate, pop_size)},
                 u'selfing rate': selfing_rate,
+                u'population size': pop_size,
                 u'mode': mmode,
                 u'number of loci': num_loci,
-                u'files': files}
+                u'files': files,
+                u'seed': hex(sim.getRNG().seed())}
 
         json.dump(info, wf)
-
-    # save the result if not in exploration runs.
-    for pop in simulator.populations():
-        if to_explore:
-            writer.write(pop)
-        pop.save(filename.format(pop.dvars().rep))
 
 if __name__ == '__main__':
     main()
