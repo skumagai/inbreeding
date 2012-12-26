@@ -218,13 +218,15 @@ class InfAlleleWriter(Writer):
                                               **kwargs)
 
     def writeRep(self, pop):
-        self._write_common(pop)
+        dvars = pop.dvars()
+        self._write_common(pop, dvars.rep, dvars.gen)
         self.output.write('\n')
         return True
 
     def writeChrom(self, pop):
+        gen = pop.dvars().gen
         for rep in xrange(pop.numChrom()):
-            self._write_common(pop, rep)
+            self._write_common(pop, rep, gen)
             self.output.write('\n')
         return True
 
@@ -479,8 +481,8 @@ def computeHeterozygosity(pop, num_loci, allele_len, chrom):
     pop_size = float(pop.popSize())
 
     for ind in pop.individuals():
-        genotype0 = chunks(ind.genotype(ploidy = 0, chrom = chrom), allele_len)
-        genotype1 = chunks(ind.genotype(ploidy = 1, chrom = chrom), allele_len)
+        genotype0 = chunks(ind.genotype(ploidy = 0, chroms = chrom), allele_len)
+        genotype1 = chunks(ind.genotype(ploidy = 1, chroms = chrom), allele_len)
 
         for i, (g0, g1) in enumerate(zip(genotype0, genotype1)):
             if g0 != g1:
@@ -612,7 +614,7 @@ def main():
     finalops = [sim.SavePopulation('!"' + filename + '".format(rep, width=' + width + ')')]
 
     if to_explore == True:
-        traj_writer = writer(traj_file, num_loci, allele_len, burnin)
+        traj_writer = writer(traj_file, num_loci, allele_len, args.force_replication, burnin)
         finalops.append(traj_writer)
         # write a header of result file here.  This is necessary as the
         # output is printed at each generation during exploration runs.
