@@ -97,6 +97,9 @@ def parseArgs():
     parser.add_argument('--infinite-alleles',
                         action='store_true',
                         help='use the infinite-alleles model instead of the infinite-sites model')
+    parser.add_argument('-f', '--force-replication',
+                        action='store_true',
+                        help='instead of using several chromosomes to represents replication, run several separate simulations.  Note that this can be much slower than using chromosomes.')
     return parser.parse_args()
 
 
@@ -118,29 +121,30 @@ import simuPOP as sim
 class Writer(sim.PyOperator):
     '''Interface of writing output'''
 
-    def __init__(self, output, num_loci, allele_len, burnin, *args, **kwargs):
+    def __init__(self, output, num_loci, allele_len, rep_mode, burnin, *args, **kwargs):
         self.num_loci = num_loci
         self.allele_len = allele_len
         self.output = output
         self.burnin = burnin
         self.has_header_printed = False
+        self.rep_mode = rep_mode
         super(Writer, self).__init__(func = self.write, *args, **kwargs)
 
     def write(self, pop):
         '''stub for a function to write data'''
-        pass
+        raise NotImplementedError
 
     def write_header(self):
         '''stub for a function to write header'''
-        pass
+        raise NotImplementedError
 
-    def _write_common(self, pop):
-        dvars = pop.dvars()
-        self.output.write('{},{},'.format(dvars.rep, dvars.gen - self.burnin))
+    def _write_common(self, pop, rep, gen, chrom = 0):
+        self.output.write('{},{},'.format(rep, gen - self.burnin))
         self.output.write(','.join(['{}'.format(val)
                                     for val in computeHeterozygosity(pop,
                                                                      self.num_loci,
-                                                                     self.allele_len)]))
+                                                                     self.allele_len,
+                                                                     chrom)]))
 
     def _write_common_header(self):
         if self.has_header_printed == False:
@@ -157,19 +161,34 @@ class InfSiteWriter(Writer):
     This class is intended to be used in explorative runs and only
     under the infinite-sites model.'''
 
-    def __init__(self, output, num_loci, allele_len, burnin, *args, **kwargs):
+    def __init__(self, output, num_loci, allele_len, rep_mode, burnin, *args, **kwargs):
         super(InfSiteWriter, self).__init__(output,
                                             num_loci,
                                             allele_len,
+                                            rep_mode,
                                             burnin,
                                             *args,
                                             **kwargs)
+        if self.rep_mode is True:
+            self.write = self.writeRep
+        else:
+            self.write = self.writeChrom
 
-    def write(self, pop):
-        self._write_common(pop)
+    def writeRep(self, pop):
+        dvars = pop.dvars()
+        self._write_common(pop, dvars.rep, dvars.gen)
         self.output.write(','.join(['{}' for i in xrange(self.num_loci)]).format(
             *computeNumberOfSegregatingSites(pop, num_loci, allele_len)) + '\n')
         return True
+
+    def writeChrom(self, pop, rep):
+        gen = pop.dvars().gen
+        for rep in xrange(pop.numChrom()):
+            self._write_common(pop, rep, gen, rep)
+            self.output.write(','.join(['{}' for i in xrange(self.num_loci)]).format(
+                *computeNumberOfSegregatingSites(pop, num_loci, allele_len, rep)) + '\n')
+        return True
+
 
     def write_header(self):
         self._write_common_header()
@@ -183,17 +202,28 @@ class InfAlleleWriter(Writer):
     This class is intended to be used in explorative runs and only
     under the infinite-alleles model.'''
 
-    def __init__(self, output, num_loci, allele_len, burnin, *args, **kwargs):
+    def __init__(self, output, num_loci, allele_len, rep_mode, burnin, *args, **kwargs):
         super(InfAlleleWriter, self).__init__(output,
                                               num_loci,
                                               1,
+                                              rep_mode,
                                               burnin,
                                               *args,
                                               **kwargs)
+        if self.rep_mode is True:
+            self.write = self.writeRep
+        else:
+            self.write = self.writeChrom
 
-    def write(self, pop):
+    def writeRep(self, pop):
         self._write_common(pop)
         self.output.write('\n')
+        return True
+
+    def writeChrom(self, pop):
+        for rep in xrange(pop.numChrom()):
+            self._write_common(pop, rep)
+            self.output.write('\n')
         return True
 
     def write_header(self):
@@ -215,11 +245,13 @@ class InfAlleleWriter(Writer):
 
 class Mutator(sim.PyOperator):
     '''base class for custom Mutator classes'''
-    def __init__(self, mu, num_loci, allele_len, rep, burnin, *args, **kwargs):
+    def __init__(self, mu, num_loci, allele_len, rep, rep_mode, burnin, *args, **kwargs):
         self.num_loci = num_loci
         self._build_mutation_rates(mu)
         self.allele_len = allele_len
         self.burnin = burnin
+        self.rep = rep
+        self.rep_mode = rep_mode
         super(Mutator, self).__init__(func = self.mutate, *args, **kwargs)
 
     def mutate(self, pop):
@@ -266,7 +298,7 @@ class Mutator(sim.PyOperator):
 
 class InfSiteMutator(Mutator):
 
-    def __init__(self, mu, num_loci, allele_len, rep, burnin, *args, **kwargs):
+    def __init__(self, mu, num_loci, allele_len, rep, rep_mode, burnin, *args, **kwargs):
         self.available = {r: [deque(xrange(allele_len))
                               for i in range(num_loci)]
                           for r in range(rep)}
@@ -274,11 +306,16 @@ class InfSiteMutator(Mutator):
                                              num_loci,
                                              allele_len,
                                              rep,
+                                             rep_mode,
                                              burnin,
                                              *args,
                                              **kwargs)
+        if self.rep_mode is True:
+            self.mutate = self.mutateRep
+        else:
+            self.mutate = self.mutateChrom
 
-    def mutate(self, pop):
+    def mutateRep(self, pop):
         dvars = pop.dvars()
         rep = dvars.rep
         gen = dvars.gen - self.burnin
@@ -311,6 +348,42 @@ class InfSiteMutator(Mutator):
 
         return True
 
+
+    def mutateChrom(self, pop):
+        dvars = pop.dvars()
+        gen = dvars.gen - self.burnin
+        rng = sim.getRNG()
+        mu = self.mu
+        for i, ind in enumerate(pop.individuals()):
+            for locus in xrange(self.num_loci):
+                for ploidy in xrange(2):
+                    for rep in xrange(self.rep):
+                        if rng.randUniform() < mu[locus]:
+                            try:
+                                # At this step, idx holds intra-locus index
+                                # of an available site.
+                                idx = self.available[rep][locus].pop()
+                            except IndexError:
+                                if self.reclaim(pop, rep, locus):
+                                    idx = self.available[rep][locus].pop()
+                                else:
+                                    # self.elongate(pop, rep, locus)
+                                    # idx = self.available[locus].pop()
+                                    sys.stderr.write(
+                                        'rep={}, gen={}: '.format(rep, gen - burnin) +
+                                        'maximum number of storable ' +
+                                        'polymorphic sites reached')
+                                    return False
+                            # We need to convert intra-locus index to
+                            # inter-loci index starting from the beginning
+                            # of a chromosome.
+                            idx += locus * self.allele_len
+                            ind.setAllele(1, idx, ploidy = ploidy, chrom = rep)
+
+        return True
+
+
+    # TODO: adjust to multiple chromosomes (for replications)
     def reclaim(self, pop, rep, locus):
         '''Recycle sites, that are already fixed.'''
         allele_len = self.allele_len
@@ -340,16 +413,21 @@ class InfSiteMutator(Mutator):
 # value is assigned.  Therefore, we have to keep track of unused values.
 class InfAlleleMutator(Mutator):
 
-    def __init__(self, mu, num_loci, allele_len, rep, *args, **kwargs):
-        self.idx = [0] * num_loci
+    def __init__(self, mu, num_loci, allele_len, rep, rep_mode, *args, **kwargs):
+        self.idx = [[0] * num_loci for i in xrange(rep)]
         super(InfAlleleMutator, self).__init__(mu,
                                                num_loci,
                                                1,
                                                rep,
+                                               rep_mode
                                                *args,
                                                **kwargs)
+        if self.rep_mode is True:
+            self.mutate = self.mutateRep
+        else:
+            self.mutate = self.mutateChrom
 
-    def mutate(self, pop):
+    def mutateRep(self, pop):
         dvars = pop.dvars()
         rep = dvars.rep
         gen = dvars.gen - self.burnin
@@ -359,8 +437,27 @@ class InfAlleleMutator(Mutator):
             for locus in range(self.num_loci):
                 for ploidy in range(2):
                     if rng.randUniform() < mu[locus]:
-                        self.idx[locus] += 1
-                        ind.setAllele(self.idx[locus], locus, ploidy = ploidy)
+                        self.idx[rep][locus] += 1
+                        ind.setAllele(self.idx[rep][locus], locus, ploidy = ploidy)
+
+        return True
+
+
+    def mutateChrom(self, pop):
+        dvars = pop.dvars()
+        gen = dvars.gen - self.burnin
+        rng = sim.getRNG()
+        mu = self.mu
+        for i, ind in enumerate(pop.individuals()):
+            for locus in xrange(self.num_loci):
+                for ploidy in xrange(2):
+                    for rep in xrange(self.rep):
+                        if rng.randUniform() < mu[locus]:
+                            self.idx[rep][locus] += 1
+                            ind.setAllele(self.idx[rep][locus],
+                                          locus,
+                                          ploidy = ploidy,
+                                          chrom = rep)
 
         return True
 
@@ -372,14 +469,14 @@ def chunks(l, n):
         yield l[i:i+n]
 
 
-def computeHeterozygosity(pop, num_loci, allele_len):
+def computeHeterozygosity(pop, num_loci, allele_len, chrom):
     # This only works if each locus has the same number of sites.
     h = [0] * num_loci                       # number of heterozygotes
     pop_size = float(pop.popSize())
 
     for ind in pop.individuals():
-        genotype0 = chunks(ind.genotype(ploidy = 0), allele_len)
-        genotype1 = chunks(ind.genotype(ploidy = 1), allele_len)
+        genotype0 = chunks(ind.genotype(ploidy = 0, chrom = chrom), allele_len)
+        genotype1 = chunks(ind.genotype(ploidy = 1, chrom = chrom), allele_len)
 
         for i, (g0, g1) in enumerate(zip(genotype0, genotype1)):
             if g0 != g1:
@@ -395,9 +492,11 @@ def areAllelesMonomorphic(pop, alleleFreq = sim.ALL_AVAIL):
             for allele in alleleNum]
 
 
-def computeNumberOfSegregatingSites(pop, num_loci, allele_len):
+def computeNumberOfSegregatingSites(pop, num_loci, allele_len, chrom = 0):
     alleleStates = areAllelesMonomorphic(pop)
-    loci = chunks(alleleStates, allele_len)
+    start = chrom * num_loci * allele_len
+    stop = start + num_loci * allele_len
+    loci = chunks(alleleStates[start:stop], allele_len)
     return list([len([True for site in locus if site == False]) for locus in loci])
 
 
@@ -443,6 +542,7 @@ def main():
     num_loci = args.num_loci
     burnin = args.burn_in
     allele_len = args.num_segre_sites
+
     # convert scaled mutation rates to per-generation rates.
     mut_rates = [[pos, unscaleParam(val, pop_size)] for pos, val in args.mutation_rate]
     output = args.OUTPUT
@@ -468,15 +568,24 @@ def main():
         rec_sites = [i * allele_len for i in xrange(num_loci)]
 
     # construct a blue-print of a population.
-    population = sim.Population(size = pop_size,
-                                ploidy = 2,
-                                loci = num_loci * allele_len)
+    if args.force_replication is True:
+        population = sim.Population(size = pop_size,
+                                    ploidy = 2,
+                                    loci = num_loci * allele_len)
+    else:
+        population = sim.Population(size = pop_size,
+                                    ploidy = 2,
+                                    loci = [num_loci * allele_len] * nrep)
+        # run only a single run of a simulation
+        nrep = 1
+
 
     # Define operators used during simulations.
     mutator = mutator(mu = mut_rates,
                       num_loci = num_loci,
                       allele_len = allele_len,
                       rep = nrep,
+                      rep_mode = args.force_replication,
                       burnin = burnin)
     selfing = sim.SelfMating(ops = sim.Recombinator(rates = recomb_rate,
                                                     loci = rec_sites),
@@ -526,10 +635,15 @@ def main():
     # save information about simulations to a file.
     with open('conf.json', 'w') as wf:
         if args.infinite_alleles:
-            mmode = 'infinite-alleles'
+            mmode = u'infinite-alleles'
         else:
-            mmode = 'infinite-sites'
+            mmode = u'infinite-sites'
         files = [filename.format(i, width=width) for i in xrange(nrep)]
+
+        if args.force_replication:
+            rmode = u'by chromosomes'
+        else:
+            rmode = u'by repeated simulations'
 
         if len(set(mutator.mu)) == 1:
             m = mutator.mu[0]
@@ -544,7 +658,9 @@ def main():
                                         u'scaled': scaleParam(recomb_rate, pop_size)},
                 u'selfing rate': selfing_rate,
                 u'population size': pop_size,
-                u'mode': mmode,
+                u'number of replications': nrep,
+                u'replication mode': rmode,
+                u'mutation mode': mmode,
                 u'number of loci': num_loci,
                 u'files': files,
                 u'seed': hex(sim.getRNG().seed())}
