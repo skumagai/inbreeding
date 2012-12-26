@@ -162,6 +162,11 @@ class InfSiteWriter(Writer):
     under the infinite-sites model.'''
 
     def __init__(self, output, num_loci, allele_len, rep_mode, burnin, *args, **kwargs):
+        if rep_mode is True:
+            self.write = self.writeRep
+        else:
+            self.write = self.writeChrom
+
         super(InfSiteWriter, self).__init__(output,
                                             num_loci,
                                             allele_len,
@@ -169,10 +174,6 @@ class InfSiteWriter(Writer):
                                             burnin,
                                             *args,
                                             **kwargs)
-        if self.rep_mode is True:
-            self.write = self.writeRep
-        else:
-            self.write = self.writeChrom
 
     def writeRep(self, pop):
         dvars = pop.dvars()
@@ -203,6 +204,11 @@ class InfAlleleWriter(Writer):
     under the infinite-alleles model.'''
 
     def __init__(self, output, num_loci, allele_len, rep_mode, burnin, *args, **kwargs):
+        if rep_mode is True:
+            self.write = self.writeRep
+        else:
+            self.write = self.writeChrom
+
         super(InfAlleleWriter, self).__init__(output,
                                               num_loci,
                                               1,
@@ -210,10 +216,6 @@ class InfAlleleWriter(Writer):
                                               burnin,
                                               *args,
                                               **kwargs)
-        if self.rep_mode is True:
-            self.write = self.writeRep
-        else:
-            self.write = self.writeChrom
 
     def writeRep(self, pop):
         self._write_common(pop)
@@ -302,6 +304,11 @@ class InfSiteMutator(Mutator):
         self.available = {r: [deque(xrange(allele_len))
                               for i in range(num_loci)]
                           for r in range(rep)}
+        if rep_mode is True:
+            self.mutate = self.mutateRep
+        else:
+            self.mutate = self.mutateChrom
+
         super(InfSiteMutator, self).__init__(mu,
                                              num_loci,
                                              allele_len,
@@ -310,10 +317,6 @@ class InfSiteMutator(Mutator):
                                              burnin,
                                              *args,
                                              **kwargs)
-        if self.rep_mode is True:
-            self.mutate = self.mutateRep
-        else:
-            self.mutate = self.mutateChrom
 
     def mutateRep(self, pop):
         dvars = pop.dvars()
@@ -415,6 +418,11 @@ class InfAlleleMutator(Mutator):
 
     def __init__(self, mu, num_loci, allele_len, rep, rep_mode, *args, **kwargs):
         self.idx = [[0] * num_loci for i in xrange(rep)]
+        if rep_mode is True:
+            self.mutate = self.mutateRep
+        else:
+            self.mutate = self.mutateChrom
+
         super(InfAlleleMutator, self).__init__(mu,
                                                num_loci,
                                                1,
@@ -422,10 +430,6 @@ class InfAlleleMutator(Mutator):
                                                rep_mode
                                                *args,
                                                **kwargs)
-        if self.rep_mode is True:
-            self.mutate = self.mutateRep
-        else:
-            self.mutate = self.mutateChrom
 
     def mutateRep(self, pop):
         dvars = pop.dvars()
