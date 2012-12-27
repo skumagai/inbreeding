@@ -28,6 +28,7 @@ import json
 from collections import deque
 import sys
 import random
+import os
 import os.path
 
 # Command line arguments have to be processed before importing
@@ -50,9 +51,9 @@ def parseArgs():
     parser.add_argument('NREP',
                         type=int,
                         help='number of replicates')
-    parser.add_argument('OUTPUT',
+    parser.add_argument('DIR',
                         type=str,
-                        help='save final populations')
+                        help='directory storing final populations')
     parser.add_argument('-r', '--recombination-rate',
                         metavar='RHO',
                         type=float,
@@ -88,12 +89,8 @@ def parseArgs():
                         default=0,
                         help='random number seed (default: use posix time)')
     parser.add_argument('--trajectory',
-                        metavar='TRAJ_FILE',
-                        nargs='?',
-                        type=argparse.FileType('w'),
-                        default=None,
-                        const=sys.stdout,
-                        help='record heterozygosity and number of segregating sites each generation for later inspection to determine an appropriate durtion of burn-in.  (default: STDOUT)')
+                        action='store_true',
+                        help='record heterozygosity and number of segregating sites each generation.')
     parser.add_argument('--infinite-alleles',
                         action='store_true',
                         help='use the infinite-alleles model instead of the infinite-sites model')
@@ -124,11 +121,14 @@ class Writer(sim.PyOperator):
     def __init__(self, output, num_loci, allele_len, rep_mode, burnin, *args, **kwargs):
         self.num_loci = num_loci
         self.allele_len = allele_len
-        self.output = output
+        self.output = open(output, 'w')
         self.burnin = burnin
         self.has_header_printed = False
         self.rep_mode = rep_mode
         super(Writer, self).__init__(func = self.write, *args, **kwargs)
+
+    def __del__(self):
+        self.output.close()
 
     def write(self, pop):
         '''stub for a function to write data'''
@@ -375,7 +375,7 @@ class InfSiteMutator(Mutator):
                                     # self.elongate(pop, rep, locus)
                                     # idx = self.available[locus].pop()
                                     sys.stderr.write(
-                                        'rep={}, gen={}: '.format(rep, gen - burnin) +
+                                        'ERROR: rep={}, gen={}: '.format(rep, gen - burnin) +
                                         'maximum number of storable ' +
                                         'polymorphic sites reached')
                                     return False
@@ -533,6 +533,12 @@ def buildOutputFileName(output):
 
 def main():
 
+    if not os.path.exists(args.DIR):
+        os.mkdir(args.DIR)
+    else:
+        sys.stderr.write('ERROR: {} already exists.  aborting'.format(args.DIR))
+        sys.exit(1)
+
     pop_size = args.POP
     ngen = args.NGEN
     nrep = args.NREP
@@ -551,13 +557,9 @@ def main():
 
     # convert scaled mutation rates to per-generation rates.
     mut_rates = [[pos, unscaleParam(val, pop_size)] for pos, val in args.mutation_rate]
-    output = args.OUTPUT
     seed = args.seed
-    if args.trajectory == None:
-        to_explore = False
-    else:
-        to_explore = True
-        traj_file = args.trajectory
+    if args.trajectory is True:
+        traj_file = os.path.join(args.DIR, 'trajectory.csv')
     is_inf_alleles = args.infinite_alleles
 
     if seed > 0:
@@ -609,11 +611,12 @@ def main():
 
     # Because simuPOP only supports saving populations one-per-file, I
     # need to generate a bunch of file names.
-    filename = buildOutputFileName(output)
+    filename = '{:0{width}d}.pop'
     width = str(len(str(nrep - 1)))
-    finalops = [sim.SavePopulation('!"' + filename + '".format(rep, width=' + width + ')')]
+    finalops = [sim.SavePopulation('!"' + os.path.join(args.DIR, filename) +
+                                   '".format(rep, width=' + width + ')')]
 
-    if to_explore == True:
+    if args.trajectory is True:
         traj_writer = writer(traj_file, num_loci, allele_len, args.force_replication, burnin)
         finalops.append(traj_writer)
         # write a header of result file here.  This is necessary as the
@@ -637,7 +640,7 @@ def main():
 
 
     # save information about simulations to a file.
-    with open('conf.json', 'w') as wf:
+    with open(os.path.join(args.DIR, 'conf.json'), 'w') as wf:
         if args.infinite_alleles:
             mmode = u'infinite-alleles'
         else:
@@ -668,6 +671,9 @@ def main():
                                 u'mode': rmode},
                 u'files': files,
                 u'seed': hex(sim.getRNG().seed())}
+
+        if args.trajectory is True:
+            info[u'trajectory'] = u'trajectory.csv'
 
         json.dump(info, wf)
 
