@@ -549,10 +549,10 @@ def main():
             sm = [scaleParam(mm, pop_size) for mm in m]
 
         info = {u'mutation rate': {u'unscaled': m,
-                                   u'scaled': sm,
-                                   u'mode': mmode},
+                                   u'scaled': sm},
                 u'recombination rate': {u'unscaled': recomb_rate,
                                         u'scaled': scaleParam(recomb_rate, pop_size)},
+                u'mode': mmode,
                 u'selfing rate': selfing_rate,
                 u'population size': pop_size,
                 u'number of loci': num_loci,
