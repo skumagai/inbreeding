@@ -573,18 +573,23 @@ def main():
     else:
         mutator = InfSiteMutator
         writer = InfSiteWriter
-        rec_sites = [i * allele_len for i in xrange(num_loci)]
-
+        if args.force_replication is True:
+            rec_sites = [i * allele_len for i in xrange(num_loci)]
+        else:
+            chrom_offset = allele_len * num_loci
+            rec_sites = [j * chrom_offset + i * allele_len
+                         for i in xrange(num_loci)
+                         for j in xrange(nrep)]
     # construct a blue-print of a population.
     if args.force_replication is True:
         population = sim.Population(size = pop_size,
                                     ploidy = 2,
                                     loci = num_loci * allele_len)
     else:
+        # run only a single run of a simulation but use multiple chromosomes
         population = sim.Population(size = pop_size,
                                     ploidy = 2,
                                     loci = [num_loci * allele_len] * nrep)
-        # run only a single run of a simulation
 
     # Define operators used during simulations.
     mutator = mutator(mu = mut_rates,
