@@ -82,13 +82,13 @@ def get_info(dir):
         info = json.load(rf)
     return info
 
-def get_data(dir):
-    info = get_info(dir)
+def extract_data_rep(dir, info):
     num_loci = info[u'number of loci']
     data = []
-    for pop in [sim.loadPopulation(filename) for filename in info[u'files']]:
-        num_sites = pop.totalNumLoci() % num_loci
-        if num_sites != 0:
+    for pop in [sim.loadPopulation(os.path.join(dir, str(filename)))
+                for filename in info[u'files']]:
+        num_sites = pop.totalNumLoci() / num_loci
+        if pop.totalNumLoci() % num_loci != 0:
             print('[ERROR] total number of sites is not multiple of ' +
                   'sites per locus {}'.format(num_loci),
                   file=sys.stderr)
