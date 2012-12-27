@@ -574,12 +574,13 @@ def main():
         mutator = InfSiteMutator
         writer = InfSiteWriter
         if args.force_replication is True:
-            rec_sites = [i * allele_len for i in xrange(num_loci)]
+            rec_sites = [i * allele_len for i in xrange(1, num_loci)]
         else:
             chrom_offset = allele_len * num_loci
-            rec_sites = [j * chrom_offset + i * allele_len
-                         for i in xrange(num_loci)
-                         for j in xrange(nrep)]
+            rec_sites = [j * chrom_offset + i * allele_len - 1
+                         for j in xrange(nrep)
+                         for i in xrange(1, num_loci)]
+
     # construct a blue-print of a population.
     if args.force_replication is True:
         population = sim.Population(size = pop_size,
