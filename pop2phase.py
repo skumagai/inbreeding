@@ -170,7 +170,8 @@ def write_data(nsample, nloci, data, output):
     print(nsample, file=output)
     print(nloci, file=output)
     print('M' * nloci, file=output)
-    for d in data:
+    for i, d in enumerate(data):
+        print("sample_{}\t".format(i), file=output, end='')
         print("\t".join([str(di) for di in d]), file=output)
 
 
