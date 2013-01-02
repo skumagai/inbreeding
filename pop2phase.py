@@ -68,10 +68,10 @@ def parseArgs():
     phase_p = subparsers.add_parser('phase', help='generate phase file of genotypes')
     phase_p.add_argument('SAMPLE',
                          type=int,
-                         help='sample size')
+                         help='number of individuals to sample')
     phase_p.add_argument('LOCI',
                          type=str,
-                         help='number of samples (comma separated list)')
+                         help='number of loci to sample (comma separated list)')
     phase_p.add_argument('CSVS',
                          type=str,
                          help='name of CSV files storing genotypes (comma separaeted list)')
