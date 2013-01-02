@@ -174,7 +174,7 @@ def write_csv(genotypes, output):
 
 ### Functions specific to 'phase' subcommand.
 def get_csvs(args):
-    files = args.CSVS.split(',')
+    files = [os.path.expanduser(f) for f in args.CSVS.split(',')]
     for f in files:
         if os.path.isfile(f) is False:
             print('[ERROR] {} is not a file.'.format(f), file=sys.stderr)
