@@ -32,6 +32,8 @@ import os.path
 import sys
 import itertools
 
+from utility import import_right_module, chunks, get_info
+
 def parseArgs():
     parser = argparse.ArgumentParser(
         description='compute f, g, P, W')
