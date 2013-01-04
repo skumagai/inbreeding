@@ -5,3 +5,5 @@
 *.auc
 *.aux
 doc/auto/
+*.tar.*
+results/
