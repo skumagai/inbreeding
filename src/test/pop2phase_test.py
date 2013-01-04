@@ -70,12 +70,6 @@ class TestFunctions(unittest.TestCase):
         self.assertRaises(ValueError, pop2phase.encode, [0,0], codes)
 
 
-    def test_chunks(self):
-        a = list(xrange(10))
-        assert [[i for i in xrange(j * 2, (j + 1) * 2)]
-                for j in xrange(5)] == list(pop2phase.chunks(a, 2))
-
-
     def test_convert_genotype(self):
         loci_dict = {i: {'idx': 0} for i in xrange(3)}
         g0 = pop2phase.convert_genotype([[0,1], [2,3], [4,5]], loci_dict)

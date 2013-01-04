@@ -34,6 +34,8 @@ import random
 import os.path
 import operator
 
+from utility import import_right_module, get_info, chunks
+
 # From https://github.com/onyxfish/csvkit/commit/5f2c5d9d5c8596a4c7440e53dba0bd8d92feb3b9
 # Ensure SIGPIPE doesn't throw an exception
 # Prevents [Errno 32] Broken pipe errors, e.g. when piping to 'head'
@@ -88,16 +90,6 @@ def parseArgs():
     return parser.parse_args()
 
 
-def get_info(dir):
-    try:
-        with open(os.path.join(dir, 'conf.json'), 'r') as rf:
-            info = json.load(rf)
-    except IOError as e:
-        print('[ERROR] {}'.format(e), file=sys.stderr)
-        sys.exit(1)
-    return info
-
-
 def get_mode(args):
     info = get_info(args.DIR)
 
@@ -124,28 +116,6 @@ def encode(locus, codes):
         codes[locus] = code = codes['idx']
         codes['idx'] += 1
     return code
-
-
-def import_right_module(args):
-    try:
-        global sim
-        import simuOpt
-        mode = get_mode(args)
-        if mode == 'infinite-alleles':
-            simuOpt.setOptions(alleleType = 'long')
-        else:
-            simuOpt.setOptions(alleleType = 'binary')
-        import simuPOP as sim
-    except ImportError as e:
-        print('[ERROR] {}'.format(e), file=sys.stderr)
-        sys.exit(1)
-    return mode
-
-
-def chunks(l, n):
-    '''Divide a list into equal-length sublists'''
-    for i in xrange(0, len(l), n):
-        yield l[i:i+n]
 
 
 def convert_genotype(genotype, loci_dict):
