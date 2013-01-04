@@ -92,8 +92,8 @@ def get_info(dir):
     try:
         with open(os.path.join(dir, 'conf.json'), 'r') as rf:
             info = json.load(rf)
-    except:
-        print('[ERROR] {} is not a directory.'.format(dir), file=sys.stderr)
+    except IOError as e:
+        print('[ERROR] {}'.format(e), file=sys.stderr)
         sys.exit(1)
     return info
 
@@ -108,7 +108,17 @@ def get_mode(args):
 
 
 def encode(locus, codes):
+    try:
+        length = codes['length']
+    except:
+        length = len(locus)
+        codes['length'] = length
+
+    if length != len(locus):
+        raise ValueError('wrong number of sites in a locus: exp {}, obs{}'.
+                         format(codes['length'], length))
     locus = str(locus)
+
     try:
         code = codes[locus]
     except:
@@ -140,6 +150,11 @@ def chunks(l, n):
         yield l[i:i+n]
 
 
+def convert_genotype(genotype, loci_dict):
+    return [encode(locus, loci_dict[idx])
+            for idx, locus in enumerate(genotype)]
+
+
 def to_csv(args, mode):
     d = args.DIR
     info = get_info(d)
@@ -152,12 +167,8 @@ def to_csv(args, mode):
     genotypes = []
 
     for ind in pop.individuals():
-        geno0 = chunks(ind.genotype(ploidy = 0), lenlocus)
-        geno0 = [encode(locus, loci_dict[idx])
-                 for idx, locus in enumerate(geno0)]
-        geno1 = chunks(ind.genotype(ploidy = 1), lenlocus)
-        geno1 = [encode(locus, loci_dict[idx])
-                 for idx, locus in  enumerate(geno1)]
+        geno0 = convert_genotype(chunks(ind.genotype(ploidy = 0), lenlocus), loci_dict)
+        geno1 = convert_genotype(chunks(ind.genotype(ploidy = 1), lenlocus), loci_dict)
 
         genotypes.append(itertools.chain.from_iterable(zip(geno0, geno1)))
     return genotypes
@@ -202,10 +213,14 @@ def sample_loci(c, nloci, nsample):
         with open(c, 'r') as rf:
             reader = csv.reader(rf)
             pop_size = int(reader.next()[0])
-            idx = random.sample(xrange(pop_size), nsample)
+            try:
+                idx = random.sample(xrange(pop_size), nsample)
+            except (ValueError, TypeError) as e:
+                print('[ERROR] {}'.format(e), file=sys.stderr)
+                sys.exit(1)
             inds = [l for i, l in enumerate(reader) if i in idx]
-    except:
-        print('[ERROR] file cannot be opened: {}.'.format(csv), file=sys.stderr)
+    except IOError as e:
+        print('[ERROR] {}'.format(e), file=sys.stderr)
         sys.exit(1)
 
     totalloci = len(inds[0]) / 2
