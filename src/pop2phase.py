@@ -110,9 +110,8 @@ def get_mode(args):
 def encode(locus, codes):
     try:
         length = codes['length']
-    except:
-        length = len(locus)
-        codes['length'] = length
+    except KeyError:
+        codes['length'] = length = len(locus)
 
     if length != len(locus):
         raise ValueError('wrong number of sites in a locus: exp {}, obs{}'.
@@ -121,9 +120,8 @@ def encode(locus, codes):
 
     try:
         code = codes[locus]
-    except:
-        codes[locus] = codes['idx']
-        code = codes['idx']
+    except KeyError:
+        codes[locus] = code = codes['idx']
         codes['idx'] += 1
     return code
 
@@ -138,8 +136,8 @@ def import_right_module(args):
         else:
             simuOpt.setOptions(alleleType = 'binary')
         import simuPOP as sim
-    except:
-        print('[ERROR] needs simuPOP', file=sys.stderr)
+    except ImportError as e:
+        print('[ERROR] {}'.format(e), file=sys.stderr)
         sys.exit(1)
     return mode
 
