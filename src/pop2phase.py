@@ -126,6 +126,11 @@ def convert_genotype(genotype, loci_dict):
 def to_csv(args, mode):
     d = args.DIR
     info = get_info(d)
+
+    # this is needed as simuPOP is loaded in a different file.  It's
+    # name is not bound in the namescope of this file.
+    sim = sys.modules['simuPOP']
+
     pop = sim.loadPopulation(os.path.join(d, str(info[u'files'][0])))
     pop_size = pop.popSize()
     nloci = info[u'number of loci']

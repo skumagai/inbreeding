@@ -108,6 +108,10 @@ def check_identity(nloci, geno0, geno1):
 def summarise(d, mode):
     info = get_info(d)
     num_loci = info[u'number of loci']
+
+    # this is needed as simuPOP is loaded in a different file.  It's
+    # name is not bound in the namescope of this file.
+    sim = sys.modules['simuPOP']
     for f in [str(s) for s in info[u'files']]:
         pop = sim.loadPopulation(os.path.join(d, f))
         pop_size = pop.popSize()
