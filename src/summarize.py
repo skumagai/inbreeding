@@ -41,6 +41,11 @@ def parseArgs():
     parser.add_argument('DIR',
                         nargs='*',
                         help='name of directories storing simuPOP.Population object')
+    parser.add_argument('-o', '--output',
+                        type=argparse.FileType('w'),
+                        default=sys.stdout,
+                        help='output file')
+
     return parser.parse_args()
 
 
@@ -119,7 +124,18 @@ def summarise(d, mode):
     # this is needed as simuPOP is loaded in a different file.  It's
     # name is not bound in the namescope of this file.
     sim = sys.modules['simuPOP']
-    for f in [str(s) for s in info[u'files']]:
+
+    mut= info[u'mutation rate'][u'scaled']
+    rec = info[u'recombination rate'][u'scaled']
+    selfing = info[u'selfing rate']
+
+    results = []
+    header = ['mutation rate', 'recombination rate', 'selfing rate', 'replicate id']
+    header += ['f', 'g']
+    header += ['P(' + ''.join(str(k) for k in key) + ')' for key in keys]
+    header += ['W(' + ''.join(str(k) for k in key) + ')' for key in keys]
+
+    for i, f in enumerate([str(s) for s in info[u'files']]):
         pop = sim.loadPopulation(os.path.join(d, f))
         pop_size = pop.popSize()
         nsites = pop.totNumLoci() / num_loci
@@ -131,15 +147,31 @@ def summarise(d, mode):
         g = compute_g(inds)
         P = compute_P(inds)
         W = compute_W(inds)
+        results.append([mut, rec, selfing, i] +
+                       f + g + [P[key] for key in keys] + [W[key] for key in keys])
 
-        return f, g, P, W
+    return header, results
 
 
 def main():
     args = parseArgs()
     mode = import_right_module(args)
+
+    writer = csv.writer(args.output)
+    write_header = True
     for d in args.DIR:
-        f, g, P, W = summarise(d, mode)
+        header, results = summarise(d, mode)
+        if write_header is True:
+            nelems = len(results)
+            writer.writerow(header)
+            write_header = False
+        elif len(results) != nelems:
+            print('[WARN] write header in the middle of CSV file.', file=sys.stderr)
+            writer.writerow(header)
+
+        for result in results:
+            writer.writerow(result)
+
     sys.exit(0)
 
 if __name__ == '__main__':
