@@ -146,12 +146,14 @@ def summarise(d, mode):
 
     results = []
     header = ['mutation rate', 'recombination rate', 'selfing rate', 'replicate id']
-    header += ['f_{' + str(i) + '}' for i in xrange(num_loci)]
-    header += ['g_{' + str(i) + '}'  for i in xrange(num_loci)]
-    header += ['P_{' +  ''.join(str(i) for i in xrange(num_loci))
-               + '}(' + ''.join(str(k) for k in key) + ')' for key in keys]
-    header += ['W_{' +  ''.join(str(i) for i in xrange(num_loci))
-               + '}(' + ''.join(str(k) for k in key) + ')' for key in keys]
+    # Eventually multiple {f,g}^{*} columns are merged when computing
+    # mean and sem.
+    header += ['f^{' + str(i) + '}' for i in xrange(num_loci)]
+    header += ['g^{' + str(i) + '}'  for i in xrange(num_loci)]
+    header += ['P_{' + str(num_loci) + '}('
+               + ''.join(str(k) for k in key) + ')' for key in keys]
+    header += ['W_{' + str(num_loci) + '}('
+               + ''.join(str(k) for k in key) + ')' for key in keys]
 
     for i, f in enumerate([str(s) for s in info[u'files']]):
         pop = sim.loadPopulation(os.path.join(d, f))
@@ -196,16 +198,36 @@ def filter_column_labels(data, cond):
     return [key for key in data.columns if cond(key)]
 
 
-def plot_category(index, group, keys, mut, rec):
-      xs = filter_column_labels(group, lambda x: (x[0] in keys and x[1] == 'mean'))
-      xerrs = filter_column_labels(group, lambda x: (x[0] in keys and x[1] == 'sem'))
-      plt.figure()
-      for x, xerr in zip(xs, xerrs):
-        plt.errorbar(index, group[x], yerr=group[xerr] / 2, fmt='o', label=r'$' + x[0] + '$')
-        plt.xlabel('selfing rate')
-        plt.ylabel('f')
-        plt.title(r'$\theta = {}, r = {}$'.format(mut, rec))
-        plt.legend()
+def mathtext(fn):
+    def _fn(*args):
+        return r'$' + fn(*args) + '$'
+    return _fn
+
+
+@mathtext
+def get_ylabel(label):
+    first_letter = label[0][0]
+    if first_letter == 'f' or  first_letter == 'g':
+        return first_letter
+    else:
+        idx = label.find('(')
+        return label[:idx]
+
+@mathtext
+def get_label(label):
+    return label
+
+
+def plot_category(ax, index, group, keys, func):
+    xs = filter_column_labels(group, lambda x: (x[0] in keys and x[1] == 'mean'))
+    xerrs = filter_column_labels(group, lambda x: (x[0] in keys and x[1] == 'sem'))
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+    for x, xerr, col in zip(xs, xerrs, colors):
+        label = get_label(x[0])
+        ax.errorbar(index, group[x], yerr=group[xerr] / 2, fmt='-', color=col, label=label)
+        ax.plot(index, [func(s) for s in index], 'd', color=col)
+    ax.set_ylabel(get_ylabel(keys[0]))
+    ax.legend()
 
 
 def plot(args):
@@ -215,34 +237,63 @@ def plot(args):
     import scipy.stats
     import matplotlib.pyplot as plt
 
+    summary_funcs = [np.mean, scipy.stats.sem]
+
     raw_data = pd.read_csv(args.CSV, header=0, index_col=list(xrange(4)))
     raw_data = raw_data.sort_index()
     fs = filter_column_labels(raw_data, lambda x: x[0] == 'f')
     gs = filter_column_labels(raw_data, lambda x: x[0] == 'g')
     Ps = filter_column_labels(raw_data, lambda x: x[0] == 'P')
     Ws = filter_column_labels(raw_data, lambda x: x[0] == 'W')
-    summaries = raw_data.groupby(level=['mutation rate',
-                                        'recombination rate',
-                                        'selfing rate']).\
-                                        agg([np.mean,  scipy.stats.sem])
 
     for (mut, rec), group in \
-      summaries.groupby(level=['mutation rate', 'recombination rate']):
+      raw_data.groupby(level=['mutation rate', 'recombination rate']):
+
       group = group.reset_index(level=['mutation rate', 'recombination rate'],
                                 drop=True)
 
+      merged_f = pd.concat(group[key] for key in fs).groupby(level='selfing rate').agg(summary_funcs)
+      merged_f.rename(columns={'mean': ('f', 'mean'), 'sem': ('f', 'sem')}, inplace=True)
+
+      merged_g = pd.concat(group[g] for g in gs).groupby(level='selfing rate').agg(summary_funcs)
+      merged_g.rename(columns={'mean': ('g', 'mean'), 'sem': ('g', 'sem')}, inplace=True)
+
+      for keys in (fs, gs):
+        for key in keys:
+          del group[key]
+
+      group = group.groupby(level='selfing rate').agg(summary_funcs)
+      group = pd.concat([group, merged_f, merged_g], axis=1)
+
       index = group.index
+      func = None
+
+      # prepare 2x2 panel for plotting f, g, P, and W.
+      fig, ((ax_f, ax_g), (ax_P, ax_W)) = plt.subplots(2, 2, sharex='all')
+
+      # urgly hack to share x-axis label
+      invisible_ax = fig.add_subplot(111)
+      invisible_ax.set_frame_on(False)
+      invisible_ax.set_xticks([])
+      invisible_ax.set_yticks([])
+      invisible_ax.set_xlabel('selfing rate', labelpad=20)
+
       # plot f
-      plot_category(index, group, fs, mut, rec)
+      f_func = lambda s: 1 - (1 - s) * mut / (1 + (1 - s / 2) * mut)
+      plot_category(ax_f, index, group, ['f'], f_func)
 
-      # plot g
-      plot_category(index, group, gs, mut, rec)
+      # # plot g
+      g_func = lambda s: 1 - (1 - s / 2) * mut / (1 + (1 - s / 2) * mut)
+      plot_category(ax_g, index, group, ['g'], g_func)
 
-      # plot P
-      plot_category(index, group, Ps, mut, rec)
+      # # plot P
+      # P_func = lambda
+      # plot_category(ax_P, index, group, Ps, None)
 
-      # plot W
-      plot_category(index, group, Ws, mut, rec)
+      # # plot W
+      # plot_category(ax_W, index, group, Ws, None)
+
+      fig.suptitle(r'$\theta = {}, r = {}$'.format(mut, rec))
 
     plt.show()
 
