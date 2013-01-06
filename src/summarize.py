@@ -38,13 +38,28 @@ def parseArgs():
     parser = argparse.ArgumentParser(
         description='compute f, g, P, W')
 
-    parser.add_argument('DIR',
+    subparsers = parser.add_subparsers(help='sub-command help')
+
+    stat_p = subparsers.add_parser('stats', help='compute f, g, P, and W')
+
+
+    stat_p.add_argument('DIR',
                         nargs='*',
                         help='name of directories storing simuPOP.Population object')
-    parser.add_argument('-o', '--output',
+    stat_p.add_argument('-o', '--output',
                         type=argparse.FileType('w'),
                         default=sys.stdout,
                         help='output file')
+
+    stat_p.set_defaults(func=stats)
+
+    plot_p = subparsers.add_parser('plot', help='plot f, g, P, and W')
+
+    plot_p.add_argument('CSV',
+                        type=str,
+                        help='input CSV file')
+    plot_p.set_defaults(func=plot)
+
 
     return parser.parse_args()
 
@@ -156,8 +171,7 @@ def summarise(d, mode):
     return header, results
 
 
-def main():
-    args = parseArgs()
+def stats(args):
     mode = import_right_module(args)
 
     writer = csv.writer(args.output)
@@ -176,6 +190,66 @@ def main():
             writer.writerow(result)
 
     sys.exit(0)
+
+
+def filter_column_labels(data, cond):
+    return [key for key in data.columns if cond(key)]
+
+
+def plot_category(index, group, keys, mut, rec):
+      xs = filter_column_labels(group, lambda x: (x[0] in keys and x[1] == 'mean'))
+      xerrs = filter_column_labels(group, lambda x: (x[0] in keys and x[1] == 'sem'))
+      plt.figure()
+      for x, xerr in zip(xs, xerrs):
+        plt.errorbar(index, group[x], yerr=group[xerr] / 2, fmt='o', label=r'$' + x[0] + '$')
+        plt.xlabel('selfing rate')
+        plt.ylabel('f')
+        plt.title(r'$\theta = {}, r = {}$'.format(mut, rec))
+        plt.legend()
+
+
+def plot(args):
+    global pd, np, scipy, plt
+    import pandas as pd
+    import numpy as np
+    import scipy.stats
+    import matplotlib.pyplot as plt
+
+    raw_data = pd.read_csv(args.CSV, header=0, index_col=list(xrange(4)))
+    raw_data = raw_data.sort_index()
+    fs = filter_column_labels(raw_data, lambda x: x[0] == 'f')
+    gs = filter_column_labels(raw_data, lambda x: x[0] == 'g')
+    Ps = filter_column_labels(raw_data, lambda x: x[0] == 'P')
+    Ws = filter_column_labels(raw_data, lambda x: x[0] == 'W')
+    summaries = raw_data.groupby(level=['mutation rate',
+                                        'recombination rate',
+                                        'selfing rate']).\
+                                        agg([np.mean,  scipy.stats.sem])
+
+    for (mut, rec), group in \
+      summaries.groupby(level=['mutation rate', 'recombination rate']):
+      group = group.reset_index(level=['mutation rate', 'recombination rate'],
+                                drop=True)
+
+      index = group.index
+      # plot f
+      plot_category(index, group, fs, mut, rec)
+
+      # plot g
+      plot_category(index, group, gs, mut, rec)
+
+      # plot P
+      plot_category(index, group, Ps, mut, rec)
+
+      # plot W
+      plot_category(index, group, Ws, mut, rec)
+
+    plt.show()
+
+
+def main():
+    args = parseArgs()
+    args.func(args)
 
 if __name__ == '__main__':
     main()
