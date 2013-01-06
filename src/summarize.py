@@ -131,12 +131,12 @@ def summarise(d, mode):
 
     results = []
     header = ['mutation rate', 'recombination rate', 'selfing rate', 'replicate id']
-    header += ['f_' + str(i) for i in xrange(num_loci)]
-    header += ['g_' + str(i) for i in xrange(num_loci)]
-    header += ['P_' +  ''.join(str(i) for i in xrange(num_loci))
-               + '(' + ''.join(str(k) for k in key) + ')' for key in keys]
-    header += ['W_' +  ''.join(str(i) for i in xrange(num_loci))
-               + '(' + ''.join(str(k) for k in key) + ')' for key in keys]
+    header += ['f_{' + str(i) + '}' for i in xrange(num_loci)]
+    header += ['g_{' + str(i) + '}'  for i in xrange(num_loci)]
+    header += ['P_{' +  ''.join(str(i) for i in xrange(num_loci))
+               + '}(' + ''.join(str(k) for k in key) + ')' for key in keys]
+    header += ['W_{' +  ''.join(str(i) for i in xrange(num_loci))
+               + '}(' + ''.join(str(k) for k in key) + ')' for key in keys]
 
     for i, f in enumerate([str(s) for s in info[u'files']]):
         pop = sim.loadPopulation(os.path.join(d, f))
