@@ -74,7 +74,12 @@ class TestFunctions(unittest.TestCase):
 
 
     def test_compute_W(self):
-        exp = [8./12., 0., 4./12.]
+        exp = {
+            (0,0): 8./12.,
+            (1,1): 4./12.,
+            (0,1): 0.,
+            (1,0): 0.
+            }
         self.assertEqual(summarize.compute_W(self.inds), exp)
 
 
