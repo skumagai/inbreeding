@@ -107,16 +107,16 @@ def compute_P(inds):
 
 def compute_W(inds):
     pop_size, nloci = basic_info(inds)
-    Ws = {key: 0 for key in generate_PW_keys(nloci)}
+    Ws = list([0 for key in xrange(nloci + 1)])
     for pair in itertools.combinations(inds, 2):
         geno00, geno01 = pair[0]
         geno10, geno11 = pair[1]
-        Ws[tuple(check_identity(nloci, geno00, geno10))] += 1
-        Ws[tuple(check_identity(nloci, geno00, geno11))] += 1
-        Ws[tuple(check_identity(nloci, geno01, geno10))] += 1
-        Ws[tuple(check_identity(nloci, geno01, geno11))] += 1
+        Ws[sum(check_identity(nloci, geno00, geno10))] += 1
+        Ws[sum(check_identity(nloci, geno00, geno11))] += 1
+        Ws[sum(check_identity(nloci, geno01, geno10))] += 1
+        Ws[sum(check_identity(nloci, geno01, geno11))] += 1
     denom = 4. * pop_size * (pop_size - 1) / 2
-    return {key: float(val) / denom for key, val in Ws.iteritems()}
+    return list([float(val) / denom for val in Ws])
 
 
 def check_identity(nloci, geno0, geno1):
@@ -127,14 +127,10 @@ def check_identity(nloci, geno0, geno1):
     return counts
 
 
-def generate_PW_keys(nloci):
-    return itertools.product(xrange(2), repeat = nloci)
-
-
 def summarise(d, mode):
     info = get_info(d)
     num_loci = info[u'number of loci']
-    keys = list(generate_PW_keys(num_loci))
+    keys = list(itertools.product(xrange(2), repeat=nloci))
 
     # this is needed as simuPOP is loaded in a different file.  It's
     # name is not bound in the namescope of this file.
@@ -153,7 +149,7 @@ def summarise(d, mode):
     header += ['P_{' + str(num_loci) + '}('
                + ''.join(str(k) for k in key) + ')' for key in keys]
     header += ['W_{' + str(num_loci) + '}('
-               + ''.join(str(k) for k in key) + ')' for key in keys]
+               + str(i) + ')' for i in xrange(num_loci + 1)]
 
     for i, f in enumerate([str(s) for s in info[u'files']]):
         pop = sim.loadPopulation(os.path.join(d, f))
@@ -167,8 +163,7 @@ def summarise(d, mode):
         g = compute_g(inds)
         P = compute_P(inds)
         W = compute_W(inds)
-        results.append([mut, rec, selfing, i] +
-                       f + g + [P[key] for key in keys] + [W[key] for key in keys])
+        results.append([mut, rec, selfing, i] + f + g + [P[key] for key in keys] + W)
 
     return header, results
 
