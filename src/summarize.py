@@ -216,28 +216,91 @@ def get_label(label):
     return label
 
 
-def plot_category(ax, index, group, keys, func):
+def plot_category(ax, index, group, keys, func, params):
+    rec, mut1, mut2 = params
     xs = filter_column_labels(group, lambda x: (x[0] in keys and x[1] == 'mean'))
     xerrs = filter_column_labels(group, lambda x: (x[0] in keys and x[1] == 'sem'))
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
-    for x, xerr, col in zip(xs, xerrs, colors):
+
+    for i, (x, xerr, col) in enumerate(zip(xs, xerrs, colors)):
         label = get_label(x[0])
         ax.errorbar(index, group[x], yerr=group[xerr] / 2, fmt='-', color=col, label=label)
-        ax.plot(index, [func(s) for s in index], 'd', color=col)
+        ax.plot(index, [func(s, rec, mut1, mut2)[i] for s in index], 'x', color=col)
     ax.set_ylabel(get_ylabel(keys[0]))
     ax.legend()
 
+## Computing expected f, g, P, and W.
+def expF(s, rec, mut1, mut2):
+    return [1 - (1 - s) * mut1 / (1 + (1 - s / 2) * mut1)]
+
+
+def expG(s, rec, mut1, mut2):
+    return [1 - (1 - s / 2) * mut1 / (1 + (1 - s / 2) * mut1)]
+
+
+def expP(s, rec, mut1, mut2):
+    w00, w01, w10, w11 = expW(s, rec, mut1, mut2)
+    c1 = 0.5
+    c2 = 1 - ((1 - rec)**2 + rec**2) / 2
+    p11 = (1 - s) * w11 / (1 - s * (1 - c2))
+    p00 = (s * c2 + (1 - s) * w00) / (1 - s * (1 - c2)) - \
+        (rec * (1 - rec) * s * (1 - s) * (2 * w11 + w10 - w01)) / \
+        (1 - s * (1 - c1)) * (1 - s * (1 - c2))
+    p10 = (1 - s) * w10 / (1 - s * (1 - c2)) + \
+        rec * (1 - rec) * s * (1 - s) * (w11 + w10) / \
+        ((1 - s * (1 - c1)) * (1 - s * (1 - c2)))
+    p01 = (1 - s) * w01 / (1 - s * (1 - c2)) + \
+        rec * (1 - rec) * s * (1 - s) * (w11 + w01) / \
+        ((1 - s * (1 - c1)) * (1 - s * (1 - c2)))
+    return np.array([p00, p01, p10, p11])
+
+
+def expW(s, rec, mut1, mut2):
+    mut = mut1 + mut2
+    denom1 = 1 + rec * (1 - s) + (1 - s / 2) * mut
+    denom2 = 3 + rec * (1 - s) / 2 + (1 - s / 2) * mut
+    denom3 = 6 + (1 - s / 2) * mut
+    umat = np.zeros((3,3))
+    umat[0,1] = rec * (1 - s) / denom1
+    umat[1,0] = 1 / denom2
+    umat[1,2] = rec * (1 - s) / (2 * denom2)
+    umat[2,1] = 4 / denom3
+    bta = 1 / (mut1 * (1 - s / 2) + 1)
+    btb = 1 / (mut2 * (1 - s / 2) + 1)
+
+    p0 = 1 - s / 2
+
+    rvmat = [[mut1 * mut2 * p0**2 * (bta + btb),
+              mut1 * p0 * btb,
+              mut2 * p0 * bta,
+              1],
+             [mut1 * mut2 * p0**2 * (bta + btb),
+              mut1 * p0 * (bta + btb),
+              mut2 * p0 * (bta + btb),
+              bta + btb],
+             [mut1 * mut2 * p0**2 * (bta + btb),
+              mut1 * p0 * (bta + btb),
+              mut2 * p0 * (bta + btb),
+              bta + btb]]
+    vmat = np.dot(np.diag([1 / denom1, 1 / denom2, 1 / denom3]), rvmat)
+    invIminusU = la.inv(np.eye(3) - umat)
+    initvec = np.zeros((1, 3))
+    initvec[0,0] = 1
+    p11, p10, p01, p00 = np.dot(np.dot(initvec, invIminusU), vmat)[0]
+    return np.array([p00, p10, p10, p11])
+
 
 def plot(args):
-    global pd, np, scipy, plt
+    global pd, np, scipy, plt, la
     import pandas as pd
     import numpy as np
+    import numpy.linalg as la
     import scipy.stats
     import matplotlib.pyplot as plt
 
     summary_funcs = [np.mean, scipy.stats.sem]
 
-    raw_data = pd.read_csv(args.CSV, header=0, index_col=list(xrange(4)))
+    raw_data = pd.read_csv(args.CSV, header=0, index_col=list(range(4)))
     raw_data = raw_data.sort_index()
     fs = filter_column_labels(raw_data, lambda x: x[0] == 'f')
     gs = filter_column_labels(raw_data, lambda x: x[0] == 'g')
@@ -277,19 +340,16 @@ def plot(args):
       invisible_ax.set_xlabel('selfing rate', labelpad=20)
 
       # plot f
-      f_func = lambda s: 1 - (1 - s) * mut / (1 + (1 - s / 2) * mut)
-      plot_category(ax_f, index, group, ['f'], f_func)
+      plot_category(ax_f, index, group, ['f'], expF, (rec, mut, mut))
 
-      # # plot g
-      g_func = lambda s: 1 - (1 - s / 2) * mut / (1 + (1 - s / 2) * mut)
-      plot_category(ax_g, index, group, ['g'], g_func)
+      # plot g
+      plot_category(ax_g, index, group, ['g'], expG, (rec, mut, mut))
 
-      # # plot P
-      # P_func = lambda
-      # plot_category(ax_P, index, group, Ps, None)
+      # plot P
+      plot_category(ax_P, index, group, Ps, expP, (rec, mut, mut))
 
-      # # plot W
-      # plot_category(ax_W, index, group, Ws, None)
+      # plot W
+      plot_category(ax_W, index, group, Ws, expW, (rec, mut, mut) )
 
       fig.suptitle(r'$\theta = {}, r = {}$'.format(mut, rec))
 
