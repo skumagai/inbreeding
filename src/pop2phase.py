@@ -23,7 +23,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from __future__ import print_function
+
 
 import argparse
 import csv
@@ -34,7 +34,7 @@ import random
 import os.path
 import operator
 
-from utility import import_right_module, get_info, chunks
+from .utility import import_right_module, get_info, chunks
 
 # From https://github.com/onyxfish/csvkit/commit/5f2c5d9d5c8596a4c7440e53dba0bd8d92feb3b9
 # Ensure SIGPIPE doesn't throw an exception
@@ -94,7 +94,7 @@ def get_mode(args):
     info = get_info(args.DIR)
 
     mode = 'infinite-sites'
-    if u'mode' in info and info[u'mode'] == u'infinite-alleles':
+    if 'mode' in info and info['mode'] == 'infinite-alleles':
         mode = 'infinite-alleles'
     return mode
 
@@ -131,19 +131,19 @@ def to_csv(args, mode):
     # name is not bound in the namescope of this file.
     sim = sys.modules['simuPOP']
 
-    pop = sim.loadPopulation(os.path.join(d, str(info[u'files'][0])))
+    pop = sim.loadPopulation(os.path.join(d, str(info['files'][0])))
     pop_size = pop.popSize()
-    nloci = info[u'number of loci']
+    nloci = info['number of loci']
     lenlocus = pop.totNumLoci() / nloci
 
-    loci_dict = {i:{'idx': 0} for i in xrange(pop_size)}
+    loci_dict = {i:{'idx': 0} for i in range(pop_size)}
     genotypes = []
 
     for ind in pop.individuals():
         geno0 = convert_genotype(chunks(ind.genotype(ploidy = 0), lenlocus), loci_dict)
         geno1 = convert_genotype(chunks(ind.genotype(ploidy = 1), lenlocus), loci_dict)
 
-        genotypes.append(itertools.chain.from_iterable(zip(geno0, geno1)))
+        genotypes.append(itertools.chain.from_iterable(list(zip(geno0, geno1))))
     return genotypes
 
 
@@ -173,7 +173,7 @@ def to_phase(args):
         print('[ERROR] inconsistent sampling strategy.', file=sys.stderr)
         sys.exit(1)
 
-    inds = [[] for i in xrange(args.SAMPLE)]
+    inds = [[] for i in range(args.SAMPLE)]
     for c, l in zip(csvs, sloci):
         ind_data = sample_loci(c, l, args.SAMPLE)
         for i, d in enumerate(ind_data):
@@ -187,7 +187,7 @@ def sample_loci(c, nloci, nsample):
             reader = csv.reader(rf)
             pop_size = int(reader.next()[0])
             try:
-                idx = random.sample(xrange(pop_size), nsample)
+                idx = random.sample(range(pop_size), nsample)
             except (ValueError, TypeError) as e:
                 print('[ERROR] {}'.format(e), file=sys.stderr)
                 sys.exit(1)
@@ -197,7 +197,7 @@ def sample_loci(c, nloci, nsample):
         sys.exit(1)
 
     totalloci = len(inds[0]) / 2
-    order = [(i * 2, i * 2 + 1) for i in random.sample(xrange(totalloci), nloci)]
+    order = [(i * 2, i * 2 + 1) for i in random.sample(range(totalloci), nloci)]
     extractor = operator.itemgetter(*sorted(itertools.chain.from_iterable(order)))
     loci = [extractor(ind) for ind in inds]
     return loci
@@ -216,7 +216,7 @@ def write_phase(nsample, nloci, data, output):
 
 def randomize(data):
     nloci = len(data[0])
-    order = xrange(nloci)
+    order = range(nloci)
     random.shuffle(order)
     randomizer = operator.itemgetter(*order)
     genotypes = [randomizer(ind) for ind in data]

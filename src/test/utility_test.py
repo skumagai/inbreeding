@@ -25,7 +25,7 @@
 
 '''unittest for inbreeding.utility.py'''
 
-from __future__ import print_function
+
 
 import unittest
 import utility
@@ -36,6 +36,6 @@ class TestFunctions(unittest.TestCase):
         pass
 
     def test_chunks(self):
-        a = list(xrange(10))
-        assert [[i for i in xrange(j * 2, (j + 1) * 2)]
-                for j in xrange(5)] == list(utility.chunks(a, 2))
+        a = list(range(10))
+        assert [[i for i in range(j * 2, (j + 1) * 2)]
+                for j in range(5)] == list(utility.chunks(a, 2))

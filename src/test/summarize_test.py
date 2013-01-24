@@ -25,7 +25,7 @@
 
 '''unittest for summarize.py.  Some top-level or nearly-so functions are not tested'''
 
-from __future__ import print_function
+
 
 import unittest
 import summarize

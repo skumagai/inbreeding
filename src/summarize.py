@@ -23,8 +23,6 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from __future__ import print_function
-
 import argparse
 import json
 import csv
@@ -99,10 +97,10 @@ def compute_g(inds):
 
 def compute_P(inds):
     pop_size, nloci = basic_info(inds)
-    Ps = {key: 0 for key in itertools.product(xrange(2), repeat = nloci)}
+    Ps = {key: 0 for key in itertools.product(range(2), repeat = nloci)}
     for ind in inds:
         Ps[tuple(check_identity(nloci, ind[0], ind[1]))] += 1
-    return {key: float(val) / pop_size for key, val in Ps.iteritems()}
+    return {key: float(val) / pop_size for key, val in Ps.items()}
 
 
 def compute_W(inds):
@@ -116,46 +114,46 @@ def compute_W(inds):
         Ws[tuple(check_identity(nloci, geno01, geno10))] += 1
         Ws[tuple(check_identity(nloci, geno01, geno11))] += 1
     denom = 4. * pop_size * (pop_size - 1) / 2
-    return {key: float(val) / denom for key, val in Ws.iteritems()}
+    return {key: float(val) / denom for key, val in Ws.items()}
 
 
 def check_identity(nloci, geno0, geno1):
     counts = [0] * nloci
-    for i, geno_pair in enumerate(zip(geno0, geno1)):
+    for i, geno_pair in enumerate(list(zip(geno0, geno1))):
         if geno_pair[0] == geno_pair[1]:
             counts[i] = 1
     return counts
 
 
 def generate_PW_keys(nloci):
-    return itertools.product(xrange(2), repeat = nloci)
+    return itertools.product(range(2), repeat = nloci)
 
 
 def summarise(d, mode):
     info = get_info(d)
-    num_loci = info[u'number of loci']
+    num_loci = info['number of loci']
     keys = list(generate_PW_keys(num_loci))
 
     # this is needed as simuPOP is loaded in a different file.  It's
     # name is not bound in the namescope of this file.
     sim = sys.modules['simuPOP']
 
-    mut= info[u'mutation rate'][u'scaled']
-    rec = info[u'recombination rate'][u'scaled']
-    selfing = info[u'selfing rate']
+    mut= info['mutation rate']['scaled']
+    rec = info['recombination rate']['scaled']
+    selfing = info['selfing rate']
 
     results = []
     header = ['mutation rate', 'recombination rate', 'selfing rate', 'replicate id']
     # Eventually multiple {f,g}^{*} columns are merged when computing
     # mean and sem.
-    header += ['f^{' + str(i) + '}' for i in xrange(num_loci)]
-    header += ['g^{' + str(i) + '}'  for i in xrange(num_loci)]
+    header += ['f^{' + str(i) + '}' for i in range(num_loci)]
+    header += ['g^{' + str(i) + '}'  for i in range(num_loci)]
     header += ['P_{' + str(num_loci) + '}('
                + ''.join(str(k) for k in key) + ')' for key in keys]
     header += ['W_{' + str(num_loci) + '}('
                + ''.join(str(k) for k in key) + ')' for key in keys]
 
-    for i, f in enumerate([str(s) for s in info[u'files']]):
+    for i, f in enumerate([str(s) for s in info['files']]):
         pop = sim.loadPopulation(os.path.join(d, f))
         pop_size = pop.popSize()
         nsites = pop.totNumLoci() / num_loci

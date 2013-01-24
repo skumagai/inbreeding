@@ -148,7 +148,7 @@ class Writer(sim.PyOperator):
         if self.has_header_printed == False:
             self.output.write('"rep","gen",')
             self.output.write(','.join(['"1-f (locus {})"'.format(i)
-                                        for i in xrange(self.num_loci)]))
+                                        for i in range(self.num_loci)]))
             self.has_header_printed = True
 
 
@@ -169,14 +169,14 @@ class InfSiteWriter(Writer):
 
     def write(self, pop):
         self._write_common(pop)
-        self.output.write(','.join(['{}' for i in xrange(self.num_loci)]).format(
+        self.output.write(','.join(['{}' for i in range(self.num_loci)]).format(
             *computeNumberOfSegregatingSites(pop, num_loci, allele_len)) + '\n')
         return True
 
     def write_header(self):
         self._write_common_header()
         self.output.write(',' + ','.join(['"# segre (locus {})"'.format(i)
-                                          for i in xrange(self.num_loci)]) + '\n')
+                                          for i in range(self.num_loci)]) + '\n')
 
 
 class InfAlleleWriter(Writer):
@@ -254,7 +254,7 @@ class Mutator(sim.PyOperator):
                     start, stop = [int(d) for d  in boundaries]
                     # stop is not inclusive following python's convension.
                     if 0 <= start < num_loci and 0 <= stop <= num_loci:
-                        for pos in xrange(start, stop):
+                        for pos in range(start, stop):
                             mut_rates[pos] = val
                     else:
                         sys.exit('mutation loc spec: range out of loci')
@@ -270,7 +270,7 @@ class Mutator(sim.PyOperator):
 class InfSiteMutator(Mutator):
 
     def __init__(self, mu, num_loci, allele_len, rep, burnin, *args, **kwargs):
-        self.available = {r: [deque(xrange(allele_len))
+        self.available = {r: [deque(range(allele_len))
                               for i in range(num_loci)]
                           for r in range(rep)}
         super(InfSiteMutator, self).__init__(mu,
@@ -320,7 +320,7 @@ class InfSiteMutator(Mutator):
         allele_len = self.allele_len
         start = locus * allele_len
         stop = (locus + 1) * allele_len
-        sites = range(start, stop)
+        sites = list(range(start, stop))
 
         alleleStates = areAllelesMonomorphic(pop, sites)
         available = [i for i, state in enumerate(alleleStates) if state == True]
@@ -345,7 +345,7 @@ class InfSiteMutator(Mutator):
 class InfAlleleMutator(Mutator):
 
     def __init__(self, mu, num_loci, allele_len, rep, *args, **kwargs):
-        self.idx = [[0] * num_loci for i in xrange(rep)]
+        self.idx = [[0] * num_loci for i in range(rep)]
         super(InfAlleleMutator, self).__init__(mu,
                                                num_loci,
                                                1,
@@ -371,7 +371,7 @@ class InfAlleleMutator(Mutator):
 
 def chunks(l, n):
     '''Divide a list into equal-length sublists'''
-    for i in xrange(0, len(l), n):
+    for i in range(0, len(l), n):
         yield l[i:i+n]
 
 
@@ -384,7 +384,7 @@ def computeHeterozygosity(pop, num_loci, allele_len):
         genotype0 = chunks(ind.genotype(ploidy = 0), allele_len)
         genotype1 = chunks(ind.genotype(ploidy = 1), allele_len)
 
-        for i, (g0, g1) in enumerate(zip(genotype0, genotype1)):
+        for i, (g0, g1) in enumerate(list(zip(genotype0, genotype1))):
             if g0 != g1:
                 h[i] += 1
     return list([i / pop_size for i in h])
@@ -473,8 +473,8 @@ def main():
     else:
         mutator = InfSiteMutator
         writer = InfSiteWriter
-        rec_sites = [i * allele_len - 1 for i in xrange(1, num_loci)]
-        print rec_sites
+        rec_sites = [i * allele_len - 1 for i in range(1, num_loci)]
+        print(rec_sites)
 
     # construct a blue-print of a population.
     population = sim.Population(size = pop_size,
@@ -536,10 +536,10 @@ def main():
     # save information about simulations to a file.
     with open(os.path.join(args.DIR, 'conf.json'), 'w') as wf:
         if args.infinite_alleles:
-            mmode = u'infinite-alleles'
+            mmode = 'infinite-alleles'
         else:
-            mmode = u'infinite-sites'
-        files = [filename.format(i, width=width) for i in xrange(nrep)]
+            mmode = 'infinite-sites'
+        files = [filename.format(i, width=width) for i in range(nrep)]
 
         if len(set(mutator.mu)) == 1:
             m = mutator.mu[0]
@@ -548,20 +548,20 @@ def main():
             m = mutator.mu
             sm = [scaleParam(mm, pop_size) for mm in m]
 
-        info = {u'mutation rate': {u'unscaled': m,
-                                   u'scaled': sm},
-                u'recombination rate': {u'unscaled': recomb_rate,
-                                        u'scaled': scaleParam(recomb_rate, pop_size)},
-                u'mode': mmode,
-                u'selfing rate': selfing_rate,
-                u'population size': pop_size,
-                u'number of loci': num_loci,
-                u'number of replicates': nrep,
-                u'files': files,
-                u'seed': hex(sim.getRNG().seed())}
+        info = {'mutation rate': {'unscaled': m,
+                                   'scaled': sm},
+                'recombination rate': {'unscaled': recomb_rate,
+                                        'scaled': scaleParam(recomb_rate, pop_size)},
+                'mode': mmode,
+                'selfing rate': selfing_rate,
+                'population size': pop_size,
+                'number of loci': num_loci,
+                'number of replicates': nrep,
+                'files': files,
+                'seed': hex(sim.getRNG().seed())}
 
         if args.trajectory is True:
-            info[u'trajectory'] = u'trajectory.csv'
+            info['trajectory'] = 'trajectory.csv'
 
         json.dump(info, wf)
 

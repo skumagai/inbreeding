@@ -23,7 +23,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from __future__ import print_function
+
 
 import json
 import os.path
@@ -35,7 +35,7 @@ def import_right_module(args):
         global sim
         import simuOpt
         info = get_info(args.DIR[0])
-        if u'mode' in info and info[u'mode'] == u'infinite-alleles':
+        if 'mode' in info and info['mode'] == 'infinite-alleles':
             mode = 'infinite-alleles'
             simuOpt.setOptions(alleleType = 'long')
         else:
@@ -55,5 +55,5 @@ def get_info(dir):
 
 def chunks(l, n):
     '''Divide a list into equal-length sublists'''
-    for i in xrange(0, len(l), n):
+    for i in range(0, len(l), n):
         yield l[i:i+n]

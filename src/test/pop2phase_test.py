@@ -26,7 +26,7 @@
 '''unittest for pop2phase.py.  Some top-level or nearly-so functions are not tested'''
 
 
-from __future__ import print_function
+
 
 import unittest
 import random
@@ -48,15 +48,15 @@ class TestFunctions(unittest.TestCase):
 
     def test_get_mode(self):
         with mock.patch('pop2phase.get_info') as info_mock:
-            info_mock.return_value = {u'mode': u'infinite-sites'}
+            info_mock.return_value = {'mode': 'infinite-sites'}
             self.assertEqual(pop2phase.get_mode(self.args), 'infinite-sites')
 
         with mock.patch('pop2phase.get_info') as info_mock:
-            info_mock.return_value = {u'mode': u'infinite-alleles'}
+            info_mock.return_value = {'mode': 'infinite-alleles'}
             self.assertEqual(pop2phase.get_mode(self.args), 'infinite-alleles')
 
         with mock.patch('pop2phase.get_info') as info_mock:
-            info_mock.return_value = {u'mode': None}
+            info_mock.return_value = {'mode': None}
             self.assertEqual(pop2phase.get_mode(self.args), 'infinite-sites')
 
 
@@ -71,18 +71,18 @@ class TestFunctions(unittest.TestCase):
 
 
     def test_convert_genotype(self):
-        loci_dict = {i: {'idx': 0} for i in xrange(3)}
+        loci_dict = {i: {'idx': 0} for i in range(3)}
         g0 = pop2phase.convert_genotype([[0,1], [2,3], [4,5]], loci_dict)
         g1 = pop2phase.convert_genotype([[0,1], [2,3], [4,5]], loci_dict)
-        self.assertEqual(list(itertools.chain.from_iterable(zip(g0, g1))),
-                         [0 for i in xrange(6)])
+        self.assertEqual(list(itertools.chain.from_iterable(list(zip(g0, g1)))),
+                         [0 for i in range(6)])
         g0 = pop2phase.convert_genotype([[0,1], [2,3], [4,5]], loci_dict)
         g1 = pop2phase.convert_genotype([[1,1], [2,3], [5,5]], loci_dict)
-        self.assertEqual(list(itertools.chain.from_iterable(zip(g0, g1))),
+        self.assertEqual(list(itertools.chain.from_iterable(list(zip(g0, g1)))),
                          [0, 1, 0, 0, 0, 1])
         g0 = pop2phase.convert_genotype([[1,0], [1,3], [6,5]], loci_dict)
         g1 = pop2phase.convert_genotype([[0,1], [2,3], [4,5]], loci_dict)
-        self.assertEqual(list(itertools.chain.from_iterable(zip(g0, g1))),
+        self.assertEqual(list(itertools.chain.from_iterable(list(zip(g0, g1)))),
                          [2, 0, 1, 0, 2, 0])
 
 
