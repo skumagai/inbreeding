@@ -229,25 +229,41 @@ def multiplicative_identity(func, s, rec, mut1, mut2):
     return v00 * v11 - v01 * v10
 
 
-def plot_category(ax, index, group, keys, func, params, identity=False):
+def plot_category(ax, group, keys, func, params):
     rec, mut1, mut2 = params
-    xs = filter_column_labels(group, lambda x: (x[0] in keys and x[1] == 'mean'))
-    xerrs = filter_column_labels(group, lambda x: (x[0] in keys and x[1] == 'sem'))
+    xs = filter_column_labels(group, lambda x: (x in keys))
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
 
-    for i, (x, xerr, col) in enumerate(zip(xs, xerrs, colors)):
-        label = get_label(x[0])
-        ax.errorbar(index, group[x], yerr=group[xerr] / 2, fmt='-', color=col, label=label)
-        ax.plot(index, [func(s, rec, mut1, mut2)[i] for s in index], 'x', color=col)
+    for i, (x, col) in enumerate(zip(xs, colors)):
+        label = get_label(x)
+        boxes = []
+        pos = []
+        for s, items in group[x].groupby(level='selfing rate'):
+            boxes.append(items)
+            pos.append(s)
+        r = ax.boxplot(boxes, positions=pos, widths=0.05)
+        for key in r.keys():
+            plt.setp(r[key], color = col)
+        if x[0] in ['f', 'g']:
+            i = 0
+        ax.plot(pos, [func(s, rec, mut1, mut2)[i] for s in pos], 'd', color=col)
 
-    if identity:
-        aident = [additive_identity(func, s, rec, mut1, mut2) for s in index]
-        ax.plot(index, aident, ':', color='k', label='add. IDD')
-        mident = [multiplicative_identity(func, s, rec, mut1, mut2) for s in index]
-        ax.plot(index, mident, '--', color='k', label='mult. IDD')
+        # add an invisible point for legend
+        ax.plot(pos[0], boxes[0][0][0], col, label=label)
 
     ax.set_ylabel(get_ylabel(keys[0]))
-    ax.legend()
+
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    ax.legend(loc="center left", bbox_to_anchor=(1., .5))
+
+    ax.set_xlim(-0.05, 1.05)
+    bottom, top = ax.get_ylim()
+    if bottom < 0:
+        ax.set_ylim(bottom=0)
+    if top > 1:
+        ax.set_ylim(top=1)
+
 
 ## Computing expected f, g, P, and W.
 def expF(s, rec, mut1, mut2):
@@ -327,30 +343,19 @@ def plot(args):
     Ps = filter_column_labels(raw_data, lambda x: x[0] == 'P')
     Ws = filter_column_labels(raw_data, lambda x: x[0] == 'W')
 
+    recs = []
+
     for (mut, rec), group in \
       raw_data.groupby(level=['mutation rate', 'recombination rate']):
+
+      recs.append(rec)
 
       group = group.reset_index(level=['mutation rate', 'recombination rate'],
                                 drop=True)
 
-      merged_f = pd.concat(group[key] for key in fs).groupby(level='selfing rate').agg(summary_funcs)
-      merged_f.rename(columns={'mean': ('f', 'mean'), 'sem': ('f', 'sem')}, inplace=True)
-
-      merged_g = pd.concat(group[g] for g in gs).groupby(level='selfing rate').agg(summary_funcs)
-      merged_g.rename(columns={'mean': ('g', 'mean'), 'sem': ('g', 'sem')}, inplace=True)
-
-      for keys in (fs, gs):
-        for key in keys:
-          del group[key]
-
-      group = group.groupby(level='selfing rate').agg(summary_funcs)
-      group = pd.concat([group, merged_f, merged_g], axis=1)
-
-      index = group.index
-      func = None
-
       # prepare 2x2 panel for plotting f, g, P, and W.
       fig, ((ax_f, ax_g), (ax_P, ax_W)) = plt.subplots(2, 2, sharex='all')
+      fig.set_size_inches(8, 8)
 
       # urgly hack to share x-axis label
       invisible_ax = fig.add_subplot(111)
@@ -360,16 +365,16 @@ def plot(args):
       invisible_ax.set_xlabel('selfing rate', labelpad=20)
 
       # plot f
-      plot_category(ax_f, index, group, ['f'], expF, (rec, mut, mut))
+      plot_category(ax_f, group, fs, expF, (rec, mut, mut))
 
       # plot g
-      plot_category(ax_g, index, group, ['g'], expG, (rec, mut, mut))
+      plot_category(ax_g, group, gs, expG, (rec, mut, mut))
 
       # plot P
-      plot_category(ax_P, index, group, Ps, expP, (rec, mut, mut), True)
+      plot_category(ax_P, group, Ps, expP, (rec, mut, mut))
 
       # plot W
-      plot_category(ax_W, index, group, Ws, expW, (rec, mut, mut), True)
+      plot_category(ax_W, group, Ws, expW, (rec, mut, mut))
 
       fig.suptitle(r'$\theta = {}, r = {}$'.format(mut, rec))
 
