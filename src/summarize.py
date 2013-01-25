@@ -220,8 +220,16 @@ def get_ylabel(label):
 def get_label(label):
     return label
 
+def additive_identity(func, s, rec, mut1, mut2):
+    v00, v01, v10, v11 = func(s, rec, mut1, mut2)
+    return v00 + v11 - v01 - v10
 
-def plot_category(ax, index, group, keys, func, params):
+def multiplicative_identity(func, s, rec, mut1, mut2):
+    v00, v01, v10, v11 = func(s, rec, mut1, mut2)
+    return v00 * v11 - v01 * v10
+
+
+def plot_category(ax, index, group, keys, func, params, identity=False):
     rec, mut1, mut2 = params
     xs = filter_column_labels(group, lambda x: (x[0] in keys and x[1] == 'mean'))
     xerrs = filter_column_labels(group, lambda x: (x[0] in keys and x[1] == 'sem'))
@@ -231,6 +239,13 @@ def plot_category(ax, index, group, keys, func, params):
         label = get_label(x[0])
         ax.errorbar(index, group[x], yerr=group[xerr] / 2, fmt='-', color=col, label=label)
         ax.plot(index, [func(s, rec, mut1, mut2)[i] for s in index], 'x', color=col)
+
+    if identity:
+        aident = [additive_identity(func, s, rec, mut1, mut2) for s in index]
+        ax.plot(index, aident, ':', color='k', label='add. IDD')
+        mident = [multiplicative_identity(func, s, rec, mut1, mut2) for s in index]
+        ax.plot(index, mident, '--', color='k', label='mult. IDD')
+
     ax.set_ylabel(get_ylabel(keys[0]))
     ax.legend()
 
@@ -351,10 +366,10 @@ def plot(args):
       plot_category(ax_g, index, group, ['g'], expG, (rec, mut, mut))
 
       # plot P
-      plot_category(ax_P, index, group, Ps, expP, (rec, mut, mut))
+      plot_category(ax_P, index, group, Ps, expP, (rec, mut, mut), True)
 
       # plot W
-      plot_category(ax_W, index, group, Ws, expW, (rec, mut, mut) )
+      plot_category(ax_W, index, group, Ws, expW, (rec, mut, mut), True)
 
       fig.suptitle(r'$\theta = {}, r = {}$'.format(mut, rec))
 
