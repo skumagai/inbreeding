@@ -326,6 +326,28 @@ def expW(s, rec, mut1, mut2):
     return np.array([p00, p10, p10, p11])
 
 
+def plot_identity(ax, ident_func, func, recs, mut1, mut2):
+    pos = [i/10. for i in range(11)]
+    for rec, col in zip(recs, ['b', 'g']):
+      vals = [ident_func(func, s, rec, mut1, mut2) for s in pos]
+      ax.plot(pos, vals, color=col, label=get_label('r = ' + str(rec)))
+
+    if ident_func == additive_identity:
+      mode = 'additive'
+    else:
+      mode = 'multiplicative'
+
+    if func == expP:
+      trg = 'P'
+    else:
+      trg = 'W'
+
+    ax.set_title(' '.join([mode, 'IDD', 'of', trg]))
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    ax.legend(loc="center left", bbox_to_anchor=(1., .5))
+
+
 def plot(args):
     global pd, np, scipy, plt, la
     import pandas as pd
@@ -377,6 +399,19 @@ def plot(args):
       plot_category(ax_W, group, Ws, expW, (rec, mut, mut))
 
       fig.suptitle(r'$\theta = {}, r = {}$'.format(mut, rec))
+
+    # plot identity values
+    fig, ((axPa, axPm), (axWa, axWm)) = plt.subplots(2, 2, sharex='all')
+    invisible_ax = fig.add_subplot(111)
+    invisible_ax.set_frame_on(False)
+    invisible_ax.set_xticks([])
+    invisible_ax.set_yticks([])
+    invisible_ax.set_xlabel('selfing rate', labelpad=20)
+
+    plot_identity(axPa, additive_identity, expP, recs, mut, mut)
+    plot_identity(axWa, additive_identity, expW, recs, mut, mut)
+    plot_identity(axPm, multiplicative_identity, expP, recs, mut, mut)
+    plot_identity(axWm, multiplicative_identity, expW, recs, mut, mut)
 
     plt.show()
 
