@@ -73,11 +73,15 @@ def add_lists(lst0, lst1):
         lst0[i] += v
 
 
+def flip(lst):
+    return [0 if v == 1 else 1 for v in lst]
+
+
 def compute_f(inds):
     pop_size, nloci = basic_info(inds)
     fs = [0] * nloci
     for ind in inds:
-        add_lists(fs, check_identity(nloci, ind[0], ind[1]))
+        add_lists(fs, flip(check_identity(nloci, ind[0], ind[1])))
     return [float(val) / pop_size for val in fs]
 
 
@@ -87,10 +91,10 @@ def compute_g(inds):
     for pair in itertools.combinations(inds, 2):
         geno00, geno01 = pair[0]
         geno10, geno11 = pair[1]
-        add_lists(gs, check_identity(nloci, geno00, geno10))
-        add_lists(gs, check_identity(nloci, geno00, geno11))
-        add_lists(gs, check_identity(nloci, geno01, geno10))
-        add_lists(gs, check_identity(nloci, geno01, geno11))
+        add_lists(gs, flip(check_identity(nloci, geno00, geno10)))
+        add_lists(gs, flip(check_identity(nloci, geno00, geno11)))
+        add_lists(gs, flip(check_identity(nloci, geno01, geno10)))
+        add_lists(gs, flip(check_identity(nloci, geno01, geno11)))
     denom = 4. * pop_size * (pop_size - 1) / 2
     return [float(val) / denom for val in gs]
 
@@ -120,7 +124,8 @@ def compute_W(inds):
 def check_identity(nloci, geno0, geno1):
     counts = [0] * nloci
     for i, geno_pair in enumerate(list(zip(geno0, geno1))):
-        if geno_pair[0] == geno_pair[1]:
+        # set 1 if a pair of alleles are different.
+        if geno_pair[0] != geno_pair[1]:
             counts[i] = 1
     return counts
 
