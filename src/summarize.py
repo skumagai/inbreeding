@@ -326,26 +326,50 @@ def expW(s, rec, mut1, mut2):
     return np.array([p00, p10, p10, p11])
 
 
-def plot_identity(ax, ident_func, func, recs, mut1, mut2):
-    pos = [i/10. for i in range(11)]
-    for rec, col in zip(recs, ['b', 'g']):
-      vals = [ident_func(func, s, rec, mut1, mut2) for s in pos]
-      ax.plot(pos, vals, color=col, label=get_label('r = ' + str(rec)))
-
-    if ident_func == additive_identity:
-      mode = 'additive'
-    else:
-      mode = 'multiplicative'
-
+def plot_identity(ax, ident_func, func, data, recs, mut1, mut2):
     if func == expP:
       trg = 'P'
     else:
       trg = 'W'
 
-    ax.set_title(' '.join([mode, 'IDD', 'of', trg]))
+    # plot data
+    first_term = data[[trg + '_{2}(11)', trg + '_{2}(00)']]
+    second_term = data[[trg + '_{2}(10)', trg + '_{2}(01)']]
+    if ident_func == additive_identity:
+      mode = 'additive'
+      vals = first_term.sum(1) - second_term.sum(1)
+    else:
+      mode = 'multiplicative'
+      vals = first_term.prod(1) - second_term.prod(1)
+
+    for rec, col in zip(recs, ['b', 'g']):
+      df = vals.ix[mut1, rec]
+      boxes = []
+      pos = []
+      for s, items in df.groupby(level='selfing rate'):
+        boxes.append(items)
+        pos.append(s)
+      r = ax.boxplot(boxes, positions=pos, widths=0.05)
+      for key in r.keys():
+        plt.setp(r[key], color = col)
+
+    # plot theoretical values
+    pos = [i/10. for i in range(11)]
+    for rec, col in zip(recs, ['b', 'g']):
+      vals = [ident_func(func, s, rec, mut1, mut2) for s in pos]
+      ax.plot(pos, vals, color=col, label=get_label('r = ' + str(rec)))
+
+
+    # annotate plot
+    ax.set_title(' '.join([mode, 'IDD', 'measure', 'of', trg]))
     box = ax.get_position()
     ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
     ax.legend(loc="center left", bbox_to_anchor=(1., .5))
+
+
+    # adjust plot size etc.
+    ax.set_xlim(-0.05, 1.05)
+    bottom, top = ax.get_ylim()
 
 
 def plot(args):
@@ -400,18 +424,19 @@ def plot(args):
 
       fig.suptitle(r'$\theta = {}, r = {}$'.format(mut, rec))
 
+    if len(Ps) == 4:
     # plot identity values
-    fig, ((axPa, axPm), (axWa, axWm)) = plt.subplots(2, 2, sharex='all')
-    invisible_ax = fig.add_subplot(111)
-    invisible_ax.set_frame_on(False)
-    invisible_ax.set_xticks([])
-    invisible_ax.set_yticks([])
-    invisible_ax.set_xlabel('selfing rate', labelpad=20)
+        fig, ((axPa, axPm), (axWa, axWm)) = plt.subplots(2, 2, sharex='all')
+        invisible_ax = fig.add_subplot(111)
+        invisible_ax.set_frame_on(False)
+        invisible_ax.set_xticks([])
+        invisible_ax.set_yticks([])
+        invisible_ax.set_xlabel('selfing rate', labelpad=20)
 
-    plot_identity(axPa, additive_identity, expP, recs, mut, mut)
-    plot_identity(axWa, additive_identity, expW, recs, mut, mut)
-    plot_identity(axPm, multiplicative_identity, expP, recs, mut, mut)
-    plot_identity(axWm, multiplicative_identity, expW, recs, mut, mut)
+        plot_identity(axPa, additive_identity, expP, raw_data, recs, mut, mut)
+        plot_identity(axWa, additive_identity, expW, raw_data, recs, mut, mut)
+        plot_identity(axPm, multiplicative_identity, expP, raw_data, recs, mut, mut)
+        plot_identity(axWm, multiplicative_identity, expW, raw_data, recs, mut, mut)
 
     plt.show()
 
