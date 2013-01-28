@@ -246,7 +246,7 @@ def plot_category(ax, group, keys, func, params):
             plt.setp(r[key], color = col)
         if x[0] in ['f', 'g']:
             i = 0
-        ax.plot(pos, [func(s, rec, mut1, mut2)[i] for s in pos], 'd', color=col)
+        ax.plot(pos, [func(s, rec, mut1, mut2)[i] for s in pos], '-', color=col)
 
         # add an invisible point for legend
         ax.plot(pos[0], boxes[0][0][0], col, label=label)
@@ -254,8 +254,10 @@ def plot_category(ax, group, keys, func, params):
     ax.set_ylabel(get_ylabel(keys[0]))
 
     box = ax.get_position()
-    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-    ax.legend(loc="center left", bbox_to_anchor=(1., .5))
+    ax.set_position([box.x0, box.y0, box.width * 0.7, box.height])
+    ax.legend(loc="center left", bbox_to_anchor=(.95, .5), prop={'size': 10},
+              handlelength=1.2)
+    ax.set_xticks([i / 5. for i in range(6)])
 
     ax.set_xlim(-0.05, 1.05)
     bottom, top = ax.get_ylim()
@@ -361,10 +363,15 @@ def plot_identity(ax, ident_func, func, data, recs, mut1, mut2):
 
 
     # annotate plot
-    ax.set_title(' '.join([mode, 'IDD', 'measure', 'of', trg]))
+    if trg == 'P':
+      ax.set_title(' '.join([mode, 'IDD measure']), fontsize=12)
+    else:
+      ax.set_title(' '.join([mode, 'measure of\ngametic association']), fontsize=12)
     box = ax.get_position()
-    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-    ax.legend(loc="center left", bbox_to_anchor=(1., .5))
+    ax.set_position([box.x0, box.y0, box.width * 0.7, box.height])
+    ax.legend(loc="center left", bbox_to_anchor=(.95, .5), prop={'size': 10},
+              handlelength=1.2)
+    ax.set_xticks([i / 5. for i in range(6)])
 
 
     # adjust plot size etc.
