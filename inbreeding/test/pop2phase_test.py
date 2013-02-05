@@ -25,9 +25,6 @@
 
 '''unittest for pop2phase.py.  Some top-level or nearly-so functions are not tested'''
 
-
-
-
 import unittest
 import random
 import argparse
