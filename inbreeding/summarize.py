@@ -39,25 +39,20 @@ def parseArgs():
     subparsers = parser.add_subparsers(help='sub-command help')
 
     stat_p = subparsers.add_parser('stats', help='compute f, g, P, and W')
-
-
     stat_p.add_argument('DIR',
-                        nargs='*',
+                        nargs='+',
                         help='name of directories storing simuPOP.Population object')
     stat_p.add_argument('-o', '--output',
                         type=argparse.FileType('w'),
                         default=sys.stdout,
                         help='output file')
-
     stat_p.set_defaults(func=stats)
 
     plot_p = subparsers.add_parser('plot', help='plot f, g, P, and W')
-
     plot_p.add_argument('CSV',
                         type=str,
                         help='input CSV file')
     plot_p.set_defaults(func=plot)
-
 
     return parser.parse_args()
 
