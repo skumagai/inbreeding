@@ -23,7 +23,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-
+from __future__ import print_function
 
 import argparse
 import csv
@@ -34,7 +34,7 @@ import random
 import os.path
 import operator
 
-from .utility import import_right_module, get_info, chunks
+from inbreeding import utility
 
 # From https://github.com/onyxfish/csvkit/commit/5f2c5d9d5c8596a4c7440e53dba0bd8d92feb3b9
 # Ensure SIGPIPE doesn't throw an exception
@@ -91,7 +91,7 @@ def parseArgs():
 
 
 def get_mode(args):
-    info = get_info(args.DIR)
+    info = utility.get_info(args.DIR)
 
     mode = 'infinite-sites'
     if 'mode' in info and info['mode'] == 'infinite-alleles':
@@ -125,7 +125,7 @@ def convert_genotype(genotype, loci_dict):
 
 def to_csv(args, mode):
     d = args.DIR
-    info = get_info(d)
+    info = utility.get_info(d)
 
     # this is needed as simuPOP is loaded in a different file.  It's
     # name is not bound in the namescope of this file.
@@ -140,8 +140,8 @@ def to_csv(args, mode):
     genotypes = []
 
     for ind in pop.individuals():
-        geno0 = convert_genotype(chunks(ind.genotype(ploidy = 0), lenlocus), loci_dict)
-        geno1 = convert_genotype(chunks(ind.genotype(ploidy = 1), lenlocus), loci_dict)
+        geno0 = convert_genotype(utility.chunks(ind.genotype(ploidy = 0), lenlocus), loci_dict)
+        geno1 = convert_genotype(utility.chunks(ind.genotype(ploidy = 1), lenlocus), loci_dict)
 
         genotypes.append(itertools.chain.from_iterable(list(zip(geno0, geno1))))
     return genotypes
@@ -226,7 +226,7 @@ def randomize(data):
 ### (Almost) top-level functions
 def do_csv(args):
     '''convert genotypic information in simuPOP.Population object into CSV file.'''
-    mode = import_right_module(args)
+    mode = utility.import_right_module(args)
     data = to_csv(args, mode)
     write_csv(data, args.output)
     sys.exit(0)
