@@ -132,7 +132,7 @@ def generate_PW_keys(nloci):
     return itertools.product(range(2), repeat = nloci)
 
 
-def summarise(d, mode):
+def summarize(d, mode):
     info = get_info(d)
     num_loci = info['number of loci']
     keys = list(generate_PW_keys(num_loci))
@@ -180,7 +180,7 @@ def stats(args):
     writer = csv.writer(args.output)
     write_header = True
     for d in args.DIR:
-        header, results = summarise(d, mode)
+        header, results = summarize(d, mode)
         if write_header is True:
             nelems = len(results)
             writer.writerow(header)
