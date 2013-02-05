@@ -82,7 +82,7 @@ def compute_f(inds):
     fs = [0] * nloci
     for ind in inds:
         add_lists(fs, flip(check_identity(nloci, ind[0], ind[1])))
-    return [float(val) / pop_size for val in fs]
+    return fs
 
 
 def compute_g(inds):
@@ -95,8 +95,7 @@ def compute_g(inds):
         add_lists(gs, flip(check_identity(nloci, geno00, geno11)))
         add_lists(gs, flip(check_identity(nloci, geno01, geno10)))
         add_lists(gs, flip(check_identity(nloci, geno01, geno11)))
-    denom = 4. * pop_size * (pop_size - 1) / 2
-    return [float(val) / denom for val in gs]
+    return gs
 
 
 def compute_P(inds):
@@ -104,7 +103,7 @@ def compute_P(inds):
     Ps = {key: 0 for key in itertools.product(range(2), repeat = nloci)}
     for ind in inds:
         Ps[tuple(check_identity(nloci, ind[0], ind[1]))] += 1
-    return {key: float(val) / pop_size for key, val in Ps.items()}
+    return Ps
 
 
 def compute_W(inds):
@@ -117,8 +116,7 @@ def compute_W(inds):
         Ws[tuple(check_identity(nloci, geno00, geno11))] += 1
         Ws[tuple(check_identity(nloci, geno01, geno10))] += 1
         Ws[tuple(check_identity(nloci, geno01, geno11))] += 1
-    denom = 4. * pop_size * (pop_size - 1) / 2
-    return {key: float(val) / denom for key, val in Ws.items()}
+    return Ws
 
 
 def check_identity(nloci, geno0, geno1):
