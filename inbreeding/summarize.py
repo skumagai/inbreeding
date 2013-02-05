@@ -57,10 +57,6 @@ def parseArgs():
     return parser.parse_args()
 
 
-def basic_info(inds):
-    return len(inds), len(inds[0][0])
-
-
 def add_lists(lst0, lst1):
     if len(lst0) != len(lst1):
         raise IndexError('Length mismatch')
