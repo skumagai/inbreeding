@@ -25,10 +25,8 @@
 
 '''unittest for inbreeding.utility.py'''
 
-
-
 import unittest
-import utility
+from inbreeding import utility
 
 class TestFunctions(unittest.TestCase):
 

@@ -35,7 +35,7 @@ import itertools
 import contextlib
 import simuPOP as sim
 import csv
-import pop2phase
+from inbreeding import pop2phase
 
 import mock
 
@@ -47,15 +47,15 @@ class TestFunctions(unittest.TestCase):
 
 
     def test_get_mode(self):
-        with mock.patch('pop2phase.get_info') as info_mock:
+        with mock.patch('inbreeding.utility.get_info') as info_mock:
             info_mock.return_value = {'mode': 'infinite-sites'}
             self.assertEqual(pop2phase.get_mode(self.args), 'infinite-sites')
 
-        with mock.patch('pop2phase.get_info') as info_mock:
+        with mock.patch('inbreeding.utility.get_info') as info_mock:
             info_mock.return_value = {'mode': 'infinite-alleles'}
             self.assertEqual(pop2phase.get_mode(self.args), 'infinite-alleles')
 
-        with mock.patch('pop2phase.get_info') as info_mock:
+        with mock.patch('inbreeding.utility.get_info') as info_mock:
             info_mock.return_value = {'mode': None}
             self.assertEqual(pop2phase.get_mode(self.args), 'infinite-sites')
 

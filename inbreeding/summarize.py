@@ -30,7 +30,7 @@ import os.path
 import sys
 import itertools
 
-from utility import import_right_module, chunks, get_info
+from inbreeding import utility
 
 def parseArgs():
     parser = argparse.ArgumentParser(
@@ -134,7 +134,7 @@ def generate_PW_keys(nloci):
 
 
 def summarize(d, mode):
-    info = get_info(d)
+    info = utility.get_info(d)
     num_loci = info['number of loci']
     keys = list(generate_PW_keys(num_loci))
 
@@ -166,8 +166,8 @@ def summarize(d, mode):
         inds = {}
         for ind in pop.individuals():
             genotype = tuple(ind.genotype())
-            types = (tuple(chunks(genotype[:num_loci], nsites)),
-                     tuple(chunks(genotype[num_loci:], nsites)))
+            types = (tuple(utility.chunks(genotype[:num_loci], nsites)),
+                     tuple(utility.chunks(genotype[num_loci:], nsites)))
             try:
                 inds[types] += 1
             except KeyError:
@@ -184,7 +184,7 @@ def summarize(d, mode):
 
 
 def stats(args):
-    mode = import_right_module(args)
+    mode = utility.import_right_module(args)
 
     writer = csv.writer(args.output)
     write_header = True
