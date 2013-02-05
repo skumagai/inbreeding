@@ -69,48 +69,54 @@ def add_lists(lst0, lst1):
 
 
 def flip(lst):
-    return [0 if v == 1 else 1 for v in lst]
+    return [1 - v for v in lst]
 
 
-def compute_f(inds):
-    pop_size, nloci = basic_info(inds)
+def compute_f(nloci, inds):
     fs = [0] * nloci
-    for ind in inds:
-        add_lists(fs, flip(check_identity(nloci, ind[0], ind[1])))
+    for ind, mult in inds.items():
+        add_lists(fs, [mult * i for i in flip(check_identity(nloci, ind[0], ind[1]))])
     return fs
 
 
-def compute_g(inds):
-    pop_size, nloci = basic_info(inds)
+def compute_g(nloci, inds):
     gs = [0] * nloci
-    for pair in itertools.combinations(inds, 2):
-        geno00, geno01 = pair[0]
-        geno10, geno11 = pair[1]
-        add_lists(gs, flip(check_identity(nloci, geno00, geno10)))
-        add_lists(gs, flip(check_identity(nloci, geno00, geno11)))
-        add_lists(gs, flip(check_identity(nloci, geno01, geno10)))
-        add_lists(gs, flip(check_identity(nloci, geno01, geno11)))
+    for pair in itertools.combinations_with_replacement(inds, 2):
+        ind0, ind1 = pair
+        geno00, geno01 = ind0
+        geno10, geno11 = ind1
+        if ind0 == ind1:
+            factor = inds[ind0] * (inds[ind1] - 1) / 2
+        else:
+            factor = inds[ind0] * inds[ind1]
+        add_lists(gs, [factor * i for i in flip(check_identity(nloci, geno00, geno10))])
+        add_lists(gs, [factor * i for i in flip(check_identity(nloci, geno00, geno11))])
+        add_lists(gs, [factor * i for i in flip(check_identity(nloci, geno01, geno10))])
+        add_lists(gs, [factor * i for i in flip(check_identity(nloci, geno01, geno11))])
     return gs
 
 
-def compute_P(inds):
-    pop_size, nloci = basic_info(inds)
+def compute_P(nloci, inds):
     Ps = {key: 0 for key in itertools.product(range(2), repeat = nloci)}
-    for ind in inds:
-        Ps[tuple(check_identity(nloci, ind[0], ind[1]))] += 1
+    for ind, mult in inds.iteritems():
+        Ps[tuple(check_identity(nloci, ind[0], ind[1]))] += mult
     return Ps
 
 
-def compute_W(inds):
-    pop_size, nloci = basic_info(inds)
+def compute_W(nloci, inds):
     Ws = {key: 0 for key in generate_PW_keys(nloci)}
-    for pair in itertools.combinations(inds, 2):
-        geno00, geno01 = pair[0]
-        geno10, geno11 = pair[1]
-        Ws[tuple(check_identity(nloci, geno00, geno10))] += 1
-        Ws[tuple(check_identity(nloci, geno00, geno11))] += 1
-        Ws[tuple(check_identity(nloci, geno01, geno10))] += 1
-        Ws[tuple(check_identity(nloci, geno01, geno11))] += 1
+    for pair in itertools.combinations_with_replacement(inds, 2):
+        ind0, ind1 = pair
+        geno00, geno01 = ind0
+        geno10, geno11 = ind1
+        if ind0 == ind1:
+            factor = inds[ind0] * (inds[ind1] - 1) / 2
+        else:
+            factor = inds[ind0] * inds[ind1]
+        Ws[tuple(check_identity(nloci, geno00, geno10))] += factor
+        Ws[tuple(check_identity(nloci, geno00, geno11))] += factor
+        Ws[tuple(check_identity(nloci, geno01, geno10))] += factor
+        Ws[tuple(check_identity(nloci, geno01, geno11))] += factor
     return Ws
 
 
@@ -153,16 +159,24 @@ def summarize(d, mode):
 
     for i, f in enumerate([str(s) for s in info['files']]):
         pop = sim.loadPopulation(os.path.join(d, f))
+
         pop_size = pop.popSize()
         nsites = pop.totNumLoci() / num_loci
 
-        inds = [[tuple(chunks(ind.genotype(ploidy=0), nsites)),
-                 tuple(chunks(ind.genotype(ploidy=1), nsites))] for ind in pop.individuals()]
+        inds = {}
+        for ind in pop.individuals():
+            genotype = tuple(ind.genotype())
+            types = (tuple(chunks(genotype[:num_loci], nsites)),
+                     tuple(chunks(genotype[num_loci:], nsites)))
+            try:
+                inds[types] += 1
+            except KeyError:
+                inds[types] = 1
 
-        f = compute_f(inds)
-        g = compute_g(inds)
-        P = compute_P(inds)
-        W = compute_W(inds)
+        f = compute_f(num_loci, inds)
+        g = compute_g(num_loci, inds)
+        P = compute_P(num_loci, inds)
+        W = compute_W(num_loci, inds)
         results.append([mut, rec, selfing, i] +
                        f + g + [P[key] for key in keys] + [W[key] for key in keys])
 

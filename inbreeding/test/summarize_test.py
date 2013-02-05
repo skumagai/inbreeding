@@ -25,29 +25,25 @@
 
 '''unittest for summarize.py.  Some top-level or nearly-so functions are not tested'''
 
-
-
 import unittest
-import summarize
+from inbreeding import summarize
 
 import mock
 
 class TestFunctions(unittest.TestCase):
 
     def setUp(self):
-        self.inds = [
-            [([0],[1]), ([0],[1])],
-            [([0],[1]), ([1],[0])],
-            [([1],[0]), ([1],[0])]]
-
-
-    def test_basic_info(self):
-        self.assertEqual(summarize.basic_info(self.inds), (3, 2))
+        self.inds = {(((0,),(1,)), ((0,),(1,))): 2,
+                     (((0,),(1,)), ((1,),(0,))): 3,
+                     (((1,),(0,)), ((1,),(0,))): 4}
+        self.num_loci = 2
+        self.num_individuals = float(9)
 
 
     def test_add_lists(self):
         lst0 = [0] * 5
         lst1 = [10] * 5
+        self.assertNotEqual(lst0, lst1)
         summarize.add_lists(lst0, lst1)
         self.assertEqual(lst0, lst1)
 
@@ -56,32 +52,62 @@ class TestFunctions(unittest.TestCase):
 
 
     def test_compute_f(self):
-        self.assertEqual(summarize.compute_f(self.inds), [2./3., 2./3.])
+        self.assertEqual(summarize.compute_f(self.num_loci, self.inds), [6, 6])
 
 
     def test_compute_g(self):
-        self.assertEqual(summarize.compute_g(self.inds), [1./3., 1./3.])
+        self.assertEqual(summarize.compute_g(self.num_loci, self.inds), [70, 70])
 
 
     def test_compute_P(self):
         exp = {
-            (0,0): 1./3.,
-            (1,1): 2./3.,
+            (0,0): 6,
+            (1,1): 3,
             (0,1): 0,
-            (1,0): 0.
+            (1,0): 0
             }
-        self.assertEqual(summarize.compute_P(self.inds), exp)
+        self.assertEqual(summarize.compute_P(self.num_loci, self.inds), exp)
 
 
     def test_compute_W(self):
         exp = {
-            (0,0): 8./12.,
-            (1,1): 4./12.,
-            (0,1): 0.,
-            (1,0): 0.
+            (0,0): 70,
+            (1,1): 74,
+            (0,1): 0,
+            (1,0): 0
             }
-        self.assertEqual(summarize.compute_W(self.inds), exp)
+        self.assertEqual(summarize.compute_W(self.num_loci, self.inds), exp)
 
 
     def test_check_identity(self):
-        self.assertEqual(summarize.check_identity(2, self.inds[0][1], self.inds[1][1]), [0, 0])
+        keys = sorted(self.inds.keys())
+        self.assertEqual(summarize.check_identity(2, keys[0][0], keys[0][1]), [0, 0])
+        self.assertEqual(summarize.check_identity(2, keys[0][1], keys[1][1]), [1, 1])
+        self.assertEqual(summarize.check_identity(2, ((1,),(0,)), ((0,), (0,))), [1, 0])
+
+
+    def test_relationship_f_P(self):
+        f = summarize.compute_f(self.num_loci, self.inds)
+        f = [v / self.num_individuals for v in f]
+        P = summarize.compute_P(self.num_loci, self.inds)
+        total = float(sum(val for val in P.values()))
+        P = {i: v / total for i, v in P.items()}
+        self.assertAlmostEqual(f[0], P[(0,0)] + P[(0,1)])
+        self.assertAlmostEqual(1 - f[0], P[(1,0)] + P[(1,1)])
+
+        self.assertAlmostEqual(f[1], P[(0,0)] + P[(1,0)])
+        self.assertAlmostEqual(1 - f[1], P[(0,1)] + P[(1,1)])
+
+    def test_relationship_g_W(self):
+        g = summarize.compute_g(self.num_loci, self.inds)
+        total = self.num_individuals * (self.num_individuals - 1) * 2
+        g = [i / total for i in g]
+
+        W = summarize.compute_W(self.num_loci, self.inds)
+        total = float(sum(val for val in W.values()))
+        W = {i: v / total for i, v in W.items()}
+        self.assertAlmostEqual(g[0], W[(0,0)] + W[(0,1)])
+        self.assertAlmostEqual(1 - g[0], W[(1,0)] + W[(1,1)])
+
+        self.assertAlmostEqual(g[1], W[(0,0)] + W[(1,0)])
+        self.assertAlmostEqual(1 - g[1], W[(0,1)] + W[(1,1)])
