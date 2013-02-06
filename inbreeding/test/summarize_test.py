@@ -88,26 +88,14 @@ class TestFunctions(unittest.TestCase):
 
     def test_relationship_f_P(self):
         f = summarize.compute_f(self.num_loci, self.inds)
-        f = [v / self.num_individuals for v in f]
         P = summarize.compute_P(self.num_loci, self.inds)
-        total = float(sum(val for val in P.values()))
-        P = {i: v / total for i, v in P.items()}
         self.assertAlmostEqual(f[0], P[(0,0)] + P[(0,1)])
-        self.assertAlmostEqual(1 - f[0], P[(1,0)] + P[(1,1)])
 
         self.assertAlmostEqual(f[1], P[(0,0)] + P[(1,0)])
-        self.assertAlmostEqual(1 - f[1], P[(0,1)] + P[(1,1)])
 
     def test_relationship_g_W(self):
         g = summarize.compute_g(self.num_loci, self.inds)
-        total = self.num_individuals * (self.num_individuals - 1) * 2
-        g = [i / total for i in g]
-
         W = summarize.compute_W(self.num_loci, self.inds)
-        total = float(sum(val for val in W.values()))
-        W = {i: v / total for i, v in W.items()}
-        self.assertAlmostEqual(g[0], W[(0,0)] + W[(0,1)])
-        self.assertAlmostEqual(1 - g[0], W[(1,0)] + W[(1,1)])
 
+        self.assertAlmostEqual(g[0], W[(0,0)] + W[(0,1)])
         self.assertAlmostEqual(g[1], W[(0,0)] + W[(1,0)])
-        self.assertAlmostEqual(1 - g[1], W[(0,1)] + W[(1,1)])
