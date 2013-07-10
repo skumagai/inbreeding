@@ -7,3 +7,4 @@
 doc/auto/
 *.tar.*
 results/
+*.csv
