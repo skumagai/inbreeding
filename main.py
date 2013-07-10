@@ -32,22 +32,15 @@ import argparse
 # python caches imported modules, subsequent import of simuPOP in
 # model specific submodules is not re-imported.  Therefore, those
 # submodules will automatically use the right version of simuPOP.
-def exec_two_loci(args):
-    if args.M_TYPE == 'infinite_loci':
-        import partial_selfing.two_loci.infinite_sites as model
-    else:                       # infinite_alleles
-        import partial_selfing.two_loci.infinite_alleles as model
+def exec_infinite_sites(args):
+    import partial_selfing.infinite_sites as model
     model.run(args)
 
 
 # See the comment in front of exec_two_loci
-def exec_many_loci(args):
-    if args.M_TYPE == 'infinite_loci':
-        import partial_selfing.many_loci.infinite_sites as model
-    else:                       # infinite_alleles
-        import partial_selfing.many_loci.infinite_alleles as model
+def exec_infinite_alleles(args):
+    import partial_selfing.infinite_alleles as model
     model.run(args)
-
 
 if __name__ == '__main__':
 
@@ -73,15 +66,18 @@ if __name__ == '__main__':
     parser_common.add_argument('NUM_REP',
                                type=int,
                                help='number of replicates')
-    parser_common.add_argument('M_TYPE',
-                               choices=['infinite_loci', 'infinite_alleles'],
-                               help='mutational model')
+    parser_common.add_argument('NUM_LOCI',
+                               type=int,
+                               help='number of loci')
     parser_common.add_argument('M_RATE',
                                type=float,
                                help='mutation rate')
     parser_common.add_argument('S_RATE',
                                type=float,
                                help='selfing rate')
+    parser_common.add_argument('R_RATE',
+                               type=float,
+                               help='recombination rate')
     parser_common.add_argument('--burnin',
                                type=int,
                                default=0,
@@ -91,23 +87,19 @@ if __name__ == '__main__':
 
     subparsers = parser.add_subparsers()
 
-    parser_two = subparsers.add_parser('two_loci',
-                                       help='two partially linked loci',
-                                       parents=[parser_common])
-    parser_two.add_argument('R_RATE', type=float, help='recombination rate')
-    parser_two.set_defaults(func=exec_two_loci)
+    parser_alleles = subparsers.add_parser('infinite_alleles',
+                                           help='infinite-alleles model',
+                                           parents=[parser_common])
+    parser_alleles.set_defaults(func=exec_infinite_alleles)
 
-    parser_many = subparsers.add_parser('many_loci',
-                                        help='many unliked loci',
-                                        parents=[parser_common])
-    parser_many.add_argument('NUM_LOCI',
-                             type=int,
-                             help='number of loci')
-    parser_many.add_argument('--allele_length',
-                             type=int,
-                             default=2**6, # 64
-                             help='number of maximum polymorphic sites at one time')
-    parser_many.set_defaults(func=exec_many_loci)
+    parser_sites = subparsers.add_parser('infinite_sites',
+                                         help='infinite-sites model',
+                                         parents=[parser_common])
+    parser_sites.add_argument('--allele_length',
+                              type=int,
+                              default=2**6, # 64
+                              help='number of maximum polymorphic sites at one time')
+    parser_sites.set_defaults(func=exec_infinite_sites)
 
     args = parser.parse_args()
 

@@ -1,7 +1,7 @@
 # -*- mode: python; coding: utf-8; -*-
 
-# infinite_alleles.py - Common functions used with the
-# infinite-alleles model of mutations.
+# infinite_loci.py - Implements simulations of partially linked pair
+# of loci under the infinite alleles model.
 
 # Copyright (C) 2013 Seiji Kumagai
 
@@ -24,10 +24,13 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-
 import csv
+
+import simuOpt
+simuOpt.setOptions(alleleType='long')
 import simuPOP as simu
 import partial_selfing.funcs.common as cf
+
 
 def get_mating_operator(r_rate, weight, size, field='self_gen'):
     """
@@ -166,3 +169,42 @@ def get_output_operator(size,
             return True
 
     return MyWriter()
+
+
+def run(args):
+    pop = cf.get_population(size=args.NUM_IND,
+                            loci = args.NUM_LOCI)
+
+    init_info_op = cf.get_init_info()
+
+    init_genotype_op = cf.get_init_genotype()
+
+    mating_op = get_mating_operator(r_rate=args.R_RATE,
+                                    weight = args.S_RATE,
+                                    size = args.NUM_IND)
+
+    mutation_op = get_mutation_operator(m_rate = args.M_RATE,
+                                        loci = args.NUM_LOCI,
+                                        nrep = args.NUM_REP,
+                                        burnin = args.burnin)
+
+    output_op = get_output_operator(size = args.NUM_IND,
+                                    m_rate = args.M_RATE,
+                                    r_rate = args.R_RATE,
+                                    s_rate = args.S_RATE,
+                                    loci = args.NUM_LOCI,
+                                    nrep = args.NUM_REP,
+                                    ngen = args.NUM_GEN,
+                                    burnin = args.burnin,
+                                    output = args.OUTFILE)
+
+
+    simulator = simu.Simulator(pops = pop, rep = args.NUM_REP)
+
+
+    simulator.evolve(
+        initOps = [init_info_op, init_genotype_op],
+        preOps = mutation_op,
+        matingScheme = mating_op,
+        finalOps = output_op,
+        gen = args.NUM_GEN + args.burnin)

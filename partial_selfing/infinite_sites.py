@@ -1,7 +1,7 @@
 # -*- mode: python; coding: utf-8; -*-
 
-# infinite_sites.py - A collection of evolutionary operators specific
-# for the infinite sites model.
+# infinite_sites.py - Implements simulations of partially linked pair
+# of loci under the infinite sites model.
 
 # Copyright (C) 2013 Seiji Kumagai
 
@@ -24,9 +24,12 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-
+import csv, sys
+import simuOpt
+simuOpt.setOptions(alleleType='binary')
 import simuPOP as simu
-from collections import deque
+
+import partial_selfing.common as cf
 
 def get_mating_operator(r_rate, loci, allele_length, weight, size):
     """
@@ -39,15 +42,15 @@ def get_mating_operator(r_rate, loci, allele_length, weight, size):
     """
     # Index of sites, after which recombinations happen.
     rec_loci = [allele_length * i - 1 for i in range(1, loci + 1)]
-    selfing = simu.SelfMating(ops = [sim.Recombinator(rates = recomb_rate,
-                                                      loci = rec_loci),
+    selfing = simu.SelfMating(ops = [simu.Recombinator(rates = r_rate,
+                                                       loci = rec_loci),
                                      cf.MySelfingTagger()],
-                              weieght = weight)
+                              weight = weight)
 
     outcross = simu.HomoMating(chooser = simu.PyParentsChooser(generator = cf.pickTwoParents),
-                               generator = simu.OffSpringGenerator(
+                               generator = simu.OffspringGenerator(
                                    ops = [simu.Recombinator(rates = r_rate,
-                                                            loci = rec_loci)
+                                                            loci = rec_loci),
                                           cf.MyOutcrossingTagger()]),
                                weight = 1.0 - weight)
 
@@ -62,45 +65,36 @@ def get_mutation_operator(m_rate, loci, allele_length, nrep, burnin):
 
         A new mutation occurs at a distinct site from any previous mutated sites.
         """
-        def __init__(self, m_rate, loci, allele_length, nrep, burnin):
-            self.available = {r: [deque(range(allele_length)
-                                        for i in range(loci))]
-                              for r in range(rep)}
-            self.m_rate = m_rate
-            self.loci = loci
-            self.allele_length = allele_length
-            self.burnin = burnin
-
+        def __init__(self):
+            self.available = list(list(range(i * allele_length, (i + 1) * allele_length)
+                                       for i in range(loci))
+                                  for r in range(nrep))
             super(MyMutator, self).__init__(func = self.mutate)
 
 
         def mutate(self, pop):
             """Add mutations to organisms."""
-            m_rate = self.m_rate
-            available = self.available
-
             rng = simu.getRNG()
 
             dvars = pop.dvars()
             rep = dvars.rep
-            gen = dvars.gen - self.burnin
+            gen = dvars.gen - burnin
 
-            for i, ind = enumerate(pop.individuals()):
+            for i, ind in enumerate(pop.individuals()):
                 for locus in range(loci):
                     for ploidy in range(2):
-                        if rng.randomUniform() < m_rate:
+                        if rng.randUniform() < m_rate:
                             try:
-                                idx = available[rep][locus].pop()
+                                idx = self.available[rep][locus].pop()
                             except IndexError:
                                 if self.reclaim(pop, rep, locus):
                                     idx = self.available[rep][locus].pop()
                                 else:
                                     sys.stderr.write(
-                                        'rep={}, gen={}: available sites exhausted.'.
+                                        '[ERROR] rep={}, gen={}: available sites exhausted.\n'.
                                         format(rep, gen - burnin))
                                     return False
 
-                            idx += locus * allele_length
                             # A site is represented by 1 bit.  An
                             # ancestral state is always represented by
                             # 0, and mutated state is therefore always
@@ -123,103 +117,86 @@ def get_mutation_operator(m_rate, loci, allele_length, nrep, burnin):
             identified, those sites are re-initialized and registered to a list of all
             available sites.
             """
-            allele_length = self.allele_length
             start = locus * allele_length
-            stop = (locus + 1) * allele_length
-            sites = list(range(start, stop))
-
-            allele_states = areAllelesMonomorphic(pop, sites)
-            available = [i for i, state in enumerate(allelee_states) if state == True]
+            raw_geno = list(pop.genotype())
+            stride = loci * allele_length
+            available = [loc for loc in range(start, start + allele_length)
+                         if len(set(raw_geno[loc::stride])) == 1]
 
             if len(available) == 0:
                 # Even after scanning all sites, there is no unused site.
                 return False
 
-            # Re-initialize newly freed sites by setting their values 1.
+            # Re-initialize newly freed sites by setting their values 0.
             for ind in pop.individuals():
                 for site in available:
                     ind.setAllele(0, site, ploidy = 0)
                     ind.setAllele(0, site, ploidy = 1)
-
-            self.available[rep][locus] = deque(available)
-
-
-        return MyMutator(m_rate = m_rate,
-                         loci = loci,
-                         allele_length = allele_length,
-                         nrep = nrep,
-                         burnin = burnin)
+            self.available[rep][locus] = available
 
 
-def get_output_operator():
+    return MyMutator()
+
+
+def get_output_operator(size,
+                        ngen,
+                        nrep,
+                        m_rate,
+                        s_rate,
+                        r_rate,
+                        loci,
+                        burnin,
+                        allele_length,
+                        output,
+                        field = 'self_gen'):
+
+    data = ['infinite sites',
+            size,
+            ngen,
+            nrep,
+            loci,
+            m_rate,
+            s_rate,
+            r_rate,
+            burnin,
+            simu.getRNG().seed()]
+
+    header = ['mutation model',
+              'number of individuals',
+              'number of generations',
+              'number of replicates',
+              'number of loci',
+              'mutation rate',
+              'selfing rate',
+              'recombination rate',
+              'number of burnin generations',
+              'random number seed',
+              'replicate',
+              'generation',
+              'individual',
+              'number of selfing',
+              'chromosome'] + ['locus {}'.format(i) for i in range(loci)]
+
     """Output genetic information of a population."""
 
     class MyWriter(simu.PyOperator):
         """A class handling output of genetic information of the entire population."""
 
-        def __init__(self,
-                     num_ind,
-                     num_gen,
-                     num_rep,
-                     m_rate,
-                     r_rate,
-                     s_rate,
-                     loci,
-                     burnin,
-                     seed,
-                     output,
-                     allele_length):
-            # self.num_ind = num_ind
-            # self.num_gen = num_gen
-            # self.num_rep = num_rep
-            # self.m_rate = m_rate
-            # self.r_rate = r_rate
-            # self.s_rate = s_rate
-            self.loci = loci
-            self.burnin = burnin
-            self.output = output
-
-            self.data = ['infinite sites',
-                         num_ind,
-                         num_gen,
-                         num_rep,
-                         m_rate,
-                         r_rate,
-                         s_rate,
-                         loci,
-                         burnin,
-                         simu.getRNG().seed()]
+        def __init__(self):
 
             # Allele length is the only parameter that will not be
             # printed.  This variable controls the assignment of
             # sites, which can hold polymorphic sites, and it is
             # there for strictly an implementation reason (albeit user
             # configurable).
-            self.allele_length
-
-            self.header = ['mutation model',
-                           'number of individuals',
-                           'number of generations',
-                           'number of replicates',
-                           'number of loci',
-                           'mutation rate',
-                           'recombination rate',
-                           'selfing rate',
-                           'number of burnin generations',
-                           'random number seed',
-                           'replicate',
-                           'generation',
-                           'individual',
-                           'chromosome'] + ['locus {}'.format(i) for i in range(loci)]
 
             with open(output, 'w') as f:
-                writer = csv.DictWriter(f, self.header)
+                writer = csv.DictWriter(f, header)
                 writer.writeheader()
 
             super(MyWriter, self).__init__(func = self.write)
 
         def write(self, pop):
-            output = self.output
             # In order to keep output file structure simple, all
             # information regarding to simulation such as model
             # parameters are included into each row.  This obviously
@@ -228,40 +205,79 @@ def get_output_operator():
             # consider an upside, the simplicity of the output file
             # structure, is well worth the cost.
 
-            header = self.header
-            dat = self.data
-
             with open(output, 'a') as f:
                 dvars = pop.dvars()
                 rep = dvars.rep
-                gen = dvars.gen - self.burnin
+                gen = dvars.gen - burnin
 
-                writer = cvs.DictWriter(f, data.keys())
-
+                writer = csv.DictWriter(f, header)
 
                 # scan genotype of all individuals to identify
                 # polymorphic sites.
 
                 # convert to carray to list because I want to use
                 # slice
-                loci = self.loci
-                allele_length = self.allele_length
                 raw_geno = list(pop.genotype())
-                for locus in range(loci):
-                    for site in range(allele_length):
-                        idx = locus * site
-                        poly_sites = [i for i in range(allele_length)
-                                      if len(set(raw_geno[site::loci * allele_length])) > 1]
+                stride = loci * allele_length
+                poly_sites = [locus for locus in range(stride)
+                              if len(set(raw_geno[locus::stride])) > 1]
+                poly_sites = [[i for i in poly_sites
+                               if j * allele_length <= i < (j + 1) * allele_length]
+                              for j in range(loci)]
 
                 for idx, ind in enumerate(pop.individuals()):
                     for ploidy in range(2):
                         geno = ind.genotype(ploidy = ploidy)
-                        for locus in range(self.loci):
-                        sites = [geno[i] for i in poly_sites]
-
+                        geno = [''.join(str(site) for site in locus)
+                                for locus in poly_sites]
 
                         writer.writerow({key: value for key, value in
                                          zip(header,
                                              data + [rep, gen, idx, ploidy] + geno)})
 
             return True
+
+    return MyWriter()
+
+
+def run(args):
+    """Configure and run simulations."""
+    pop = cf.get_population(size = args.NUM_IND,
+                            loci = args.NUM_LOCI * args.allele_length)
+
+
+    init_info_op = cf.get_init_info()
+
+    init_genotype_op = cf.get_init_genotype()
+
+    mating_op = get_mating_operator(r_rate = args.R_RATE,
+                                    loci = args.NUM_LOCI,
+                                    allele_length = args.allele_length,
+                                    weight = args.S_RATE,
+                                    size = args.NUM_IND)
+
+    mutation_op = get_mutation_operator(m_rate = args.M_RATE,
+                                        loci = args.NUM_LOCI,
+                                        allele_length = args.allele_length,
+                                        nrep = args.NUM_REP,
+                                        burnin = args.burnin)
+
+    output_op = get_output_operator(size = args.NUM_IND,
+                                    m_rate = args.M_RATE,
+                                    r_rate = args.R_RATE,
+                                    s_rate = args.S_RATE,
+                                    loci = args.NUM_LOCI,
+                                    nrep = args.NUM_REP,
+                                    ngen = args.NUM_GEN,
+                                    burnin = args.burnin,
+                                    output = args.OUTFILE,
+                                    allele_length = args.allele_length)
+
+    simulator = simu.Simulator(pops = pop, rep = args.NUM_REP)
+
+    simulator.evolve(
+        initOps = [init_info_op, init_genotype_op],
+        preOps = mutation_op,
+        matingScheme = mating_op,
+        finalOps = output_op,
+        gen = args.NUM_GEN + args.burnin)
