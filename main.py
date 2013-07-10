@@ -1,6 +1,6 @@
 # -*- mode: python; coding: utf-8; -*-
 
-# pself.py - An entry point to partial selfing simulations.  The
+# main.py - An entry point to partial selfing simulations.  The
 # simulations are conducted with population genetics forward simulator
 # simuPOP, and four scenarios are explored.
 
@@ -34,18 +34,18 @@ import argparse
 # submodules will automatically use the right version of simuPOP.
 def exec_two_loci(args):
     if args.M_TYPE == 'infinite_loci':
-        import pself.two_loci.infinite_sites as model
+        import partial_selfing.two_loci.infinite_sites as model
     else:                       # infinite_alleles
-        import pself.two_loci.infinite_alleles as model
+        import partial_selfing.two_loci.infinite_alleles as model
     model.run(args)
 
 
 # See the comment in front of exec_two_loci
 def exec_many_loci(args):
     if args.M_TYPE == 'infinite_loci':
-        import pself.many_loci.infinite_sites as model
+        import partial_selfing.many_loci.infinite_sites as model
     else:                       # infinite_alleles
-        import pself.many_loci.infinite_alleles as model
+        import partial_selfing.many_loci.infinite_alleles as model
     model.run(args)
 
 
@@ -61,6 +61,9 @@ if __name__ == '__main__':
     # functions import an approximate version of simuPOP module.
 
     parser_common = argparse.ArgumentParser(add_help=False)
+    parser_common.add_argument('OUTFILE',
+                               type=str,
+                               help='path to output file')
     parser_common.add_argument('NUM_IND',
                                type=int,
                                help='number of individuals')
@@ -76,6 +79,9 @@ if __name__ == '__main__':
     parser_common.add_argument('M_RATE',
                                type=float,
                                help='mutation rate')
+    parser_common.add_argument('S_RATE',
+                               type=float,
+                               help='selfing rate')
     parser_common.add_argument('--burnin',
                                type=int,
                                default=0,
@@ -99,7 +105,7 @@ if __name__ == '__main__':
                              help='number of loci')
     parser_many.add_argument('--allele_length',
                              type=int,
-                             defualt=2**6, # 64
+                             default=2**6, # 64
                              help='number of maximum polymorphic sites at one time')
     parser_many.set_defaults(func=exec_many_loci)
 

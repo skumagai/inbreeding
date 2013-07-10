@@ -24,6 +24,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import simuOpt
+simuOpt.setOptions(alleleType='long')
 import simuPOP as simu
 import partial_selfing.funcs.common as cf
 import partial_selfing.funcs.infinite_alleles as iaf
@@ -36,20 +38,32 @@ def run(args):
 
     init_genotype_op = cf.get_init_genotype()
 
-    mating_op = cf.get_mating_operator(r_rate=args.R_RATE,
-                                       weight = args.S_RATE,
-                                       size = args.NUM_IND)
+    mating_op = iaf.get_mating_operator(r_rate=args.R_RATE,
+                                        weight = args.S_RATE,
+                                        size = args.NUM_IND)
 
     mutation_op = iaf.get_mutation_operator(m_rate = args.M_RATE,
                                             loci = 2,
                                             nrep = args.NUM_REP,
                                             burnin = args.burnin)
 
+    output_op = iaf.get_output_operator(size = args.NUM_IND,
+                                        m_rate = args.M_RATE,
+                                        r_rate = args.R_RATE,
+                                        s_rate = args.S_RATE,
+                                        loci = 2,
+                                        nrep = args.NUM_REP,
+                                        ngen = args.NUM_GEN,
+                                        burnin = args.burnin,
+                                        output = args.OUTFILE)
+
+
     simulator = simu.Simulator(pops = pop)
 
 
     simulator.evolve(
-        initOIps = [init_info_op, init_genotype_op],
+        initOps = [init_info_op, init_genotype_op],
         preOps = mutation_op,
         matingScheme = mating_op,
+        finalOps = output_op,
         gen = args.NUM_GEN + args.burnin)

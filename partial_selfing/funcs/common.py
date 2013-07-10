@@ -43,7 +43,7 @@ def get_init_info(field='self_gen'):
 
 def get_init_genotype():
     """Zero initialize genotype of all organisms."""
-    return simu.InitGenotype(prop=1)
+    return simu.InitGenotype(prop=[1])
 
 
 def pickTwoParents(pop):

@@ -24,6 +24,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import simuOpt
+simuOpt.setOptions(alleleType='long')
 import simuPop as simu
 import partial_selfing.funcs.commmon as cf
 import partial_selfing.funcs.infinite_alleles as iaf

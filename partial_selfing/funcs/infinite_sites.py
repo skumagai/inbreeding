@@ -169,21 +169,52 @@ def get_output_operator():
                      seed,
                      output,
                      allele_length):
-            self.num_ind = num_ind
-            self.num_gen = num_gen
-            self.num_rep = num_rep
-            self.m_rate = m_rate
-            self.r_rate = r_rate
-            self.s_rate = s_rate
+            # self.num_ind = num_ind
+            # self.num_gen = num_gen
+            # self.num_rep = num_rep
+            # self.m_rate = m_rate
+            # self.r_rate = r_rate
+            # self.s_rate = s_rate
             self.loci = loci
             self.burnin = burnin
             self.output = output
+
+            self.data = ['infinite sites',
+                         num_ind,
+                         num_gen,
+                         num_rep,
+                         m_rate,
+                         r_rate,
+                         s_rate,
+                         loci,
+                         burnin,
+                         simu.getRNG().seed()]
+
             # Allele length is the only parameter that will not be
             # printed.  This variable controls the assignment of
             # sites, which can hold polymorphic sites, and it is
             # there for strictly an implementation reason (albeit user
             # configurable).
             self.allele_length
+
+            self.header = ['mutation model',
+                           'number of individuals',
+                           'number of generations',
+                           'number of replicates',
+                           'number of loci',
+                           'mutation rate',
+                           'recombination rate',
+                           'selfing rate',
+                           'number of burnin generations',
+                           'random number seed',
+                           'replicate',
+                           'generation',
+                           'individual',
+                           'chromosome'] + ['locus {}'.format(i) for i in range(loci)]
+
+            with open(output, 'w') as f:
+                writer = csv.DictWriter(f, self.header)
+                writer.writeheader()
 
             super(MyWriter, self).__init__(func = self.write)
 
@@ -196,32 +227,9 @@ def get_output_operator():
             # times and excessive use of storage space.  However, I
             # consider an upside, the simplicity of the output file
             # structure, is well worth the cost.
-            header = ['mutation model',
-                      'number of individuals',
-                      'number of generations',
-                      'number of replicates',
-                      'number of loci',
-                      'mutation rate',
-                      'recombination rate',
-                      'selfing rate',
-                      'number of burnin generations',
-                      'random number seed',
-                      'replicate',
-                      'generation',
-                      'individual',
-                      'chromosome'] + ['locus {}'.format(i) for i in range(self.loci)]
 
-
-            data = ['infinite sites',
-                    self.num_ind,
-                    self.num_gen,
-                    self.num_rep,
-                    self.m_rate,
-                    self.r_rate,
-                    self.s_rate,
-                    self.loci,
-                    self.burnin,
-                    simu.getRNG().seed()]
+            header = self.header
+            dat = self.data
 
             with open(output, 'a') as f:
                 dvars = pop.dvars()
@@ -255,3 +263,5 @@ def get_output_operator():
                         writer.writerow({key: value for key, value in
                                          zip(header,
                                              data + [rep, gen, idx, ploidy] + geno)})
+
+            return True

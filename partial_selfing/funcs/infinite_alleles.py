@@ -58,24 +58,19 @@ def get_mutation_operator(m_rate, loci, nrep, burnin):
 
         A new mutation is distinct from any other mutations already in a population.
         """
-        def __init__(self, m_rate, loci, nrep, burnin):
+        def __init__(self):
             self.idx = list([0] * loci for i in range(nrep))
-            self.m_rate = m_rate
-            self.loci = loci
-            self.burnin = burnin
 
-            super(MyMutator, self).__init__(func = self.muate)
+            super(MyMutator, self).__init__(func = self.mutate)
 
 
         def mutate(self, pop):
             """Add mutations to organisms."""
-            m_rate = self.m_rate
-            loci = self.loci
             rng = simu.getRNG()
 
             dvars = pop.dvars()
             rep = dvars.rep
-            gen = dvars.gen - self.burnin
+            gen = dvars.gen - burnin
 
             for i, ind in enumerate(pop.individuals()):
                 for locus in range(loci):
@@ -85,42 +80,62 @@ def get_mutation_operator(m_rate, loci, nrep, burnin):
                             ind.setAllele(self.idx[rep][locus], locus, ploidy = ploidy)
             return True
 
-    return MyMutator(m_rate = m_rate,
-                     loci = loci,
-                     nrep = nrep,
-                     burnin = burnin)
+    return MyMutator()
 
-def get_output_operator():
+
+def get_output_operator(size,
+                        ngen,
+                        nrep,
+                        m_rate,
+                        r_rate,
+                        s_rate,
+                        loci,
+                        burnin,
+                        output,
+                        field = 'self_gen'):
+
+    data = ['infinite alleles',
+            size,
+            ngen,
+            nrep,
+            loci,
+            m_rate,
+            s_rate,
+            r_rate,
+            burnin,
+            simu.getRNG().seed()]
+
+    header = ['mutation model',
+              'number of individuals',
+              'number of generations',
+              'number of replicates',
+              'number of loci',
+              'mutation rate',
+              'selfing rate',
+              'recombination rate',
+              'number of burnin generations',
+              'random number seed',
+              'replicate',
+              'generation',
+              'individual',
+              'number of selfing',
+              'chromosome'] + ['locus {}'.format(i) for i in range(loci)]
+
+
     """Output genetic information of a population."""
 
     class MyWriter(simu.PyOperator):
         """A class handling output of genetic information of the entire population."""
 
-        def __init__(self,
-                     num_ind,
-                     num_gen,
-                     num_rep,
-                     m_rate,
-                     r_rate,
-                     s_rate,
-                     loci,
-                     burnin,
-                     seed,
-                     output):
-            self.num_ind = num_ind
-            self.num_gen = num_gen
-            self.num_rep = num_rep
-            self.m_rate = m_rate
-            self.r_rate = r_rate
-            self.s_rate = s_rate
-            self.loci = loci
-            self.burnin = burnin
-            self.output = output
+        def __init__(self):
+            with open(output, 'w') as f:
+                writer = csv.DictWriter(f, header)
+                writer.writeheader()
 
             super(MyWriter, self).__init__(func = self.write)
 
+
         def write(self, pop):
-            output = self.output
             # In order to keep output file structure simple, all
             # information regarding to simulation such as model
             # parameters are included into each row.  This obviously
@@ -128,47 +143,26 @@ def get_output_operator():
             # times and excessive use of storage space.  However, I
             # consider an upside, the simplicity of the output file
             # structure, is well worth the cost.
-            header = ['mutation model',
-                      'number of individuals',
-                      'number of generations',
-                      'number of replicates',
-                      'number of loci',
-                      'mutation rate',
-                      'recombination rate',
-                      'selfing rate',
-                      'number of burnin generations',
-                      'random number seed',
-                      'replicate',
-                      'generation',
-                      'individual',
-                      'chromosome'] + ['locus {}'.format(i) for i in range(self.loci)]
-
-
-            data = ['infinite alleles',
-                    self.num_ind,
-                    self.num_gen,
-                    self.num_rep,
-                    self.m_rate,
-                    self.r_rate,
-                    self.s_rate,
-                    self.loci,
-                    self.burnin,
-                    simu.getRNG().seed()]
 
             with open(output, 'a') as f:
                 dvars = pop.dvars()
                 rep = dvars.rep
-                gen = dvars.gen - self.burnin
+                gen = dvars.gen - burnin
 
-                writer = cvs.DictWriter(f, data.keys())
+                writer = csv.DictWriter(f, header)
 
                 # write genotype row by row.  Each row contains a list
                 # of genes on a single chromosome.  Because simulated
                 # organisms are diploid, each individual occupy two
                 # (successive) rows.
                 for idx, ind in enumerate(pop.individuals()):
+                    selfing = ind.info(field)
                     for ploidy in range(2):
-                        geno = ind.genotype(ploidy = ploidy)
+                        geno = list(ind.genotype(ploidy = ploidy))
                         writer.writerow({key: value for key, value in
                                          zip(header,
-                                             data + [rep, gen, idx, ploidy] + geno)})
+                                             data + [rep, gen, idx, selfing, ploidy] + geno)})
+
+            return True
+
+    return MyWriter()
