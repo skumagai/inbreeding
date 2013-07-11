@@ -1,7 +1,6 @@
 # -*- mode: python; coding: utf-8; -*-
 
-# common_funcs.py - common functions usable under different scenarios
-# and mutational models.
+# common.py - common functions usable under different mutational models.
 
 # Copyright (C) 2013 Seiji Kumagai
 

@@ -29,7 +29,7 @@ import csv
 import simuOpt
 simuOpt.setOptions(alleleType='long')
 import simuPOP as simu
-import partial_selfing.funcs.common as cf
+import partial_selfing.common as cf
 
 
 def get_mating_operator(r_rate, weight, size, field='self_gen'):
