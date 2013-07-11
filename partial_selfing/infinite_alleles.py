@@ -42,13 +42,13 @@ def get_mating_operator(r_rate, weight, size, field='self_gen'):
     Furthermore, a parent can participate in both selfing and outcrossing.
     """
     selfing = simu.SelfMating(ops = [simu.Recombinator(rates = r_rate),
-                                     cf.MySelfingTagger()],
+                                     cf.MySelfingTagger(field)],
                               weight = weight)
 
     outcross = simu.HomoMating(chooser = simu.PyParentsChooser(generator = cf.pickTwoParents),
                                generator = simu.OffspringGenerator(
                                    ops = [simu.Recombinator(rates = r_rate),
-                                          cf.MyOutcrossingTagger()]),
+                                          cf.MyOutcrossingTagger(field)]),
                                weight = 1.0 - weight)
     return simu.HeteroMating(matingSchemes = [selfing, outcross],
                              subPopSize = size)

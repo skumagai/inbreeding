@@ -31,7 +31,7 @@ import simuPOP as simu
 
 import partial_selfing.common as cf
 
-def get_mating_operator(r_rate, loci, allele_length, weight, size):
+def get_mating_operator(r_rate, weight, size, loci, allele_length, field='self_gen'):
     """
     Construct partially selfing mating operation under the infinite sites model.
 
@@ -44,14 +44,14 @@ def get_mating_operator(r_rate, loci, allele_length, weight, size):
     rec_loci = [allele_length * i - 1 for i in range(1, loci + 1)]
     selfing = simu.SelfMating(ops = [simu.Recombinator(rates = r_rate,
                                                        loci = rec_loci),
-                                     cf.MySelfingTagger()],
+                                     cf.MySelfingTagger(field)],
                               weight = weight)
 
     outcross = simu.HomoMating(chooser = simu.PyParentsChooser(generator = cf.pickTwoParents),
                                generator = simu.OffspringGenerator(
                                    ops = [simu.Recombinator(rates = r_rate,
                                                             loci = rec_loci),
-                                          cf.MyOutcrossingTagger()]),
+                                          cf.MyOutcrossingTagger(field)]),
                                weight = 1.0 - weight)
 
     return simu.HeteroMating(matingSchemes = [selfing, outcross],
