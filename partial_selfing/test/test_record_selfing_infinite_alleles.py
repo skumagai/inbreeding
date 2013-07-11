@@ -29,8 +29,8 @@ import simuOpt
 simuOpt.setOptions(quiet=True, alleleType='long')
 import simuPOP as simu
 
-import partial_selfing.funcs.common as cf
-import partial_selfing.funcs.infinite_alleles as iaf
+import partial_selfing.common as cf
+import partial_selfing.infinite_alleles as iaf
 
 class TestRecordSelfing:
 

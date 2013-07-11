@@ -29,14 +29,19 @@ import simuOpt
 simuOpt.setOptions(quiet=True, alleleType='binary')
 import simuPOP as simu
 
-import partial_selfing.funcs.common as cf
-import partial_selfing.funcs.infinite_sites as isf
+import partial_selfing.common as cf
+import partial_selfing.infinite_sites as isf
 
 class TestRecordSelfing:
 
     def setUp(self):
         # A locus with 10 sites
-        self.pop = simu.Population(size=10, loci=10, infoFields='self_gen')
+        "Let there are 5 loci with 2 sites each"
+        self.allele_length = 2
+        self.loci = 5
+        self.pop = simu.Population(size=10,
+                                   loci=self.allele_length * self.loci,
+                                   infoFields='self_gen')
         self.sim = simu.Simulator(pops = self.pop)
         self.initOps = [simu.InitSex(sex=[simu.MALE, simu.FEMALE]),
                         simu.InitInfo(0, infoFields=['self_gen'])]
@@ -166,7 +171,7 @@ class TestRecordSelfing:
 
         The population is effectively pure outcrossing.
         """
-        ms = iaf.get_mating_operator(0, 0, 10)
+        ms = isf.get_mating_operator(0, 0, 10, loci=self.loci, allele_length=self.allele_length)
 
         self.sim.evolve(
             initOps = self.initOps,
@@ -184,7 +189,7 @@ class TestRecordSelfing:
 
         The population is effectively pure outcrossing.
         """
-        ms = iaf.get_mating_operator(0, 1, 10)
+        ms = isf.get_mating_operator(0, 1, 10, loci=self.loci, allele_length=self.allele_length)
 
         self.sim.evolve(
             initOps = self.initOps,
