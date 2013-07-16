@@ -28,12 +28,12 @@
 # Summary includes:
 #
 # 1. [X]  generations of selfing
-# 2. [ ] number of alleles per locus
-# 3. [ ] heterozygosity
-# 4. [ ] number of alleles per locus given generation of selfing
-# 5. [ ] heterozygosity given generation of selfing
-# 6. [ ] generation of selfing given number of alleles
-# 7. [ ] generation of selfing given heterozygosity
+# 2. [X] number of alleles per locus
+# 3. [X] heterozygosity
+# 4. [X] number of alleles per locus given generation of selfing
+# 5. [X] heterozygosity given generation of selfing
+# 6. [D] generation of selfing given number of alleles
+# 7. [X] generation of selfing given heterozygosity
 
 
 import pandas as pd
@@ -52,48 +52,146 @@ rep_keys = ["mutation model",
             "replicate",
             "generation"]
 
-field_types = ('a18','i8','i8','i8','i8','f4','f4','f4','i8','f4','i8','i8')
+field_types = ['a18','i8','i8','i8','i8','f4','f4','f4','i8','f4','i8','i8']
 
-def selfing_gen(data):
-    cols = [col for col in data.columns
-            if col[:5] == "locus"]
-    # print (cols)
-    grouped = data.groupby(rep_keys)
+def create_base(grouped, add_field=None):
+    if add_field is None:
+        keys = rep_keys
+        fields = field_types
+    else:
+        keys = rep_keys + [add_field[0]]
+        fields = field_types + [add_field[1]]
 
-    d = np.zeros((len(grouped),), dtype=[(i,j) for i, j in zip(rep_keys, field_types)])
+    d = np.zeros((len(grouped),), dtype=[(i,j) for i, j in zip(keys, fields)])
     i = 0
     for name, group in grouped:
         d[i] = name
         i += 1
 
-    base = pd.DataFrame(d, columns=rep_keys, index=range(len(grouped)))
+    return pd.DataFrame(d, columns=keys, index=range(len(grouped)))
+
+def selfing_gen(data):
+    grouped = data.groupby(rep_keys)
+    base = create_base(grouped)
 
     gens = [group[group["chromosome"] == 0]["number of selfing"].value_counts()
             for name, group in grouped]
     gens = pd.concat(gens, axis=1).fillna(0).T
 
-    print pd.concat([base, gens], axis=1)
-    print(grouped.aggregate("count"))
+    return pd.concat([base, gens], axis=1)
 
+
+def number_of_alleles(data):
+    loci = [col for col in data.columns if col[:5] == "locus"]
+
+    grouped = data.groupby(rep_keys)
+    base = create_base(grouped)
+
+    counts = [group[loci].apply(pd.Series.nunique, axis=0)
+              for name, group in grouped]
+    counts = pd.concat(counts, axis=1).T
+
+    return pd.concat([base, counts], axis=1)
+
+
+def heterozygosity(data):
+    loci = [col for col in data.columns if col[:5] == "locus"]
+
+    grouped = data.groupby(rep_keys)
+    base = create_base(grouped)
+
+    matches = []
     for name, group in grouped:
-        # print(group.loc[:,rep_keys])
-        first = group[0::2]
-        del first['chromosome']
-        second = group[1::2]
-        del second['chromosome']
-        second = second.reindex_like(first)
-        match = (first != second)
+        first = group[0::2][loci].reset_index(drop=True)
+        second = group[1::2][loci].reset_index(drop=True)
+        match = (first != second) \
+            .apply(pd.Series.value_counts, axis=1) \
+            .fillna(0)
+        try:
+            matches.append(match[True].value_counts())
+        except KeyError:
+            matches.append(pd.Series([len(first)], index=[0]))
 
-    gens = [group["number of selfing"][::2].value_counts()
+    matches = pd.concat(matches, axis=1).fillna(0).T
+    return pd.concat([base, matches], axis=1)
+
+
+def number_of_alleles_given_selfing(data):
+    loci = [col for col in data.columns if col[:5] == "locus"]
+
+    grouped = data.groupby(rep_keys + ["number of selfing"])
+    base = create_base(grouped, ["number of selfing", "i8"])
+
+    counts = [group[loci].apply(pd.Series.nunique, axis=0)
+              for name, group in grouped]
+    counts = pd.concat(counts, axis=1).T.fillna(0)
+    return pd.concat([base, counts], axis=1)
+
+
+def heterozygosity_given_selfing(data):
+    loci = [col for col in data.columns if col[:5] == "locus"]
+
+    grouped = data.groupby(rep_keys + ["number of selfing"])
+    base = create_base(grouped, ["number of selfing", "i8"])
+
+    matches = []
+    for name, group in grouped:
+        first = group[0::2][loci].reset_index(drop=True)
+        second = group[1::2][loci].reset_index(drop=True)
+        match = (first != second) \
+            .apply(pd.Series.value_counts, axis=1) \
+            .fillna(0)
+        try:
+            matches.append(match[True].value_counts())
+        except KeyError:
+            matches.append(pd.Series([len(first)], index=[0]))
+
+    matches = pd.concat(matches, axis=1).fillna(0).T
+    return pd.concat([base, matches], axis=1)
+
+
+def selfing_given_heterozygosity(data):
+    # Create a new data frame with information about heterozygosity
+    # and without genotype
+    loci = [col for col in data.columns if col[:5] == "locus"]
+
+    subdata = data[0::2]
+    first = subdata[loci].reset_index(drop=True)
+    second = data[1::2][loci].reset_index(drop=True)
+    match = (first != second) \
+            .apply(pd.Series.value_counts, axis=1) \
+            .fillna(0)
+
+    try:
+        match = match[True]
+    except KeyError:
+        match = pd.Series([0] * len(first))
+
+    base = subdata[rep_keys + ['number of selfing']].reset_index(drop=True)
+    base['heterozygosity'] = match
+
+
+    # group by heterozygosity for each replicate separately.
+    grouped = base.groupby(rep_keys + ["heterozygosity"])
+    b = create_base(grouped, ["heterozygosity", "i8"])
+
+    gens = [group["number of selfing"].value_counts()
             for name, group in grouped]
+    gens = pd.concat(gens, axis=1).fillna(0).T
+
+    return pd.concat([b, gens], axis=1)
+
 
 if __name__ == '__main__':
     import os.path
 
     file_base = os.path.join("kmar_sim", "theta_0.2_s_0.2.{}.csv")
     files = [file_base.format(i) for i in [1] + range(10,20)]
-    # data = [pd.read_csv(f) for f in files]
-    # d = pd.concat(data)
     for f in files[0:1]:
         data = pd.read_csv(f)
         selfing_gen(data)
+        number_of_alleles(data)
+        heterozygosity(data)
+        number_of_alleles_given_selfing(data)
+        heterozygosity_given_selfing(data)
+        selfing_given_heterozygosity(data)
