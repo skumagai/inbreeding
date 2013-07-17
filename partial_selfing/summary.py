@@ -36,23 +36,49 @@
 # 7. [X] generation of selfing given heterozygosity
 
 
+import glob
 import pandas as pd
 import numpy as np
 
-rep_keys = ["mutation model",
-            "number of individuals",
-            "number of generations",
-            "number of replicates",
-            "number of loci",
-            "mutation rate",
-            "selfing rate",
-            "recombination rate",
-            "number of burnin generations",
-            "random number seed",
-            "replicate",
-            "generation"]
+index = ["mutation model",
+         "number of individuals",
+         "number of generations",
+         "number of replicates",
+         "number of loci",
+         "mutation rate",
+         "selfing rate",
+         "recombination rate",
+         "number of burnin generations",
+         "random number seed",
+         "replicate",
+         "generation",
+         "individual",
+         "chromosome"]
 
-field_types = ['a18','i8','i8','i8','i8','f4','f4','f4','i8','f4','i8','i8']
+def run(args):
+    files = glob.glob(args.PATTERN)
+    dfs = process_single_file(files[0])
+    for f in files[1:]:
+        dfs_tmp = process_single_file(f)
+        dfs = [pd.concat([df, df_tmp]) for df, df_tmp in zip(dfs, dfs_tmp)]
+
+    dfs = [df.fillna(0) for df in dfs]
+    for df, f in zip(dfs, file_names):
+        df.to_csv(f, index=False, cols=df.columns)
+
+    for df in dfs:
+        grouped = df.groupby(total_rep_keys)
+
+def process_single_file(f):
+    data = pd.read_csv(f)
+    return (selfing_gen(data),
+            number_of_alleles(data),
+            heterozygosity(data),
+            number_of_alleles_given_selfing(data),
+            heterozygosity_given_selfing(data),
+            selfing_given_heterozygosity(data))
+
+
 
 def create_base(grouped, add_field=None):
     if add_field is None:
@@ -68,86 +94,61 @@ def create_base(grouped, add_field=None):
         d[i] = name
         i += 1
 
-    return pd.DataFrame(d, columns=keys, index=range(len(grouped)))
+    return pd.DataFrame(d, columns=keys, index=range(len(grouped))).fillna(0)
+
 
 def selfing_gen(data):
-    grouped = data.groupby(rep_keys)
-    base = create_base(grouped)
+    d = data[0::2].groupby(level=index[:-2])['number of selfing'].value_counts()
 
-    gens = [group[group["chromosome"] == 0]["number of selfing"].value_counts()
-            for name, group in grouped]
-    gens = pd.concat(gens, axis=1).fillna(0).T
-
-    return pd.concat([base, gens], axis=1)
+    d.index.names = d.index.names[:-1] + ['number of selfing']
+    return pd.DataFrame({'count': d})
 
 
 def number_of_alleles(data):
     loci = [col for col in data.columns if col[:5] == "locus"]
 
-    grouped = data.groupby(rep_keys)
-    base = create_base(grouped)
-
-    counts = [group[loci].apply(pd.Series.nunique, axis=0)
-              for name, group in grouped]
-    counts = pd.concat(counts, axis=1).T
-
-    return pd.concat([base, counts], axis=1)
+    return data.groupby(level=index[:-2])[loci].agg(pd.Series.nunique).fillna(0)
 
 
 def heterozygosity(data):
     loci = [col for col in data.columns if col[:5] == "locus"]
+    d = (data[0::2].reset_index(level=['chromosome'])[loci] !=
+            data[1::2].reset_index(level=['chromosome'])[loci]) \
+        .fillna(0) \
+        .sum(axis=1) \
+        .groupby(level=index[:-2]) \
+        .value_counts()
 
-    grouped = data.groupby(rep_keys)
-    base = create_base(grouped)
-
-    matches = []
-    for name, group in grouped:
-        first = group[0::2][loci].reset_index(drop=True)
-        second = group[1::2][loci].reset_index(drop=True)
-        match = (first != second) \
-            .apply(pd.Series.value_counts, axis=1) \
-            .fillna(0)
-        try:
-            matches.append(match[True].value_counts())
-        except KeyError:
-            matches.append(pd.Series([len(first)], index=[0]))
-
-    matches = pd.concat(matches, axis=1).fillna(0).T
-    return pd.concat([base, matches], axis=1)
+    d.index.names = d.index.names[:-1] + ['heterozygosity']
+    return pd.DataFrame({'count': d})
 
 
 def number_of_alleles_given_selfing(data):
     loci = [col for col in data.columns if col[:5] == "locus"]
 
-    grouped = data.groupby(rep_keys + ["number of selfing"])
-    base = create_base(grouped, ["number of selfing", "i8"])
-
-    counts = [group[loci].apply(pd.Series.nunique, axis=0)
-              for name, group in grouped]
-    counts = pd.concat(counts, axis=1).T.fillna(0)
-    return pd.concat([base, counts], axis=1)
+    d = data.set_index('number of selfing', append=True) \
+            .reset_index(level=['individual', 'chromosome']) \
+            .sortlevel()
+    return d.groupby(level=index[:-2] + ['number of selfing'])[loci] \
+            .agg(pd.Series.nunique) \
+            .fillna(0)
 
 
 def heterozygosity_given_selfing(data):
     loci = [col for col in data.columns if col[:5] == "locus"]
 
-    grouped = data.groupby(rep_keys + ["number of selfing"])
-    base = create_base(grouped, ["number of selfing", "i8"])
+    d = data.set_index('number of selfing', append=True) \
+            .reset_index(level=['individual', 'chromosome']) \
+            .sortlevel()[loci]
 
-    matches = []
-    for name, group in grouped:
-        first = group[0::2][loci].reset_index(drop=True)
-        second = group[1::2][loci].reset_index(drop=True)
-        match = (first != second) \
-            .apply(pd.Series.value_counts, axis=1) \
-            .fillna(0)
-        try:
-            matches.append(match[True].value_counts())
-        except KeyError:
-            matches.append(pd.Series([len(first)], index=[0]))
+    d = (d[0::2] != d[1::2]) \
+        .fillna(0) \
+        .sum(axis=1) \
+        .groupby(level=index[:-2] + ['number of selfing']) \
+        .value_counts()
 
-    matches = pd.concat(matches, axis=1).fillna(0).T
-    return pd.concat([base, matches], axis=1)
+    d.index.names = d.index.names[:-1] + ['heterozygosity']
+    return pd.DataFrame({'count': d})
 
 
 def selfing_given_heterozygosity(data):
@@ -155,31 +156,23 @@ def selfing_given_heterozygosity(data):
     # and without genotype
     loci = [col for col in data.columns if col[:5] == "locus"]
 
-    subdata = data[0::2]
-    first = subdata[loci].reset_index(drop=True)
-    second = data[1::2][loci].reset_index(drop=True)
-    match = (first != second) \
-            .apply(pd.Series.value_counts, axis=1) \
-            .fillna(0)
+    d = data.set_index('number of selfing', append=True) \
+            .reset_index(level=['individual', 'chromosome']) \
+            .sortlevel()[loci]
 
-    try:
-        match = match[True]
-    except KeyError:
-        match = pd.Series([0] * len(first))
+    d = (d[0::2] != d[1::2]) \
+        .fillna(0) \
+        .sum(axis=1) \
+        .reset_index(level=['number of selfing'])
+    d.columns = ['number of selfing', 'heterozygosity']
 
-    base = subdata[rep_keys + ['number of selfing']].reset_index(drop=True)
-    base['heterozygosity'] = match
+    d = d.set_index('heterozygosity', append=True) \
+         .sortlevel()['number of selfing'] \
+         .groupby(level=index[:-2] + ['heterozygosity']) \
+         .value_counts()
 
-
-    # group by heterozygosity for each replicate separately.
-    grouped = base.groupby(rep_keys + ["heterozygosity"])
-    b = create_base(grouped, ["heterozygosity", "i8"])
-
-    gens = [group["number of selfing"].value_counts()
-            for name, group in grouped]
-    gens = pd.concat(gens, axis=1).fillna(0).T
-
-    return pd.concat([b, gens], axis=1)
+    d.index.names = d.index.names[:-1] + ['number of selfing']
+    return pd.DataFrame({'count': d})
 
 
 if __name__ == '__main__':
@@ -188,10 +181,10 @@ if __name__ == '__main__':
     file_base = os.path.join("kmar_sim", "theta_0.2_s_0.2.{}.csv")
     files = [file_base.format(i) for i in [1] + range(10,20)]
     for f in files[0:1]:
-        data = pd.read_csv(f)
-        selfing_gen(data)
-        number_of_alleles(data)
-        heterozygosity(data)
-        number_of_alleles_given_selfing(data)
-        heterozygosity_given_selfing(data)
-        selfing_given_heterozygosity(data)
+        data = pd.read_csv(f, index_col = index)
+        print selfing_gen(data).head()
+        print number_of_alleles(data).head()
+        print heterozygosity(data).head()
+        print number_of_alleles_given_selfing(data).head()
+        print heterozygosity_given_selfing(data).head()
+        print selfing_given_heterozygosity(data).head()
