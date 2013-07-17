@@ -42,6 +42,12 @@ def exec_infinite_alleles(args):
     import partial_selfing.infinite_alleles as model
     model.run(args)
 
+
+def summarize(args):
+    import partial_selfing.summary as model
+    model.run(args)
+
+
 if __name__ == '__main__':
 
     # Handling model specification through command line arguments.
@@ -100,6 +106,16 @@ if __name__ == '__main__':
                               default=2**6, # 64
                               help='number of maximum polymorphic sites at one time')
     parser_sites.set_defaults(func=exec_infinite_sites)
+
+
+    summary = subparsers.add_parser('summary',
+                                    help='summarize simulation results')
+
+    summary.add_argument('PATTERN',
+                         type=str,
+                         help='glob pattern of simulation result files')
+    summary.set_defaults(func=summarize)
+
 
     args = parser.parse_args()
 
