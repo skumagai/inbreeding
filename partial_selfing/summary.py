@@ -55,6 +55,24 @@ index = ["mutation model",
          "individual",
          "chromosome"]
 
+summary_index = ["mutation model",
+                 "number of individuals",
+                 "number of generations",
+                 "number of replicates",
+                 "number of loci",
+                 "mutation rate",
+                 "selfing rate",
+                 "recombination rate",
+                 "number of burnin generations",
+                 "generation"]
+
+file_names = ["selfing",
+              "alleles",
+              "h_haplo",
+              "a_given_s",
+              "h_given_s",
+              "s_given_h"]
+
 def run(args):
     files = glob.glob(args.PATTERN)
     dfs = process_single_file(files[0])
@@ -64,13 +82,24 @@ def run(args):
 
     dfs = [df.fillna(0) for df in dfs]
     for df, f in zip(dfs, file_names):
-        df.to_csv(f, index=False, cols=df.columns)
+        df.to_csv(f + ".csv", cols=df.columns)
 
-    for df in dfs:
-        grouped = df.groupby(total_rep_keys)
+    df = dfs[0].groupby(level=summary_index + ['number of selfing']).sum()
+    df.to_csv(file_names[0] + ".summary.csv", cols = df.columns)
+    df = dfs[1].groupby(level=summary_index).agg([np.mean, np.std])
+    df.to_csv(file_names[1] + ".summary.csv", cols = df.columns)
+    df = dfs[2].groupby(level=summary_index + ['heterozygosity']).sum()
+    df.to_csv(file_names[2] + ".summary.csv", cols = df.columns)
+    df = dfs[3].groupby(level=summary_index + ['number of selfing']).agg([np.mean, np.std])
+    df.to_csv(file_names[3] + ".summary.csv", cols = df.columns)
+    df = dfs[4].groupby(level=summary_index + ['number of selfing', 'heterozygosity']).sum()
+    df.to_csv(file_names[4] + ".summary.csv", cols = df.columns)
+    df = dfs[5].groupby(level=summary_index + ['heterozygosity', 'number of selfing']).sum()
+    df.to_csv(file_names[5] + ".summary.csv", cols = df.columns)
+
 
 def process_single_file(f):
-    data = pd.read_csv(f)
+    data = pd.read_csv(f, index_col = index)
     return (selfing_gen(data),
             number_of_alleles(data),
             heterozygosity(data),
@@ -181,10 +210,11 @@ if __name__ == '__main__':
     file_base = os.path.join("kmar_sim", "theta_0.2_s_0.2.{}.csv")
     files = [file_base.format(i) for i in [1] + range(10,20)]
     for f in files[0:1]:
+    # for f in files:
         data = pd.read_csv(f, index_col = index)
         print selfing_gen(data).head()
-        print number_of_alleles(data).head()
-        print heterozygosity(data).head()
-        print number_of_alleles_given_selfing(data).head()
-        print heterozygosity_given_selfing(data).head()
-        print selfing_given_heterozygosity(data).head()
+        # print number_of_alleles(data).head()
+        # print heterozygosity(data).head()
+        # print number_of_alleles_given_selfing(data).head()
+        # print heterozygosity_given_selfing(data).head()
+        # print selfing_given_heterozygosity(data).head()
