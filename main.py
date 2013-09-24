@@ -25,6 +25,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import sys
 import argparse
 
 
@@ -76,6 +77,7 @@ if __name__ == '__main__':
                                type=int,
                                help='number of loci')
     parser_common.add_argument('M_RATE',
+                               nargs='+',
                                type=float,
                                help='mutation rate')
     parser_common.add_argument('S_RATE',
@@ -118,6 +120,12 @@ if __name__ == '__main__':
 
 
     args = parser.parse_args()
+    if len(args.M_RATE) == 1:
+        args.M_RATE = [args.M_RATE[0] for i in range(args.NUM_LOCI)]
+    elif len(args.M_RATE) != args.NUM_LOCI:
+        sys.stderr.write("Number of mutation rates must be equal to 1 or the number of loci.\n")
+        parser.print_help()
+        sys.exit(2)
 
     # Enter into an appropriate entry point.
     args.func(args)

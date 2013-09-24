@@ -83,7 +83,7 @@ def get_mutation_operator(m_rate, loci, allele_length, nrep, burnin):
             for i, ind in enumerate(pop.individuals()):
                 for locus in range(loci):
                     for ploidy in range(2):
-                        if rng.randUniform() < m_rate:
+                        if rng.randUniform() < m_rate[locus]:
                             try:
                                 idx = self.available[rep][locus].pop()
                             except IndexError:
