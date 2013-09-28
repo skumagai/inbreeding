@@ -76,14 +76,20 @@ if __name__ == '__main__':
     parser_common.add_argument('NUM_LOCI',
                                type=int,
                                help='number of loci')
-    parser_common.add_argument('M_RATE',
+    parser_common.add_argument('-t',
+                               dest='=M_RATE',
+                               required=True,
                                nargs='+',
                                type=float,
                                help='mutation rate')
-    parser_common.add_argument('S_RATE',
+    parser_common.add_argument('-s',
+                               dest='S_RATE',
+                               required=True
                                type=float,
                                help='selfing rate')
-    parser_common.add_argument('R_RATE',
+    parser_common.add_argument('-r',
+                               dest='R_RATE',
+                               required=True,
                                type=float,
                                help='recombination rate')
     parser_common.add_argument('--burnin',
