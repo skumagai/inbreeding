@@ -84,7 +84,7 @@ if __name__ == '__main__':
                                help='mutation rate')
     parser_common.add_argument('-s',
                                dest='S_RATE',
-                               required=True
+                               required=True,
                                type=float,
                                help='selfing rate')
     parser_common.add_argument('-r',
