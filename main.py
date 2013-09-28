@@ -77,7 +77,7 @@ if __name__ == '__main__':
                                type=int,
                                help='number of loci')
     parser_common.add_argument('-t',
-                               dest='=M_RATE',
+                               dest='M_RATE',
                                required=True,
                                nargs='+',
                                type=float,
