@@ -36,7 +36,7 @@ def process(infile, outfile, nsam):
         idx = 0
 
         row = next(reader)
-        nextrwo = next(reader)
+        nextrow = next(reader)
         npop = int(row[1])
         nloci = int(row[4])
 
