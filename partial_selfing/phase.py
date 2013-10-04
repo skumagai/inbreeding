@@ -24,34 +24,40 @@
 # DEALINGS IN THE SOFTWARE.
 
 
-import argparse, csv, random
+import argparse, csv, random, itertools
 
 def process(infile, outfile, nsam):
     with open(infile, 'r') as cfile:
         reader = csv.reader(cfile)
 
         # header
-        reader.next()
+        next(reader)
 
-        idx = 1
+        idx = 0
 
-        row = reader.next()
+        row = next(reader)
+        nextrwo = next(reader)
         npop = int(row[1])
         nloci = int(row[4])
 
-        samples = random.sample(xrange(2 * npop), nsam)
+        samples = random.sample(xrange(npop), nsam)
 
         with open(outfile, 'w') as ocfile:
             ocfile.write("{}\n{}\n".format(nsam, nloci))
             ocfile.write("{}\n".format('M'*nloci))
 
             if idx in samples:
-                ocfile.write("sample_{}\t{}\n".format(idx, '\t'.join(row[-nloci:])))
+                ocfile.write("sample_{}\t{}\n".format(idx, '\t'.join(
+                    itertools.chain(*map(list, zip(*[row[-nloci:], nextrow[-nloci:]])))
+                )))
 
             for row in reader:
                 idx += 1
+                nextrow = next(reader)
                 if idx in samples:
-                    ocfile.write("sample_{}\t{}\n".format(idx, '\t'.join(row[-nloci:])))
+                    ocfile.write("sample_{}\t{}\n".format(idx, '\t'.join(
+                        itertools.chain(*map(list, zip(*[row[-nloci:], nextrow[-nloci:]])))
+                    )))
 
 
 
