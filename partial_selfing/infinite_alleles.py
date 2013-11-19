@@ -201,10 +201,16 @@ def run(args):
 
     simulator = simu.Simulator(pops = pop, rep = args.NUM_REP)
 
+    if args.debug > 0:
+        post_op = [simu.Stat(alleleFreq=simu.ALL_AVAIL, step=args.debug),
+                   simu.PyEval(r"'%s\n' % alleleFreq", step=args.debug)]
+    else:
+        post_op = []
 
     simulator.evolve(
         initOps = [init_info_op, init_genotype_op],
         preOps = mutation_op,
         matingScheme = mating_op,
+        postOps = post_op,
         finalOps = output_op,
         gen = args.NUM_GEN + args.burnin)

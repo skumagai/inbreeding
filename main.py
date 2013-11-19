@@ -96,6 +96,10 @@ if __name__ == '__main__':
                                type=int,
                                default=0,
                                help='length of burnin phase')
+    parser_common.add_argument('--debug',
+                               type=int,
+                               default=0,
+                               help='debug output')
 
     parser = argparse.ArgumentParser(description='Foward simulate partial selfing')
 

@@ -273,11 +273,18 @@ def run(args):
                                     output = args.OUTFILE,
                                     allele_length = args.allele_length)
 
+    if args.debug > 0:
+        post_op = [simu.Stat(alleleFreq=simu.ALL_AVAIL, step=args.debug),
+                   simu.PyEval(r"'%s\n' % alleleFreq", step=args.debug)]
+    else:
+        post_op = []
+
     simulator = simu.Simulator(pops = pop, rep = args.NUM_REP)
 
     simulator.evolve(
         initOps = [init_info_op, init_genotype_op],
         preOps = mutation_op,
         matingScheme = mating_op,
+        postOps = post_op,
         finalOps = output_op,
         gen = args.NUM_GEN + args.burnin)
