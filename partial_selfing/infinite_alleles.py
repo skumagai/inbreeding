@@ -138,8 +138,9 @@ def get_output_operator(size,
 
             if output_per > 0:
                 ats = [i + burnin for i in range(0, ngen, output_per)]
-
-            super(MyWriter, self).__init__(func = self.write, at = ats)
+                super(MyWriter, self).__init__(func = self.write, at = ats)
+            else:
+                super(MyWriter, self).__init__(func = self.write)
 
 
         def write(self, pop):
