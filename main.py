@@ -100,6 +100,10 @@ if __name__ == '__main__':
                                type=int,
                                default=0,
                                help='debug output')
+    parser_common.add_argument('--output_per',
+                               type=int,
+                               default=0,
+                               help='frequency of outputting population state')
 
     parser = argparse.ArgumentParser(description='Foward simulate partial selfing')
 

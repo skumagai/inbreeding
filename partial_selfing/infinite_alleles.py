@@ -95,6 +95,7 @@ def get_output_operator(size,
                         loci,
                         burnin,
                         output,
+                        output_per,
                         field = 'self_gen'):
 
     data = ['infinite alleles',
@@ -135,7 +136,10 @@ def get_output_operator(size,
                 writer = csv.DictWriter(f, header)
                 writer.writeheader()
 
-            super(MyWriter, self).__init__(func = self.write)
+            if output_per > 0:
+                ats = [i + burnin for i in range(0, ngen, output_per)]
+
+            super(MyWriter, self).__init__(func = self.write, at = ats)
 
 
         def write(self, pop):
@@ -196,7 +200,8 @@ def run(args):
                                     nrep = args.NUM_REP,
                                     ngen = args.NUM_GEN,
                                     burnin = args.burnin,
-                                    output = args.OUTFILE)
+                                    output = args.OUTFILE,
+                                    output_per = args.output_per)
 
 
     simulator = simu.Simulator(pops = pop, rep = args.NUM_REP)
@@ -207,10 +212,20 @@ def run(args):
     else:
         post_op = []
 
-    simulator.evolve(
-        initOps = [init_info_op, init_genotype_op],
-        preOps = mutation_op,
-        matingScheme = mating_op,
-        postOps = post_op,
-        finalOps = output_op,
-        gen = args.NUM_GEN + args.burnin)
+    if args.output_per > 0 and (args.NUM_GEN + args.burnin) % args.output_per == 0:
+        post_op.append(output_op)
+
+        simulator.evolve(
+            initOps = [init_info_op, init_genotype_op],
+            preOps = mutation_op,
+            matingScheme = mating_op,
+            postOps = post_op,
+            gen = args.NUM_GEN + args.burnin)
+    else:
+        simulator.evolve(
+            initOps = [init_info_op, init_genotype_op],
+            preOps = mutation_op,
+            matingScheme = mating_op,
+            postOps = post_op,
+            finalOps = output_op,
+            gen = args.NUM_GEN + args.burnin)
