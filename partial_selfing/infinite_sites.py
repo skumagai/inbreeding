@@ -148,6 +148,7 @@ def get_output_operator(size,
                         burnin,
                         allele_length,
                         output,
+                        output_per,
                         field = 'self_gen'):
 
     data = ['infinite sites',
@@ -194,7 +195,11 @@ def get_output_operator(size,
                 writer = csv.DictWriter(f, header)
                 writer.writeheader()
 
-            super(MyWriter, self).__init__(func = self.write)
+            if output_per > 0:
+                ats = [i + burnin for i in range(0, ngen, output_per)]
+                super(MyWriter, self).__init__(func = self.write, at = ats)
+            else:
+                super(MyWriter, self).__init__(func = self.write)
 
         def write(self, pop):
             # In order to keep output file structure simple, all
@@ -278,6 +283,9 @@ def run(args):
                    simu.PyEval(r"'%s\n' % alleleFreq", step=args.debug)]
     else:
         post_op = []
+
+    if args.output_per > 0:
+        post_op.append(output_op)
 
     simulator = simu.Simulator(pops = pop, rep = args.NUM_REP)
 
