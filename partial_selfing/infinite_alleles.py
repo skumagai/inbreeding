@@ -216,17 +216,10 @@ def run(args):
     if args.output_per > 0 and (args.NUM_GEN + args.burnin) % args.output_per == 0:
         post_op.append(output_op)
 
-        simulator.evolve(
-            initOps = [init_info_op, init_genotype_op],
-            preOps = mutation_op,
-            matingScheme = mating_op,
-            postOps = post_op,
-            gen = args.NUM_GEN + args.burnin)
-    else:
-        simulator.evolve(
-            initOps = [init_info_op, init_genotype_op],
-            preOps = mutation_op,
-            matingScheme = mating_op,
-            postOps = post_op,
-            finalOps = output_op,
-            gen = args.NUM_GEN + args.burnin)
+    simulator.evolve(
+        initOps = [init_info_op, init_genotype_op],
+        preOps = mutation_op,
+        matingScheme = mating_op,
+        postOps = post_op,
+        finalOps = output_op,
+        gen = args.NUM_GEN + args.burnin)
