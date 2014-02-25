@@ -213,7 +213,7 @@ def run(args):
     else:
         post_op = []
 
-    if args.output_per > 0 and (args.NUM_GEN + args.burnin) % args.output_per == 0:
+    if args.output_per > 0:
         post_op.append(output_op)
 
     simulator.evolve(
