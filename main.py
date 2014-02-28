@@ -114,6 +114,11 @@ if __name__ == '__main__':
                                            parents=[parser_common])
     parser_alleles.set_defaults(func=exec_infinite_alleles)
 
+    parser_alleles.add_argument('--distinct_init',
+                                type=int,
+                                default=0,
+                                help='initial population is not monomorphic')
+
     parser_sites = subparsers.add_parser('infinite_sites',
                                          help='infinite-sites model',
                                          parents=[parser_common])

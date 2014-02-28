@@ -32,6 +32,33 @@ import simuPOP as simu
 import partial_selfing.common as cf
 
 
+def get_init_genotype(n):
+    """
+    Set genotype of inital population.
+    """
+
+    class MyGenoInitiator(simu.PyOperator):
+
+        def __init__(self):
+            super(MyGenoInitiator, self).__init__(func = self.geno)
+
+        def geno(self, pop):
+            for i, ind = in enumrate(pop.individuals()):
+                for chrom in range(2):
+                    g = ind.genotype(chrom=chrom)
+                    for j in range(len(g)):
+                        g[j] = (2 * i + chrom) % n
+
+    if n <= 1:
+        # population is monomorphic
+        return simu.InitGenotype(prop=[1])
+    else:
+        return MyGenoInitiator()
+
+
+
+
+
 def get_mating_operator(r_rate, weight, size, field='self_gen'):
     """
     Construct partially selfing mating operator under the infinite alleles model.
@@ -180,7 +207,7 @@ def run(args):
     pop = cf.get_population(size=args.NUM_IND,
                             loci = args.NUM_LOCI)
 
-    init_info_op = cf.get_init_info()
+    init_info_op = get_init_info(args.distinct_init)
 
     init_genotype_op = cf.get_init_genotype()
 
