@@ -23,7 +23,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import ast csv
+import ast, csv
 
 GENROW = 11
 G0 = 15
@@ -124,3 +124,6 @@ if __name__ == '__main__':
     spl.set_defaults(func=split)
     cn.set_defaults(func=count_nalleles)
     cz.set_defaults(func=count_zeros)
+
+    args = p.parse_args()
+    args.func()
