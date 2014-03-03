@@ -43,7 +43,7 @@ def get_init_genotype(n):
             super(MyGenoInitiator, self).__init__(func = self.geno)
 
         def geno(self, pop):
-            for i, ind = in enumrate(pop.individuals()):
+            for i, ind in enumrate(pop.individuals()):
                 for chrom in range(2):
                     g = ind.genotype(chrom=chrom)
                     for j in range(len(g)):
