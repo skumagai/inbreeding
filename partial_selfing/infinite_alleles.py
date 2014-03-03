@@ -207,9 +207,9 @@ def run(args):
     pop = cf.get_population(size=args.NUM_IND,
                             loci = args.NUM_LOCI)
 
-    init_info_op = get_init_info(args.distinct_init)
+    init_info_op = cf.get_init_info(args.distinct_init)
 
-    init_genotype_op = cf.get_init_genotype()
+    init_genotype_op = get_init_genotype()
 
     mating_op = get_mating_operator(r_rate=args.R_RATE,
                                     weight = args.S_RATE,
