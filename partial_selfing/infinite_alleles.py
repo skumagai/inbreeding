@@ -82,7 +82,7 @@ def get_mating_operator(r_rate, weight, size, field='self_gen'):
                              subPopSize = size)
 
 
-def get_mutation_operator(m_rate, loci, nrep, burnin):
+def get_mutation_operator(m_rate, loci, nrep, burnin, new_idx=0):
     class MyMutator(simu.PyOperator):
         """
         A mutation operator class representing the infinite-alleles model.
@@ -90,7 +90,7 @@ def get_mutation_operator(m_rate, loci, nrep, burnin):
         A new mutation is distinct from any other mutations already in a population.
         """
         def __init__(self):
-            self.idx = list([0] * loci for i in range(nrep))
+            self.idx = list([new_idx] * loci for i in range(nrep))
 
             super(MyMutator, self).__init__(func = self.mutate)
 
@@ -219,7 +219,8 @@ def run(args):
     mutation_op = get_mutation_operator(m_rate = args.M_RATE,
                                         loci = args.NUM_LOCI,
                                         nrep = args.NUM_REP,
-                                        burnin = args.burnin)
+                                        burnin = args.burnin,
+                                        new_idx = args.distinct_init)
 
     output_op = get_output_operator(size = args.NUM_IND,
                                     m_rate = args.M_RATE,
