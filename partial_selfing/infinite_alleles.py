@@ -44,12 +44,12 @@ def get_init_genotype(n):
 
         def geno(self, pop):
             for i, ind in enumerate(pop.individuals()):
-                for chrom in range(2):
-                    g = ind.genotype(chrom=chrom)
+                for ploidy in range(2):
+                    g = ind.genotype(ploidy=ploidy)
                     for j in range(len(g)):
-                        g[j] = (2 * i + chrom) % n
+                        g[j] = (2 * i + ploidy) % n
             return True
-
+	
     if n <= 1:
         # population is monomorphic
         return simu.InitGenotype(prop=[1])
