@@ -107,6 +107,7 @@ def get_mutation_operator(m_rate, loci, nrep, burnin, new_idx=0):
                 for locus in range(loci):
                     for ploidy in range(2):
                         if rng.randUniform() < m_rate[locus]:
+                            print('mutation {}'.format(self.idx[rep][locus]))
                             self.idx[rep][locus] += 1
                             ind.setAllele(self.idx[rep][locus], locus, ploidy = ploidy)
             return True
