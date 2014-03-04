@@ -104,6 +104,23 @@ def count_zeros(args):
                     data.append(0.0)
             w.writerow(data)
 
+def count_inits(args):
+    path = args.path
+    max_init = 2 * args.pop_size
+    with open(path, 'r') as f, open(path.split('.')[0] + '.inits.csv', 'w') as of:
+        w = csv.writer(of)
+        for row in f:
+            data = []
+            for v in ast.literal_eval(row).values():
+                frac = 0.0
+                for i in range(max_init):
+                    try:
+                        frac += v[i]
+                    except KeyError:
+                        pass
+                data.append(frac)
+            w.writerow(data)
+
 if __name__ == '__main__':
 
     import argparse
@@ -114,16 +131,20 @@ if __name__ == '__main__':
     spl = sp.add_parser('split')
     cn = sp.add_parser('alleles')
     cz = sp.add_parser('zeros')
+    ci = sp.add_parser('inits')
 
     spe.add_argument('path', type=str)
     spl.add_argument('path', type=str)
     cn.add_argument('path', type=str)
     cz.add_argument('path', type=str)
+    ci.add_argument('path', type=str)
+    ci.add_argument('pop_size', type=int)
 
     spe.set_defaults(func=spectra)
     spl.set_defaults(func=split)
     cn.set_defaults(func=count_nalleles)
     cz.set_defaults(func=count_zeros)
+    ci.set_defaults(func=count_inits)
 
     args = p.parse_args()
-    args.func()
+    args.func(args)
