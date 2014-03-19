@@ -49,7 +49,7 @@ def get_init_genotype(n):
                     for j in range(len(g)):
                         g[j] = (2 * i + ploidy) % n
             return True
-	
+
     if n <= 1:
         # population is monomorphic
         return simu.InitGenotype(prop=[1])
@@ -60,7 +60,7 @@ def get_init_genotype(n):
 
 
 
-def get_mating_operator(r_rate, weight, size, field='self_gen'):
+def get_nosex_partial_selfing(r_rate, weight, size, field='self_gen'):
     """
     Construct partially selfing mating operator under the infinite alleles model.
 
@@ -80,6 +80,59 @@ def get_mating_operator(r_rate, weight, size, field='self_gen'):
                                weight = 1.0 - weight)
     return simu.HeteroMating(matingSchemes = [selfing, outcross],
                              subPopSize = size)
+
+def get_sexed_partial_selfing(r_rate, weight, size, sex_ratio, field = 'self_gen'):
+
+    sexMode = (simu.PROB_OF_MALES, sex_ratio)
+
+    selfing = simu.SelfMating(ops = [simu.Recombinator(rates = r_rate),
+                                     cf.MySelfingTagger(field)],
+                              sexMode = sexMode,
+                              weight = weight)
+
+    outcross = simu.RandomMating(ops = [simu.Recombinator(rates = r_rate)],
+                                 sexMode = sexMode,
+                                 weight = weight)
+
+    return simu.HeteroMating(matingScheme = [selfing, outcross],
+                             subPopSize = size)
+
+
+def get_androdioecious_mating(r_rate, weight, size, sex_ratio, field = 'self_gen'):
+
+    sexMode = (simu.PROB_OF_MALES, sex_ratio)
+
+    selfing = simu.SelfMating(ops = [simu.Recombinator(rates = r_rate),
+                                     cf.MySelfingTagger(field)],
+                              sexMode = sexMode,
+                              subPops = [(0, 1)],
+                              weight = weight)
+
+    outcross = simu.RandomMating(ops = [simu.Recombinator(rates = r_rate)],
+                                 sexMode = sexMode,
+                                 weight = weight)
+
+    return simu.HeteroMating(matingScheme = [selfing, outcross],
+                             subPopSize = size)
+
+
+def get_gynodioecious_mating(r_rate, weight, size, sex_ratio, field = 'self_gen'):
+
+    sexMode = (simu.PROB_OF_MALES, sex_ratio)
+
+    selfing = simu.SelfMating(ops = [simu.Recombinator(rates = r_rate),
+                                     cf.MySelfingTagger(field)],
+                              sexMode = sexMode,
+                              subPops = [(0, 0)],
+                              weight = weight)
+
+    outcross = simu.RandomMating(ops = [simu.Recombinator(rates = r_rate)],
+                                 sexMode = sexMode,
+                                 weight = weight)
+
+    return simu.HeteroMating(matingScheme = [selfing, outcross],
+                             subPopSize = size)
+
 
 
 def get_mutation_operator(m_rate, loci, nrep, burnin, new_idx=0):
@@ -114,28 +167,19 @@ def get_mutation_operator(m_rate, loci, nrep, burnin, new_idx=0):
     return MyMutator()
 
 
-def get_output_operator(size,
-                        ngen,
-                        nrep,
-                        m_rate,
-                        r_rate,
-                        s_rate,
-                        loci,
-                        burnin,
-                        output,
-                        output_per,
-                        field = 'self_gen'):
+def get_output_operator(args, field = 'self_gen'):
+    output = args.OUTFILE
+    output_per = args.output_per
 
     data = ['infinite alleles',
-            size,
-            ngen,
-            nrep,
-            loci,
-            m_rate,
-            s_rate,
-            r_rate,
-            burnin,
-            simu.getRNG().seed()]
+            args.NUM_IND,
+            args.NUM_GEN,
+            args.NUM_REP,
+            args.NUM_LOCI,
+            args.M_RATE,
+            args.S_RATE,
+            args.R_RATE,
+            args.BURNIN]
 
     header = ['mutation model',
               'number of individuals',
@@ -145,13 +189,17 @@ def get_output_operator(size,
               'mutation rate',
               'selfing rate',
               'recombination rate',
-              'number of burnin generations',
-              'random number seed',
-              'replicate',
-              'generation',
-              'individual',
-              'number of selfing',
-              'chromosome'] + ['locus {}'.format(i) for i in range(loci)]
+              'number of burnin generations']
+
+    if args.model != 'nosex-pselfing':
+        data.append(sex_ratio)
+        header.append('sex ratio')
+
+    header.extend(['replicate',
+                   'generation',
+                   'individual',
+                   'number of selfing',
+                   'chromosome'] + ['locus {}'.format(i) for i in range(loci)])
 
 
     """Output genetic information of a population."""
@@ -204,17 +252,10 @@ def get_output_operator(size,
     return MyWriter()
 
 
-def run(args):
-    pop = cf.get_population(size=args.NUM_IND,
-                            loci = args.NUM_LOCI)
-
-    init_info_op = cf.get_init_info()
+def execute(args, pop, mating_op):
 
     init_genotype_op = get_init_genotype(args.distinct_init)
-
-    mating_op = get_mating_operator(r_rate=args.R_RATE,
-                                    weight = args.S_RATE,
-                                    size = args.NUM_IND)
+    init_info_op = cf.get_init_info()
 
     mutation_op = get_mutation_operator(m_rate = args.M_RATE,
                                         loci = args.NUM_LOCI,
@@ -222,17 +263,7 @@ def run(args):
                                         burnin = args.burnin,
                                         new_idx = args.distinct_init)
 
-    output_op = get_output_operator(size = args.NUM_IND,
-                                    m_rate = args.M_RATE,
-                                    r_rate = args.R_RATE,
-                                    s_rate = args.S_RATE,
-                                    loci = args.NUM_LOCI,
-                                    nrep = args.NUM_REP,
-                                    ngen = args.NUM_GEN,
-                                    burnin = args.burnin,
-                                    output = args.OUTFILE,
-                                    output_per = args.output_per)
-
+    output_op = get_output_operator()
 
     simulator = simu.Simulator(pops = pop, rep = args.NUM_REP)
 
@@ -252,3 +283,70 @@ def run(args):
         postOps = post_op,
         finalOps = output_op,
         gen = args.NUM_GEN + args.burnin)
+
+
+def nosex_partial_selfing(args):
+    pop = cf.get_population(size = args.NUM_IND,
+                            loci = args.NUM_LOCI)
+
+    mating_op = get_nosex_partial_selfing(r_rate = args.R_RATE,
+                                          weight = args.S_RATE,
+                                          size = args.NUM_IND)
+
+    execute(args, pop, mating_op)
+
+
+def sexed_partial_selfing(args):
+    pop = cf.get_population(size = args.NUM_IND,
+                            loci = args.NUM_LOCI)
+
+    simu.initSex(pop, maleFreq = args.SEX_RATIO)
+    pop.setVirtualSplitter(simu.SexSplitter())
+
+    mating_op = get_sexed_partial_selfing(r_rate = args.R_RATE,
+                                          weight = args.S_RATE,
+                                          size = args.NUM_IND)
+
+    execute(args, pop, mating_op)
+
+
+def androdioecy(args):
+    pop = cf.get_population(size = args.NUM_IND,
+                            loci = args.NUM_LOCI)
+
+    simu.initSex(pop, maleFreq = args.SEX_RATIO)
+    pop.setVirtualSplitter(simu.SexSplitter())
+
+    mating_op = get_androdioecious_mating(r_rate = args.R_RATE,
+                                          weight = args.S_RATE,
+                                          size = args.NUM_IND,
+                                          sex_ratio = args.SEX_RATIO)
+
+    execute(args, pop, mating_op)
+
+
+
+def gynodioecy(args):
+    pop = cf.get_population(size = args.NUM_IND,
+                            loci = args.NUM_LOCI)
+
+    simu.initSex(pop, maleFreq = args.SEX_RATIO)
+    pop.setVirtualSplitter(simu.SexSplitter())
+
+    mating_op = get_gynodioecious_mating(r_rate = args.R_RATE,
+                                         weight = args.S_RATE,
+                                         size = args.NUM_IND,
+                                         sex_ratio = args.SEX_RATIO)
+
+    execute(args, pop, mating_op)
+
+
+def run(args):
+    if args.model == 'androdioecy':
+        androdioecy(args)
+    elif args.model == 'gynodioecy':
+        gynodioecy(args)
+    elif args.model == 'pselfing':
+        sexed_partial_selfing(args)
+    else:
+        nosex_partial_selfing(args)

@@ -114,14 +114,30 @@ if __name__ == '__main__':
                                            parents=[parser_common])
     parser_alleles.set_defaults(func=exec_infinite_alleles)
 
+    parser_alleles.add_argument('--model',
+                                type=string,
+                                default='nosex-opselfing',
+                                choices = ['androdioecy',
+                                           'gynodioecy',
+                                           'nosex-pselfing',
+                                           'pselfing'],
+                                help='biological model')
+
     parser_alleles.add_argument('--distinct_init',
                                 type=int,
                                 default=0,
                                 help='initial population is not monomorphic')
 
+    parser_alleles.add_argument('--sex-ratio',
+                                type=float,
+                                default=0.5,
+                                help='sex ratio')
+
+
     parser_sites = subparsers.add_parser('infinite_sites',
                                          help='infinite-sites model',
                                          parents=[parser_common])
+
     parser_sites.add_argument('--allele_length',
                               type=int,
                               default=2**6, # 64
