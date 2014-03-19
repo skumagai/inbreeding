@@ -60,7 +60,7 @@ def get_init_genotype(n):
 
 
 
-def get_nosex_partial_selfing(r_rate, weight, size, field='self_gen'):
+def get_partial_selfing(r_rate, weight, size, field='self_gen'):
     """
     Construct partially selfing mating operator under the infinite alleles model.
 
@@ -79,22 +79,6 @@ def get_nosex_partial_selfing(r_rate, weight, size, field='self_gen'):
                                           cf.MyOutcrossingTagger(field)]),
                                weight = 1.0 - weight)
     return simu.HeteroMating(matingSchemes = [selfing, outcross],
-                             subPopSize = size)
-
-def get_sexed_partial_selfing(r_rate, weight, size, sex_ratio, field = 'self_gen'):
-
-    sexMode = (simu.PROB_OF_MALES, sex_ratio)
-
-    selfing = simu.SelfMating(ops = [simu.Recombinator(rates = r_rate),
-                                     cf.MySelfingTagger(field)],
-                              sexMode = sexMode,
-                              weight = weight)
-
-    outcross = simu.RandomMating(ops = [simu.Recombinator(rates = r_rate)],
-                                 sexMode = sexMode,
-                                 weight = weight)
-
-    return simu.HeteroMating(matingScheme = [selfing, outcross],
                              subPopSize = size)
 
 
@@ -192,7 +176,7 @@ def get_output_operator(args, field = 'self_gen'):
               'number of burnin generations']
 
     if args.model != 'nosex-pselfing':
-        data.append(sex_ratio)
+        data.append(args.SEX_RATIO)
         header.append('sex ratio')
 
     header.extend(['replicate',
@@ -285,27 +269,13 @@ def execute(args, pop, mating_op):
         gen = args.NUM_GEN + args.burnin)
 
 
-def nosex_partial_selfing(args):
+def partial_selfing(args):
     pop = cf.get_population(size = args.NUM_IND,
                             loci = args.NUM_LOCI)
 
-    mating_op = get_nosex_partial_selfing(r_rate = args.R_RATE,
-                                          weight = args.S_RATE,
-                                          size = args.NUM_IND)
-
-    execute(args, pop, mating_op)
-
-
-def sexed_partial_selfing(args):
-    pop = cf.get_population(size = args.NUM_IND,
-                            loci = args.NUM_LOCI)
-
-    simu.initSex(pop, maleFreq = args.SEX_RATIO)
-    pop.setVirtualSplitter(simu.SexSplitter())
-
-    mating_op = get_sexed_partial_selfing(r_rate = args.R_RATE,
-                                          weight = args.S_RATE,
-                                          size = args.NUM_IND)
+    mating_op = get_partial_selfing(r_rate = args.R_RATE,
+                                    weight = args.S_RATE,
+                                    size = args.NUM_IND)
 
     execute(args, pop, mating_op)
 
@@ -346,7 +316,5 @@ def run(args):
         androdioecy(args)
     elif args.model == 'gynodioecy':
         gynodioecy(args)
-    elif args.model == 'pselfing':
-        sexed_partial_selfing(args)
     else:
-        nosex_partial_selfing(args)
+        partial_selfing(args)
