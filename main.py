@@ -125,12 +125,20 @@ if __name__ == '__main__':
                                            parents=[parser_common])
     parser_alleles.set_defaults(func=exec_infinite_alleles)
 
+    initparsers = parser_alleles.add_subparsers()
 
-    parser_alleles.add_argument('--distinct_init',
-                                type=int,
-                                default=0,
-                                help='initial population is not monomorphic')
-
+    monomorphic = initparsers.add_parser('monomorphic',
+                                         help='start monomorphic population')
+    biallelic = initparsers.add_parser('biallelic')
+    biallelic.add_argument('prop',
+                           type=float,
+                           default=0.5,
+                           help='start biallelic population')
+    distinct = initparsers.add_parser('distinct')
+    distinct.add_argument('count',
+                          type=int,
+                          default = 1,
+                          help='start population with arbitrary number of alleles')
 
     parser_sites = subparsers.add_parser('infinite_sites',
                                          help='infinite-sites model',
@@ -153,6 +161,7 @@ if __name__ == '__main__':
 
 
     args = parser.parse_args()
+
     if len(args.M_RATE) == 1:
         args.M_RATE = [args.M_RATE[0] for i in range(args.NUM_LOCI)]
     elif len(args.M_RATE) != args.NUM_LOCI:

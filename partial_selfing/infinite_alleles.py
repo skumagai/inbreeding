@@ -32,6 +32,9 @@ import simuPOP as simu
 import partial_selfing.common as cf
 
 
+def get_biallelic_genotype(prop):
+    return (2, simu.InitGenotype(prop=(prop, 1.0 - prop)))
+
 def get_init_genotype(n):
     """
     Set genotype of inital population.
@@ -52,9 +55,9 @@ def get_init_genotype(n):
 
     if n <= 1:
         # population is monomorphic
-        return simu.InitGenotype(prop=[1])
+        return (1, simu.InitGenotype(prop=[1]))
     else:
-        return MyGenoInitiator()
+        return (n+1, MyGenoInitiator())
 
 
 
@@ -240,14 +243,21 @@ def get_output_operator(args, field = 'self_gen'):
 
 def execute(args, pop, mating_op):
 
-    init_genotype_op = get_init_genotype(args.distinct_init)
+    try:
+        next_idx, init_genotype_op = get_biallelic_genotype(args.prop)
+    except:
+        try:
+            next_idx, init_genotype_op = get_init_genotype(args.count)
+        except:
+            next_idx, init_genotype_op = get_init_genotype(1)
+
     init_info_op = cf.get_init_info()
 
     mutation_op = get_mutation_operator(m_rate = args.M_RATE,
                                         loci = args.NUM_LOCI,
                                         nrep = args.NUM_REP,
                                         burnin = args.burnin,
-                                        new_idx = args.distinct_init)
+                                        new_idx = next_idx)
 
     output_op = get_output_operator(args)
 
