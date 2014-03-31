@@ -186,6 +186,7 @@ def get_output_operator(args, field = 'self_gen'):
     output = args.OUTFILE
     output_per = args.output_per
     burnin = args.burnin
+    ngen = args.NUM_GEN
     loci = args.NUM_LOCI
     allele_length = args.allele_length
 
