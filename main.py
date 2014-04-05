@@ -25,149 +25,109 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
-import argparse
+import argparse, json, sys
+
+
+class Config(object):
+
+    def __init__(self, cobj, subst):
+        N = cobj['population']['N']
+        self._g = cobj['general']
+        self._p = cobj['population']
+        self.outfile = self._g['outfile'].format(*subst)
+        self.m = [
+            float(t['value']) / N
+            for t in self._p['mutation']['theta']
+            for rep in range(t['times'])
+            ]
+
+        try:
+            self._pp = cobj['post process']
+        except:
+            pass
+
+        self.mode = self._p['mutation']['model']
+        self.model = self._p['mating']['model']
+
+        m = self._p['mating']
+        if self.model == 'pure hermaphrodite':
+            self.s = m['a'] * m['tau']
+            self.s = self.s / (self.s + 1 - m['a'])
+        elif self.model == 'androdioecy':
+            self.s = self.s / (self.s + (1 - m['a']) * m['sigma'])
+        else:
+            Nh = N * self._p['sex ratio']
+            Nf = N - Nh
+            sg = m['tau'] * Nh * m['a']
+            sg = sg / (sg + Nh * (1 - m['a']) + Nf * m['sigma'])
+            h = Nh * (1 - m['a']) / (Nh * (1 - m['a']) + Nf * m['sigma'])
+            self.s = (sg, h)
+
+
+    def __getattr__(self, name):
+        name1 = name.replace('_', ' ')
+        try:
+            return self._g[name1]
+        except:
+            try:
+                return self._p[name1]
+            except:
+                try:
+                    return self._pp[name1]
+                except:
+                    raise KeyError('{}'.format(name))
+
 
 
 # Selectively import simuPOP with an appropriate alleleType.  Because
 # python caches imported modules, subsequent import of simuPOP in
 # model specific submodules is not re-imported.  Therefore, those
 # submodules will automatically use the right version of simuPOP.
-def exec_infinite_sites(args):
+def exec_infinite_sites(config):
     import partial_selfing.infinite_sites as model
-    model.run(args)
+    model.run(config)
 
 
 # See the comment in front of exec_two_loci
-def exec_infinite_alleles(args):
+def exec_infinite_alleles(config):
     import partial_selfing.infinite_alleles as model
-    model.run(args)
+    model.run(config)
 
 
-def summarize(args):
+def summarize(config):
     import partial_selfing.summary as model
-    model.run(args)
+    model.run(config)
 
+def simulate(args):
+    config = Config(json.load(args.CONFIG), args.STR)
+
+    if config.mode == 'infinite sites':
+        exec_infinite_sites(config)
+    else:
+        exec_infinite_alleles(config)
+
+def post_process(args):
+    pass
 
 if __name__ == '__main__':
 
-    # Handling model specification through command line arguments.
-    #
-    # No argument has a default value, so all values have to be
-    # explicitly supplied.  This is by design.
-    #
-    # Depending on which scenario, 2 loci with partial linkage or many
-    # loci with free linkage, different functions are invoked.  Those
-    # functions import an approximate version of simuPOP module.
-
-    parser_common = argparse.ArgumentParser(add_help=False)
-    parser_common.add_argument('OUTFILE',
-                               type=str,
-                               help='path to output file')
-    parser_common.add_argument('NUM_IND',
-                               type=int,
-                               help='number of individuals')
-    parser_common.add_argument('NUM_GEN',
-                               type=int,
-                               help='number of generations')
-    parser_common.add_argument('NUM_REP',
-                               type=int,
-                               help='number of replicates')
-    parser_common.add_argument('NUM_LOCI',
-                               type=int,
-                               help='number of loci')
-    parser_common.add_argument('-t',
-                               dest='M_RATE',
-                               required=True,
-                               nargs='+',
-                               type=float,
-                               help='mutation rate')
-    parser_common.add_argument('-s',
-                               dest='S_RATE',
-                               required=True,
-                               type=float,
-                               help='selfing rate')
-    parser_common.add_argument('-r',
-                               dest='R_RATE',
-                               required=True,
-                               type=float,
-                               help='recombination rate')
-    parser_common.add_argument('--burnin',
-                               type=int,
-                               default=0,
-                               help='length of burnin phase')
-    parser_common.add_argument('--debug',
-                               type=int,
-                               default=0,
-                               help='debug output')
-    parser_common.add_argument('--output_per',
-                               type=int,
-                               default=0,
-                               help='frequency of outputting population state')
-    parser_common.add_argument('--model',
-                               type=str,
-                               default='pure-hermaphrodite',
-                               choices = ['androdioecy',
-                                          'gynodioecy',
-                                          'pure-hermaphrodite'],
-                               help='biological model')
-    parser_common.add_argument('--sex-ratio',
-                               type=float,
-                               default=0.5,
-                               help='sex ratio')
-
-    parser = argparse.ArgumentParser(description='Foward simulate partial selfing')
+    parser = argparse.ArgumentParser()
 
     subparsers = parser.add_subparsers()
-
-    parser_alleles = subparsers.add_parser('infinite_alleles',
-                                           help='infinite-alleles model',
-                                           parents=[parser_common])
-    parser_alleles.set_defaults(func=exec_infinite_alleles)
-
-    initparsers = parser_alleles.add_subparsers()
-
-    monomorphic = initparsers.add_parser('monomorphic',
-                                         help='start monomorphic population')
-    biallelic = initparsers.add_parser('biallelic')
-    biallelic.add_argument('prop',
-                           type=float,
-                           default=0.5,
-                           help='start biallelic population')
-    distinct = initparsers.add_parser('distinct')
-    distinct.add_argument('count',
-                          type=int,
-                          default = 1,
-                          help='start population with arbitrary number of alleles')
-
-    parser_sites = subparsers.add_parser('infinite_sites',
-                                         help='infinite-sites model',
-                                         parents=[parser_common])
-
-    parser_sites.add_argument('--allele_length',
-                              type=int,
-                              default=2**6, # 64
-                              help='number of maximum polymorphic sites at one time')
-    parser_sites.set_defaults(func=exec_infinite_sites)
-
-
-    summary = subparsers.add_parser('summary',
-                                    help='summarize simulation results')
-
-    summary.add_argument('PATTERN',
-                         type=str,
-                         help='glob pattern of simulation result files')
-    summary.set_defaults(func=summarize)
+    s = subparsers.add_parser('simulate',
+                              help='run simulations')
+    s.set_defaults(func=simulate)
+    s.add_argument("CONFIG",
+                   type=argparse.FileType('r'),
+                   help='configuration of simulation')
+    s.add_argument('STR',
+                   type=str,
+                   nargs='*',
+                   help='string substituted in output file name')
+    pp = subparsers.add_parser('post-process',
+                               help='post process simulation data')
+    # pp.set_defaults(func=post_process)
 
 
     args = parser.parse_args()
-
-    if len(args.M_RATE) == 1:
-        args.M_RATE = [args.M_RATE[0] for i in range(args.NUM_LOCI)]
-    elif len(args.M_RATE) != args.NUM_LOCI:
-        sys.stderr.write("Number of mutation rates must be equal to 1 or the number of loci.\n")
-        parser.print_help()
-        sys.exit(2)
-
-    # Enter into an appropriate entry point.
     args.func(args)
