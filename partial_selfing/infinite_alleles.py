@@ -79,8 +79,8 @@ def get_output_operator(config, field = 'self_gen'):
     output = config.outfile
     output_per = config.output_per
     N = config.N
-    burnin = config.burnin * N
-    ngen = config.gens * N
+    burnin = config.burnin
+    ngen = config.gens
 
     data = ['infinite alleles',
             N,
@@ -205,7 +205,7 @@ def execute(config, pop, mating_op):
         matingScheme = mating_op,
         postOps = post_op,
         finalOps = output_op,
-        gen = (config.gens + config.burnin) * config.N)
+        gen = config.gens + config.burnin)
 
 
 
