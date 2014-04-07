@@ -91,6 +91,21 @@
     "post process": {
         // This section may contains post-processing commands to run after simulations are
         // successfully terminated.
+
+        // 'command' specifies the list of commands to run.
+        "command": ["phase", "rmes"],
+
+        // 'gen' specifies which generation 'command' should work on.  This takes 'last' or 'every'
+        "gen": "last"
+
+        // delete intermediate files generated during the post processing
+        "clean": true,
+
+        // sample size
+        "sample size": 70,
+
+        // number of sample sets taken from each geneations.
+        "reps": 10
     }
 
 }
