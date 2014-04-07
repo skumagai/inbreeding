@@ -117,27 +117,35 @@ def simulate(args):
         exec_infinite_alleles(config)
 
 def post_process(args):
-    pass
+    config = Config(json.load(args.CONFIG), args.STR)
+    import partial_selfing.post_process as pp
+    pp.run(config)
+
 
 if __name__ == '__main__':
+
+    cp = argparse.ArgumentParser(add_help=False)
+    cp.add_argument("CONFIG",
+                    type=argparse.FileType('r'),
+                    help='configuration of simulation')
+    cp.add_argument('STR',
+                    type=str,
+                    nargs='*',
+                    help='string substituted in output file name')
 
     parser = argparse.ArgumentParser()
 
     subparsers = parser.add_subparsers()
     s = subparsers.add_parser('simulate',
-                              help='run simulations')
+                              help='run simulations',
+                              parents=[cp])
     s.set_defaults(func=simulate)
-    s.add_argument("CONFIG",
-                   type=argparse.FileType('r'),
-                   help='configuration of simulation')
-    s.add_argument('STR',
-                   type=str,
-                   nargs='*',
-                   help='string substituted in output file name')
-    pp = subparsers.add_parser('post-process',
-                               help='post process simulation data')
-    # pp.set_defaults(func=post_process)
 
+    pp = subparsers.add_parser('post-process',
+                               help='post process simulated data',
+                               parents=[cp])
+
+    pp.set_defaults(func=post_process)
 
     args = parser.parse_args()
     args.func(args)
