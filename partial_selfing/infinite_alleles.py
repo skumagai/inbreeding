@@ -36,12 +36,6 @@ def get_init_genotype_by_prop(prop):
     s = sum(prop)
     return (len(prop), simu.InitGenotype(prop=[p / s for p in prop]))
 
-def get_init_genotype_by_count(n):
-    """
-    Set genotype of inital population.
-    """
-    return (n, simu.InitGenotype(prop=[1.0 / n for dummy in range(n)]))
-
 
 def get_mutation_operator(m_rate, loci, nrep, burnin, new_idx=0):
     class MyMutator(simu.PyOperator):

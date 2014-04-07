@@ -63,8 +63,14 @@ class Config(object):
             Nf = N - Nh
             sg = m['tau'] * Nh * m['a']
             sg = sg / (sg + Nh * (1 - m['a']) + Nf * m['sigma'])
-            h = Nh * (1 - m['a']) / (Nh * (1 - m['a']) + Nf * m['sigma'])
+            h = Nh * (1 - m['a'])
+            h = h / (h + Nf * m['sigma'])
             self.s = (sg, h)
+
+        try:
+            self.allele_length = self._p['allele_length']
+        except:
+            self.allele_length = 1
 
 
     def __getattr__(self, name):

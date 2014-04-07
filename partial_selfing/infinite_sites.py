@@ -25,11 +25,12 @@
 # DEALINGS IN THE SOFTWARE.
 
 import csv, sys
+
 import simuOpt
 simuOpt.setOptions(alleleType='binary')
 import simuPOP as simu
-
 import partial_selfing.common as cf
+
 
 def get_pure_hermaphrodite_mating(r_rate, weight, size, loci, allele_length, field='self_gen'):
     """
@@ -182,22 +183,23 @@ def get_mutation_operator(m_rate, loci, allele_length, nrep, burnin):
     return MyMutator()
 
 
-def get_output_operator(args, field = 'self_gen'):
-    output = args.OUTFILE
-    output_per = args.output_per
-    burnin = args.burnin
-    ngen = args.NUM_GEN
-    loci = args.NUM_LOCI
-    allele_length = args.allele_length
+def get_output_operator(config, field = 'self_gen'):
+    output = config.outfile
+    output_per = config.output_per
+    N = config.N
+    burnin = config.burnin
+    ngen = config.gens
+    loci = config.loci
+    allele_length = config.allele_length
 
     data = ['infinite sites',
-            args.NUM_IND,
-            args.NUM_GEN,
-            args.NUM_REP,
+            N,
+            ngen,
+            config.reps,
             loci,
-            args.M_RATE,
-            args.S_RATE,
-            args.R_RATE,
+            config.m,
+            config.s,
+            config.r,
             burnin]
 
     header = ['mutation model',
@@ -210,8 +212,8 @@ def get_output_operator(args, field = 'self_gen'):
               'recombination rate',
               'number of burnin generations']
 
-    if args.model != 'pure-hermaphrodite':
-        data.append(args.sex_ratio)
+    if config.model != 'pure hermaphrodite':
+        data.append(config.sex_ratio)
         header.append('sex ratio')
 
     header.extend(['replicate',
@@ -273,6 +275,7 @@ def get_output_operator(args, field = 'self_gen'):
                               for j in range(loci)]
 
                 for idx, ind in enumerate(pop.individuals()):
+                    selfing = ind.info(field)
                     for ploidy in range(2):
                         geno = ind.genotype(ploidy = ploidy)
                         geno = [''.join(str(site) for site in locus)
@@ -280,37 +283,36 @@ def get_output_operator(args, field = 'self_gen'):
 
                         writer.writerow({key: value for key, value in
                                          zip(header,
-                                             data + [rep, gen, idx, ploidy] + geno)})
+                                             data + [rep, gen, idx, selfing, ploidy] + geno)})
 
             return True
 
     return MyWriter()
 
 
-def execute(args, pop, mating_op):
+def execute(config, pop, mating_op):
     """Configure and run simulations."""
 
+    next_idx, init_genotype_op = cf.get_init_genotype_by_count(1)
+    init_info_op = cf.get_init_info(simu)
 
-    init_genotype_op = cf.get_init_genotype()
-    init_info_op = cf.get_init_info()
+    mutation_op = get_mutation_operator(m_rate = config.m,
+                                        loci = config.loci,
+                                        allele_length = config.allele_length,
+                                        nrep = config.reps,
+                                        burnin = config.burnin)
 
-    mutation_op = get_mutation_operator(m_rate = args.M_RATE,
-                                        loci = args.NUM_LOCI,
-                                        allele_length = args.allele_length,
-                                        nrep = args.NUM_REP,
-                                        burnin = args.burnin)
+    output_op = get_output_operator(config)
 
-    output_op = get_output_operator(args)
+    simulator = simu.Simulator(pops = pop, rep = config.reps)
 
-    simulator = simu.Simulator(pops = pop, rep = args.NUM_REP)
-
-    if args.debug > 0:
-        post_op = [simu.Stat(alleleFreq=simu.ALL_AVAIL, step=args.debug),
-                   simu.PyEval(r"'%s\n' % alleleFreq", step=args.debug)]
+    if config.debug > 0:
+        post_op = [simu.Stat(alleleFreq=simu.ALL_AVAIL, step=config.debug),
+                   simu.PyEval(r"'%s\n' % alleleFreq", step=config.debug)]
     else:
         post_op = []
 
-    if args.output_per > 0:
+    if config.output_per > 0:
         post_op.append(output_op)
 
     simulator.evolve(
@@ -319,61 +321,13 @@ def execute(args, pop, mating_op):
         matingScheme = mating_op,
         postOps = post_op,
         finalOps = output_op,
-        gen = args.NUM_GEN + args.burnin)
+        gen = config.gens + config.burnin)
 
 
-def pure_hermaphrodite(args):
-    pop = cf.get_population(size = args.NUM_IND,
-                            loci = args.NUM_LOCI * args.allele_length)
-
-    mating_op = get_pure_hermaphrodite_mating(r_rate = args.R_RATE,
-                                              loci = args.NUM_LOCI,
-                                              allele_length = args.allele_length,
-                                              weight = args.S_RATE,
-                                              size = args.NUM_IND)
-
-    execute(args, pop, mating_op)
-
-
-def androdioecy(args):
-    pop = cf.get_population(size = args.NUM_IND,
-                            loci = args.NUM_LOCI * args.allele_length)
-
-    simu.initSex(pop, maleFreq = args.sex_ratio)
-    pop.setVirtualSplitter(simu.SexSplitter())
-
-    mating_op = get_androdioecious_mating(r_rate = args.R_RATE,
-                                          loci = args.NUM_LOCI,
-                                          allele_length = args.allele_length,
-                                          weight = args.S_RATE,
-                                          size = args.NUM_IND,
-                                          sex_ratio = args.sex_ratio)
-
-    execute(args, pop, mating_op)
-
-
-def gynodioecy(args):
-    pop = cf.get_population(size = args.NUM_IND,
-                            loci = args.NUM_LOCI * args.allele_length)
-
-    simu.initSex(pop, maleFreq = args.sex_ratio)
-    pop.setVirtualSplitter(simu.SexSplitter())
-
-    mating_op = get_gynodioecious_mating(r_rate = args.R_RATE,
-                                         loci = args.NUM_LOCI,
-                                         allele_length = args.allele_length,
-                                         weight = args.S_RATE,
-                                         size = args.NUM_IND,
-                                         sex_ratio = args.sex_ratio)
-
-    execute(args, pop, mating_op)
-
-
-
-def run(args):
-    if args.model == 'androdioecy':
-        androdioecy(args)
-    elif args.model == 'gynodioecy':
-        gynodioecy(args)
+def run(config):
+    if config.model == 'androdioecy':
+        androdioecy(simu, execute, config)
+    elif config.model == 'gynodioecy':
+        gynodioecy(simu, execute, config)
     else:
-        pure_hermaphrodite(args)
+        pure_hermaphrodite(simu, execute, config)
