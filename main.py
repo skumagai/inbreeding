@@ -46,8 +46,9 @@ class Config(object):
         except:
             pass
 
-        self.gens = self._g['N'] * self._g['gens']
-        self.burnin = self._g['N'] * self._g['burnin']
+        self.gens = self._p['N'] * self._g['gens']
+        self.burnin = self._p['N'] * self._g['burnin']
+        self.output_per = self._p['N'] * self._g['output per']
 
         self.mode = self._p['mutation']['model']
         self.model = self._p['mating']['model']
