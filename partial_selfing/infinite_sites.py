@@ -273,14 +273,13 @@ def get_output_operator(config, field = 'self_gen'):
                 poly_sites = [[i for i in poly_sites
                                if j * allele_length <= i < (j + 1) * allele_length]
                               for j in range(loci)]
-
                 for idx, ind in enumerate(pop.individuals()):
                     selfing = ind.info(field)
                     for ploidy in range(2):
                         geno = ind.genotype(ploidy = ploidy)
-                        geno = [''.join(str(site) for site in locus)
+                        geno = [''.join(str(geno[site]) for site in locus)
                                 for locus in poly_sites]
-
+                        geno = [hex(int(i, 2)) for i in geno if len(i) > 0]
                         writer.writerow({key: value for key, value in
                                          zip(header,
                                              data + [rep, gen, idx, selfing, ploidy] + geno)})
@@ -293,7 +292,7 @@ def get_output_operator(config, field = 'self_gen'):
 def execute(config, pop, mating_op):
     """Configure and run simulations."""
 
-    next_idx, init_genotype_op = cf.get_init_genotype_by_count(1)
+    next_idx, init_genotype_op = cf.get_init_genotype_by_count(simu, 1)
     init_info_op = cf.get_init_info(simu)
 
     mutation_op = get_mutation_operator(m_rate = config.m,
@@ -326,8 +325,8 @@ def execute(config, pop, mating_op):
 
 def run(config):
     if config.model == 'androdioecy':
-        androdioecy(simu, execute, config)
+        cf.androdioecy(simu, execute, config)
     elif config.model == 'gynodioecy':
-        gynodioecy(simu, execute, config)
+        cf.gynodioecy(simu, execute, config)
     else:
-        pure_hermaphrodite(simu, execute, config)
+        cf.pure_hermaphrodite(simu, execute, config)

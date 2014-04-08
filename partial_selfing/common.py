@@ -37,7 +37,7 @@ def get_init_info(simu, field='self_gen'):
     return simu.InitInfo(0, infoFields=field)
 
 
-def get_init_genotype_by_count(n):
+def get_init_genotype_by_count(simu, n):
     """
     Set genotype of inital population.
     """
@@ -190,7 +190,7 @@ def pure_hermaphrodite(simu, execute_func, config):
                          loci = config.loci * config.allele_length)
 
     # Index of sites, after which recombinations happen.
-    rec_loci = [allele_length * i - 1 for i in range(1, loci + 1)]
+    rec_loci = [config.allele_length * i - 1 for i in range(1, config.loci)]
 
     mating_op = get_pure_hermaphrodite_mating(simu,
                                               r_rate = config.r,

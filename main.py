@@ -36,7 +36,7 @@ class Config(object):
         self._p = cobj['population']
         self.outfile = self._g['outfile'].format(*subst)
         self.m = [
-            float(t['value']) / N
+            float(t['value']) / (4 * N)
             for t in self._p['mutation']['theta']
             for rep in range(t['times'])
             ]

@@ -61,9 +61,9 @@ def get_mutation_operator(m_rate, loci, nrep, burnin, new_idx=0):
             for i, ind in enumerate(pop.individuals()):
                 for locus in range(loci):
                     for ploidy in range(2):
-                        if rng.randUniform() < m_rate[locus]:
-                            self.idx[rep][locus] += 1
+                        if  rng.randUniform() < m_rate[locus]:
                             ind.setAllele(self.idx[rep][locus], locus, ploidy = ploidy)
+                            self.idx[rep][locus] += 1
             return True
 
     return MyMutator()
@@ -162,13 +162,13 @@ def execute(config, pop, mating_op):
     init = config.init['model']
 
     if init == 'monomorphic':
-        next_idx, init_genotype_op = get_init_genotype_by_count(1)
+        next_idx, init_genotype_op = cf.get_init_genotype_by_count(simu, 1)
     elif init == 'unique':
-        next_idx, init_genotype_op = get_init_genotype_by_count(2 * config.N)
+        next_idx, init_genotype_op = cf.get_init_genotype_by_count(simu, 2 * config.N)
     else:
         try:
             c = config.init['count']
-            next_idx, init_genotype_op = get_init_genotype_by_count(c)
+            next_idx, init_genotype_op = cf.get_init_genotype_by_count(simu, c)
         except:
             next_idx, init_genotype_op = get_init_genotype_by_prop(config.init['freq'])
 
