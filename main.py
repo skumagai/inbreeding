@@ -51,22 +51,14 @@ class Config(object):
         self.output_per = self._p['N'] * self._g['output per']
 
         self.mode = self._p['mutation']['model']
-        self.model = self._p['mating']['model']
-
-        m = self._p['mating']
-        if self.model == 'pure hermaphrodite':
-            self.s = m['a'] * m['tau']
-            self.s = self.s / (self.s + 1 - m['a'])
-        elif self.model == 'androdioecy':
-            self.s = self.s / (self.s + (1 - m['a']) * m['sigma'])
-        else:
-            Nh = N * self._p['sex ratio']
-            Nf = N - Nh
-            sg = m['tau'] * Nh * m['a']
-            sg = sg / (sg + Nh * (1 - m['a']) + Nf * m['sigma'])
-            h = Nh * (1 - m['a'])
-            h = h / (h + Nf * m['sigma'])
-            self.s = (sg, h)
+        mating = self._p['mating']
+        self.model = mating['model']
+        try:
+            self.a = float(mating['a'])
+            self.tau = float(mating['tau'])
+            self.sigma = float(mating['sigma'])
+        except:
+            pass
 
         try:
             self.allele_length = self._p['allele_length']
