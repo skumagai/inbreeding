@@ -54,13 +54,13 @@ def pick_pure_hermaphrodite_parents(simu, a, tau):
         while True:
             if runif() < a:         # uniparental
                 if runif() < tau:   # zygote survived
-                    print(1)
+                    # print(1)
                     yield pop.individual(rint(N))
             else:                   # biparental
                 pair = [rint(N), rint(N)]
                 while pair[0] == pair[1]:
                     pair[1] = rint(N)
-                print(2)
+                # print(2)
                 yield [pop.individual(p) for p in pair]
     return generator
 
@@ -72,12 +72,12 @@ def pick_androdioecious_parents(simu, a, tau, sigma):
         while True:
             if runif() < a:         # uniparental
                 if runif() < tau:   # zygote survives
-                    print(1)
+                    # print(1)
                     p = sampling.drawRandomSample(pop, sizes = 1, subPops = [(0, 1)])
                     yield p.individual(0)
             else:                   # biparental
                 if runif() < sigma: # successful fertilization
-                    print(2)
+                    # print(2)
                     p1 = sampling.drawRandomSample(pop, sizes = 1, subPops = [(0, 0)])
                     p2 = sampling.drawRandomSample(pop, sizes = 1, subPops = [(0, 1)])
                     yield [p1.individual(0), p2.individual(0)]
@@ -94,18 +94,18 @@ def pick_gynodioecious_parents(simu, a, tau, sigma):
             if runif() < Nh / (Nh + Nf * sigma): # the seed is from hermaphrodite
                 if runif() < a:                  # uniparental
                     if runif() < tau:            # zygote survived
-                        print(1)
+                        # print(1)
                         p = sampling.drawRandomSample(pop, sizes = 1, subPops = [(0, 0)])
                         yield p.individual(0)
                 else:           # biparental
                     # drawRandomSample internally uses random.shuffle from
                     # the standard library.  This means no individual can
                     # be picked twice.
-                    print(3)
+                    # print(3)
                     ps = sampling.drawRandomSample(pop, sizes = 2, subPops = [(0, 0)])
                     yield [pop.individual(i) for i in range(2)]
             else:               # the seed is from female.
-                print(2)
+                # print(2)
                 p1 = sampling.drawRandomSample(pop, sizes = 1, subPops = [(0, 0)])
                 p2 = sampling.drawRandomSample(pop, sizes = 1, subPops = [(0, 1)])
                 yield [p1.individual(0), p2.individual(0)]
