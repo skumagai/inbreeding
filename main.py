@@ -31,7 +31,7 @@ import argparse, json, sys
 class Config(object):
 
     def __init__(self, cobj, subst):
-        N = cobj['population']['N']
+        N = int(cobj['population']['N'])
         self._g = cobj['general']
         self._p = cobj['population']
         self.outfile = self._g['outfile'].format(*subst)
@@ -53,12 +53,24 @@ class Config(object):
         self.mode = self._p['mutation']['model']
         mating = self._p['mating']
         self.model = mating['model']
+
         try:
             self.a = float(mating['a'])
             self.tau = float(mating['tau'])
             self.sigma = float(mating['sigma'])
         except:
             pass
+
+        at = self.a * self.tau
+        if self.model == 'pure hermaphrodite':
+            self.s = at / (at + 1 - self.a)
+        elif self.model == 'androdioecy':
+            self.s = at / (at + (1 - self.a) * self.sigma)
+        else:
+            Nh = N * float(self._p['sex ratio'])
+            Nf = N - Nh
+            self.s = at * Nh / (at * Nh + Nh * (1 - self.a) + Nf * self.sigma)
+            self.h = Nh * (1 - self.a) / (Nh * (1 - self.a) + Nf * self.sigma)
 
         try:
             self.allele_length = self._p['allele_length']

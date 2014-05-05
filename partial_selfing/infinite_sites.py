@@ -200,7 +200,9 @@ def get_output_operator(config, field = 'self_gen'):
             config.m,
             config.s,
             config.r,
-            burnin]
+            burnin,
+            config.a,
+            config.tau]
 
     header = ['mutation model',
               'number of individuals',
@@ -210,11 +212,23 @@ def get_output_operator(config, field = 'self_gen'):
               'mutation rate',
               'selfing rate',
               'recombination rate',
-              'number of burnin generations']
+              'number of burnin generations',
+              'a',
+              'tau']
+
+    try:
+        data.append(config.sigma)
+        header.append('sigma')
+    except:
+        pass
 
     if config.model != 'pure hermaphrodite':
         data.append(config.sex_ratio)
         header.append('sex ratio')
+
+    if config.model == 'gynodioecy':
+        data.append(config.h)
+        header.append('H')
 
     header.extend(['replicate',
                    'generation',
