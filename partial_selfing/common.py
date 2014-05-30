@@ -68,47 +68,66 @@ def pick_pure_hermaphrodite_parents(simu, a, tau):
 def pick_androdioecious_parents(simu, a, tau, sigma):
     rng = simu.getRNG()
     runif = rng.randUniform
+    rint = rng.randInt
     def generator(pop):
+        gen = -1
         while True:
+            ngen = pop.dvars().gen
+            if gen != ngen:
+                # At the beginning of a generation, extract the
+                # sex-specific subpopulations from a parental
+                # population. The sex-specific subpopulations are used
+                # throughout mating events in one generation.
+                gen = ngen
+                m = pop.extractSubPops(subPops = [(0, 0)])
+                h = pop.extractSubPops(subPops = [(0, 1)])
+                Nm = m.popSize()
+                Nh = h.popSize()
+
             if runif() < a:         # uniparental
                 if runif() < tau:   # zygote survives
                     # print(1)
-                    p = sampling.drawRandomSample(pop, sizes = 1, subPops = [(0, 1)])
-                    yield p.individual(0)
+                    yield h.individual(rint(Nh))
             else:                   # biparental
                 if runif() < sigma: # successful fertilization
                     # print(2)
-                    p1 = sampling.drawRandomSample(pop, sizes = 1, subPops = [(0, 0)])
-                    p2 = sampling.drawRandomSample(pop, sizes = 1, subPops = [(0, 1)])
-                    yield [p1.individual(0), p2.individual(0)]
+                    yield [m.individual(rint(Nm)), h.individual(rint(Nh))]
     return generator
 
 
 def pick_gynodioecious_parents(simu, a, tau, sigma):
     rng = simu.getRNG()
     runif = rng.randUniform
+    rint = rng.randInt
     def generator(pop):
+        gen = -1
         while True:
-            Nh = pop.subPopSize([0, 0])
-            Nf = pop.subPopSize([0, 1])
+            ngen = pop.dvars().gen
+            if gen != ngen:
+                # At the beginning of a generation, extract the
+                # sex-specific subpopulations from a parental
+                # population. The sex-specific subpopulations are used
+                # throughout mating events in one generation.
+                gen = ngen
+                h = pop.extractSubPops(subPops = [(0, 0)])
+                f = pop.extractSubPops(subPops = [(0, 1)])
+                Nh = h.popSize()
+                Nf = f.popSize()
+
             if runif() < Nh / (Nh + Nf * sigma): # the seed is from hermaphrodite
                 if runif() < a:                  # uniparental
                     if runif() < tau:            # zygote survived
                         # print(1)
-                        p = sampling.drawRandomSample(pop, sizes = 1, subPops = [(0, 0)])
-                        yield p.individual(0)
+                        yield h.individual(rint(Nh))
                 else:           # biparental
-                    # drawRandomSample internally uses random.shuffle from
-                    # the standard library.  This means no individual can
-                    # be picked twice.
+                    first, second = rint(Nh), rint(Nh)
+                    while first == second:
+                        second = rint(Nh)
                     # print(3)
-                    ps = sampling.drawRandomSample(pop, sizes = 2, subPops = [(0, 0)])
-                    yield [pop.individual(i) for i in range(2)]
+                    yield [h.individual(first), h.individual(second)]
             else:               # the seed is from female.
                 # print(2)
-                p1 = sampling.drawRandomSample(pop, sizes = 1, subPops = [(0, 0)])
-                p2 = sampling.drawRandomSample(pop, sizes = 1, subPops = [(0, 1)])
-                yield [p1.individual(0), p2.individual(0)]
+                yield [h.individual(rint(Nh)), f.individual(rint(Nf))]
     return generator
 
 
