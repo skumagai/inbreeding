@@ -33,29 +33,27 @@ def genotype(l):
     return ' '.join(str(int(g[i] != g[i+1])) for i in range(0, len(g), 2))
 
 
-def write(a):
-    fhs = a.INFILE
-    # force Windows newline '\r\n' instead of Unix' '\n'
-    print(len(fhs), end='\r\n')
+def write(ifname, ofname):
+    with open(ifname, 'r') as ifh, open(ofname, 'w') as ofh:
+        # force Windows newline '\r\n' instead of Unix' '\n'
+        ofh.write("1\r\n")
 
-    # put population headers first
-    for fh in fhs:
-        n = split(fh.name)[1]
-        s, l = [s.strip() for s in [next(fh), next(fh)]]
-        next(fh)
+        # put population headers first
+        n = split(ifh.name)[1]
+        s, l = [s.strip() for s in [next(ifh), next(ifh)]]
+        next(ifh)
 
-        print('{}\r\n{}\r\n{}\r\n'.format(n, s, l), end='')
+        ofh.write('{}\r\n{}\r\n{}\r\n'.format(n, s, l))
 
-    for fh in fhs:
-        for l in fh:
-            print(genotype(l.strip()), end='\r\n')
+        for l in ifh:
+            ofh.write(genotype(l.strip()) + '\r\n')
 
 
 if __name__ == '__main__':
 
     p = ap.ArgumentParser(description='convert phase-format genotype data to RMES input format')
     p.add_argument('INFILE',
-                   nargs='*',
-                   default=[sys.stdin],
-                   type=ap.FileType('r'))
-    write(p.parse_args())
+                   type=str)
+    args = p.parse_args()
+    ofname = split(args.INFILE)[1][:-3] + 'rmes.txt'
+    write(args.INFILE, ofname)
