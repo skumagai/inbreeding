@@ -59,12 +59,10 @@ class Config(object):
             self.tau = float(mating['tau'])
             self.sigma = float(mating['sigma'])
         except:
-            pass
+            self.s = float(mating['s'])
 
         at = self.a * self.tau
-        if self.model == 'pure hermaphrodite':
-            self.s = at / (at + 1 - self.a)
-        elif self.model == 'androdioecy':
+        if self.model == 'androdioecy':
             self.s = at / (at + (1 - self.a) * self.sigma)
         else:
             Nh = N * float(self._p['sex ratio'])

@@ -45,17 +45,16 @@ def get_init_genotype_by_count(simu, n):
     return (n, simu.InitGenotype(prop=[1.0 / n for dummy in range(n)]))
 
 
-def pick_pure_hermaphrodite_parents(simu, a, tau):
+def pick_pure_hermaphrodite_parents(simu, s):
     rng = simu.getRNG()
     runif = rng.randUniform
     rint = rng.randInt
     def generator(pop):
         N = pop.popSize()
         while True:
-            if runif() < a:         # uniparental
-                if runif() < tau:   # zygote survived
-                    # print(1)
-                    yield pop.individual(rint(N))
+            if runif() < s:         # uniparental
+                # print(1)
+                yield pop.individual(rint(N))
             else:                   # biparental
                 pair = [rint(N), rint(N)]
                 while pair[0] == pair[1]:
@@ -226,8 +225,7 @@ def pure_hermaphrodite(simu, execute_func, config):
 
     mating_op = get_pure_hermaphrodite_mating(simu,
                                               r_rate = config.r,
-                                              a = config.a,
-                                              tau = config.tau,
+                                              s = config.s,
                                               size = config.N,
                                               rec_sites = rec_loci)
 
