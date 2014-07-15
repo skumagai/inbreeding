@@ -58,10 +58,10 @@ class Config(object):
             self.a = float(mating['a'])
             self.tau = float(mating['tau'])
             self.sigma = float(mating['sigma'])
+            at = self.a * self.tau
         except:
             self.s = float(mating['s'])
 
-        at = self.a * self.tau
         if self.model == 'androdioecy':
             self.s = at / (at + (1 - self.a) * self.sigma)
         else:
