@@ -48,27 +48,27 @@ class Config(object):
 
         self.gens = self._p['N'] * self._g['gens']
         self.burnin = self._p['N'] * self._g['burnin']
-        self.output_per = self._p['N'] * self._g['output per']
+        self.output_per = int(self._p['N'] * self._g['output per'])
 
         self.mode = self._p['mutation']['model']
         mating = self._p['mating']
         self.model = mating['model']
 
         try:
+            self.s = float(mating['s'])
+        except NameError:
             self.a = float(mating['a'])
             self.tau = float(mating['tau'])
             self.sigma = float(mating['sigma'])
             at = self.a * self.tau
-        except:
-            self.s = float(mating['s'])
 
-        if self.model == 'androdioecy':
-            self.s = at / (at + (1 - self.a) * self.sigma)
-        else:
-            Nh = N * float(self._p['sex ratio'])
-            Nf = N - Nh
-            self.s = at * Nh / (at * Nh + Nh * (1 - self.a) + Nf * self.sigma)
-            self.h = Nh * (1 - self.a) / (Nh * (1 - self.a) + Nf * self.sigma)
+            if self.model == 'androdioecy':
+                self.s = at / (at + (1 - self.a) * self.sigma)
+            else:
+                Nh = N * float(self._p['sex ratio'])
+                Nf = N - Nh
+                self.s = at * Nh / (at * Nh + Nh * (1 - self.a) + Nf * self.sigma)
+                self.h = Nh * (1 - self.a) / (Nh * (1 - self.a) + Nf * self.sigma)
 
         try:
             self.allele_length = self._p['allele_length']
