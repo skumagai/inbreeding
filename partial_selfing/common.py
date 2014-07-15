@@ -54,13 +54,13 @@ def pick_pure_hermaphrodite_parents(simu, s):
         while True:
             if runif() < s:         # uniparental
                 # print(1)
-                yield pop.individual(rint(N))
+                yield rint(N)
             else:                   # biparental
                 pair = [rint(N), rint(N)]
                 while pair[0] == pair[1]:
                     pair[1] = rint(N)
                 # print(2)
-                yield [pop.individual(p) for p in pair]
+                yield pair
     return generator
 
 
@@ -155,7 +155,7 @@ def get_selfing_tagger(simu, field):
             return True
     return MySelfingTagger(field)
 
-def get_pure_hermaphrodite_mating(simu, r_rate, a, tau, size, rec_sites, field='self_gen'):
+def get_pure_hermaphrodite_mating(simu, r_rate, s, size, rec_sites, field='self_gen'):
     """
     Construct mating scheme for pure hermaphrodite with partial selfing under
     the infinite alleles model.
@@ -167,7 +167,7 @@ def get_pure_hermaphrodite_mating(simu, r_rate, a, tau, size, rec_sites, field='
     """
 
     parents_chooser = simu.PyParentsChooser(
-        pick_pure_hermaphrodite_parents(simu = simu, a = a, tau = tau)
+        pick_pure_hermaphrodite_parents(simu = simu, s = s)
     )
 
     selfing_tagger = get_selfing_tagger(simu, field)
