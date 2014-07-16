@@ -82,7 +82,7 @@ def get_output_operator(config, field = 'self_gen'):
         'individual',
         'number of selfing',
         'chromosome'
-    ] + ['locus {}'.format(i) for i in range(config.loci)])
+    ] + ['locus {}'.format(i) for i in range(config.loci)]
 
 
     """Output genetic information of a population."""
