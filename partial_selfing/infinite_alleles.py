@@ -114,7 +114,7 @@ def get_output_operator(config, field = 'self_gen'):
             with open(output, 'a') as f:
                 dvars = pop.dvars()
                 rep = dvars.rep
-                gen = dvars.gen - burnin
+                gen = dvars.gen
 
                 writer = csv.DictWriter(f, header, delimiter = "\t")
 
