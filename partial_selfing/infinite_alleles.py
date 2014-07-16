@@ -76,45 +76,13 @@ def get_output_operator(config, field = 'self_gen'):
     burnin = config.burnin
     ngen = config.gens
 
-    data = ['infinite alleles',
-            N,
-            ngen,
-            config.reps,
-            config.loci,
-            config.m,
-            config.s,
-            config.r,
-            burnin]
-
-    header = ['mutation model',
-              'number of individuals',
-              'number of generations',
-              'number of replicates',
-              'number of loci',
-              'mutation rate',
-              'selfing rate',
-              'recombination rate',
-              'number of burnin generation']
-
-    try:
-        data.append(config.sigma)
-        header.append('sigma')
-    except:
-        pass
-
-    if config.model != 'pure hermaphrodite':
-        data.append(config.sex_ratio)
-        header.append('sex ratio')
-
-    if config.model == 'gynodioecy':
-        data.append(config.h)
-        header.append('H')
-
-    header.extend(['replicate',
-                   'generation',
-                   'individual',
-                   'number of selfing',
-                   'chromosome'] + ['locus {}'.format(i) for i in range(config.loci)])
+    header = [
+        'replicate',
+        'generation',
+        'individual',
+        'number of selfing',
+        'chromosome'
+    ] + ['locus {}'.format(i) for i in range(config.loci)])
 
 
     """Output genetic information of a population."""
@@ -124,7 +92,7 @@ def get_output_operator(config, field = 'self_gen'):
 
         def __init__(self):
             with open(output, 'w') as f:
-                writer = csv.DictWriter(f, header)
+                writer = csv.DictWriter(f, header, delimiter = "\t")
                 writer.writeheader()
 
             if output_per > 0:
@@ -148,7 +116,7 @@ def get_output_operator(config, field = 'self_gen'):
                 rep = dvars.rep
                 gen = dvars.gen - burnin
 
-                writer = csv.DictWriter(f, header)
+                writer = csv.DictWriter(f, header, delimiter = "\t")
 
                 # write genotype row by row.  Each row contains a list
                 # of genes on a single chromosome.  Because simulated
@@ -160,7 +128,7 @@ def get_output_operator(config, field = 'self_gen'):
                         geno = list(ind.genotype(ploidy = ploidy))
                         writer.writerow({key: value for key, value in
                                          zip(header,
-                                             data + [rep, gen, idx, selfing, ploidy] + geno)})
+                                             [rep, gen, idx, selfing, ploidy] + geno)})
 
             return True
 
