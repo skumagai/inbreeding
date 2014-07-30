@@ -39,7 +39,7 @@ def sample(a):
 
     for i in xrange(a.REP):
         s = getsample(data, a.SAMPLE)
-        with open(".".join(fbase + ["{:03}".format(i), "json"]), "w") as wf:
+        with open(".".join(fbase + ["{:03}".format(i + 1), "json"]), "w") as wf:
             json.dump(s, wf)
 
 
