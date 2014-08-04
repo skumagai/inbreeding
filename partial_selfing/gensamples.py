@@ -1,3 +1,4 @@
+from __future__ import print_function
 import argparse, random, pickle, operator, json
 
 def main():
@@ -5,6 +6,7 @@ def main():
     sp = p.add_subparsers()
     ssp = sp.add_parser("sample")
     psp = sp.add_parser("phase")
+    nsp = sp.add_parser("nexus")
 
     ssp.add_argument(
         "FILE",
@@ -26,9 +28,19 @@ def main():
         "FILE",
         type = str
     )
+    nsp.add_argument(
+        "FILE",
+        type = str
+    )
+    nsp.add_argument(
+        "-w",
+        action = "store_true",
+        default = False
+    )
 
     ssp.set_defaults(func = sample)
     psp.set_defaults(func = phase)
+    nsp.set_defaults(func = nexus)
 
     a = p.parse_args()
     a.func(a)
@@ -96,17 +108,51 @@ def phase(a):
         data = json.load(rf)
         size = len(data)
         loc = len(data[0][2])
-        wf.write(
-            "{}\n{}\n{}\n".format(
-            size,
-            loc,
-            "M" * loc
-        ))
+        print(
+            "{}\n{}\n{}".format(
+                size,
+                loc,
+                "M" * loc
+            ),
+            file = wf
+        )
         for d in data:
-            wf.write("sample.{}\t{}\n".format(
-                d[0],
-                "\t".join([str(j) for i in d[2] for j in i])
-            ))
+            print(
+                "sample.{}\t{}".format(
+                    d[0],
+                    "\t".join([str(j) for i in d[2] for j in i])
+                ),
+                file = wf
+            )
+
+def nexus(a):
+    if a.w:
+        nl = "\r\n"
+    else:
+        nl = "\n"
+
+    ofname = ".".join(a.FILE.split(".")[:-1] + ["nex"])
+    with open(a.FILE, "r") as rf, open(ofname, "w") as wf:
+        data = json.load(rf)
+        size = len(data)
+        loc = len(data[0][2])
+        print("#NEXUS", file = wf, end=nl)
+        print("begin gdadata;", file = wf, end=nl)
+        print("dimensions npops={} nloci={};".format(1, loc), file = wf, end=nl)
+        print("format missing=? separator=/;", file = wf, end=nl)
+        print("matrix", file = wf, end=nl)
+        print("pop1:", file = wf, end=nl)
+        for d in data:
+            print(
+                " ".join(
+                    ["sample.{}".format(d[0])] +
+                    ["{}/{}".format(*i) for i in d[2]]
+                ),
+                file = wf,
+                end=nl
+            )
+        print(";", file = wf, end=nl)
+        print("end;", file = wf, end=nl)
 
 
 if __name__ == "__main__":
