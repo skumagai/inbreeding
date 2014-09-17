@@ -225,6 +225,7 @@ def rmes(a):
         data = json.load(rf)
         size = getn(data)
         loc = getnloc(data)
+        print(1, file = wf, end = nl)
         print(a.FILE, file = wf, end = nl)
         print(size, file = wf, end = nl)
         print(loc, file = wf, end = nl)
@@ -373,14 +374,19 @@ def rmescombine(a):
 
     hds, bds = [], []
 
+    npop = 0
+
     for f in a.FILES:
         with open(f, "r") as rf:
+            next(rf)
+            npop += 1
             for dummy in range(3):
                 hds.append(next(rf).rstrip())
             for l in rf:
                 bds.append(l.rstrip())
 
     with open(a.OUT, "w") as wf:
+        print(npop, file = wf, end = nl)
         for h in hds:
             print(h, file = wf, end = nl)
         for b in bds:
