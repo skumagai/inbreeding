@@ -1,5 +1,5 @@
 from __future__ import print_function
-import argparse, random, pickle, operator, json
+import argparse, random, pickle, operator, json, sys, itertools
 from collections import Counter, defaultdict
 
 def main():
@@ -38,6 +38,11 @@ def main():
         type = str
     )
     nsp.add_argument(
+        "SIZE",
+        type = int,
+        nargs = "*"
+    )
+    nsp.add_argument(
         "-w",
         action = "store_true",
         default = False
@@ -54,6 +59,11 @@ def main():
     asp.add_argument(
         "FILE",
         type = str
+    )
+    asp.add_argument(
+        "SIZE",
+        type = int,
+        nargs = "*"
     )
     asp.add_argument(
         "-n",
@@ -250,25 +260,39 @@ def getnlchar(a):
 def inbcoeff(a):
     data = getdata(a.FILE)
     n = getn(data)
+    if len(a.SIZE) > 0 and sum(a.SIZE) != n:
+        print("Sum of subsample sizes is different from total sample size.", file = sys.stderr)
+        sys.exit(1)
+    elif len(a.SIZE) == 0:
+        size = [n]
+    else:
+        size = a.SIZE
+
     nloc = getnloc(data)
-    hobs = gethobs(data, n, nloc)
-    hexp = gethexp(data, n, nloc)
-    f = getf(data, n, nloc)
-    fall = getfall(data, n, nloc)
-    printlong(not a.n, a.FILE, hobs, hexp, f, fall)
+    pdata = partitiondata(data, size)
+    hobs = gethobs(pdata, size)
+    hexp = gethexp(pdata, size)
+#    f = getf(pdata, size)
+#    fall = getfall(pdata, size)
+#    printlong(not a.n, a.FILE, hobs, hexp, f, fall)
+    printlong(not a.n, a.FILE, hobs, hexp, pdata, size)
 
 
-def printlong(hasheader, fname, hobs, hexp, f, fall):
+#def printlong(hasheader, fname, hobs, hexp, f, fall):
+def printlong(hasheader, fname, hobs, hexp, data, size):
+    fs, gs = getfg(data, size)
     if hasheader:
-        print("\t".join(["dataset", "locus", "Hobs", "Hexp", "f"]))
-
-    for i, (j, k, l) in enumerate(zip(hobs, hexp, f)):
-        print("{}\tlocus.{}\t{}\t{}".format(fname, i, j, k))
-    print("{}\toverall\t{}\t{}".format(
+        print("\t".join(["dataset", "locus", "Hobs", "Hexp", "Fis", "f", "g"]))
+    Fis = [(h - g) / (1. - g) for h, g in zip(fs, gs)]
+    for i, (j, k, F, f, g) in enumerate(zip(hobs, hexp, Fis, fs, gs)):
+        print("{}\tlocus.{}\t{}\t{}\t{}\t{}\t{}".format(fname, i, j, k, F, f, g))
+    print("{}\toverall\t{}\t{}\t{}\t{}\t{}".format(
             fname,
             sum(hobs) / len(hobs),
             sum(hexp) / len(hobs),
-            fall
+            sum(Fis) / len(Fis),
+            sum(fs) / len(fs),
+            sum(gs) / len(gs)
         )
     )
 
@@ -297,57 +321,66 @@ def getnloc(data):
     else:
         return 0
 
-def gethobs(data, n, nloc):
-    nf = 1.0 * n
-    record = [0 for dummy in range(nloc)]
-    for d in data:
-        da = d[2]
-        for i in range(nloc):
-            record[i] += 1 if da[i][0] != da[i][1] else 0
-    return [i / nf for i in record]
+def getsubboundaries(size):
+    begin = [0]
+    end = []
+    for s in size[:-1]:
+        begin.append(begin[-1] + s)
+        end.append(begin[-1])
+    end.append(sum(size))
+    return begin, end
+ 
+def transposedata(data):
+    return [list(v) for v in zip(*[ind[2] for ind in data])]
+
+def partitiondata(data, size):
+    begin, end = getsubboundaries(size)
+    nal = [float(d) for d in size]
+    # tranpose data: now row (outer-most list) corresponds to locus rather than individual
+    tdata = transposedata(data)
+    # partition data into per-subpopulation basis
+    return [[list(itertools.islice(locus, b, e)) for b, e in zip(begin, end)] for locus in tdata]
+
+def gethomofreq(data, size):
+    count = [[Counter(genot[0] for genot in deme if genot[0] == genot[1]).values() for deme in locus] for locus in data]
+    return [[[float(val) / s for val in deme] for deme, s in zip(locus, size)] for locus in count]
+
+def getallelefreq(data, size):
+    count = [[Counter(allele for genot in deme for allele in genot).values() for deme in locus] for locus in data]
+    return [[[float(val) / (2 * s) for val in deme] for deme, s in zip(locus, size)] for locus in count]
+
+def gethobs(data, size):
+    hs = gethomofreq(data, size)
+    freqs = [float(s) / sum(size) for s in size]
+    return [1.0 - sum(sum(deme) * f for deme, f in zip(locus, freqs)) for locus in hs]
 
 
-def gethexp(data, n, nloc):
-    f = 2.0 * n / (2 * n - 1)
-    ps = getp(data, n, nloc)
-    return [f * (1.0 - sum([j**2.0 for j in i.values()])) for i in ps]
+def gethexp(data, size):
+    als = getallelefreq(data, size)
+    freqs = [float(s) / sum(size) for s in size]
+    return [1.0 - sum(sum(a * a for a in deme) * f for deme, f in zip(locus, freqs)) for locus in als]
 
 
-def getf(data, n, nloc):
-    return [
-        i / j if j != 0.0 else 0.0
-        for i, j in zip(*getfnumdenom(data, n, nloc))
-    ]
+def unstructuredata(data):
+    return [list(itertools.chain(*locus)) for locus in data]
+
+def getf(data, size):
+    fs, gs = getfg(data, size)
+    return [(f - g) / (1.0 - g) for f, g in zip(fs, gs)]
 
 
-def getfall(data, n, nloc):
-    num, denom = getfnumdenom(data, n, nloc)
-    return sum(num) / sum(denom)
+def getfg(data, size):
+    nf = float(sum(size))
+    data = unstructuredata(data)
+    fs = [len(list(True for ind in locus if ind[0] == ind[1])) / nf for locus in data]
+    gdata = unstructuredata(data)
+    ng = len(gdata[1])
+    gs = [float(len(list(True for i in range(ng) for j in range(i + 1, ng) if locus[i] == locus[j]))) / (ng * (ng - 1) / 2) for locus in gdata]
+    return fs, gs
 
-
-def getfnumdenom(data, n, nloc):
-    nf2 = 2.0 * n
-    ps = getp(data, n, nloc)
-    Ps = getP(data, n, nloc)
-    dPs = [defaultdict(lambda: 0.0, i) for i in Ps]
-
-    tail = [
-        (1.0 - sum([k for j, k in i.items() if j[0] == j[1]])) / nf2
-        for i in dPs
-    ]
-
-    num = [
-        sum(j[(l, l)] - m**2.0 for l, m in i.items()) + k
-        for i, j, k in zip(ps, dPs, tail)
-    ]
-
-    denom = [
-        (1.0 - sum(k**2.0 for k in i.values())) - j
-        for i, j in zip(ps, tail)
-    ]
-
-    return num, denom
-
+def getfall(data, size):
+    f = getf(data, size)
+    return sum(f) / len(f)
 
 def getp(data, n, nloc):
     nf2 = 2 * float(n)
