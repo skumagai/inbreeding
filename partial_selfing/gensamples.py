@@ -178,30 +178,46 @@ def nexus(a):
     nl = getnlchar(a)
 
     ofname = ".".join(a.FILE.split(".")[:-1] + ["nex"])
-    with open(a.FILE, "r") as rf, open(ofname, "w") as wf:
+    with open(a.FILE, "r") as rf:
         data = json.load(rf)
-        size = getn(data)
+
+    n = getn(data)
+    if len(a.SIZE) > 0 and n != sum(a.SIZE):
+        print("Sum of subsample sizes does not match the total sample size", file = sys.stderr)
+        sys.exit(1)
+    elif len(a.SIZE) > 0:
+        size = a.SIZE
+    else:
+        size = [n]
+
+    with open(ofname, "w") as wf:
         loc = getnloc(data)
         print("#NEXUS", file = wf, end = nl)
         print("begin gdadata;", file = wf, end=nl)
-        print("dimensions npops={} nloci={};".format(1, loc), file = wf, end = nl)
+        print("dimensions npops={} nloci={};".format(len(size), loc), file = wf, end = nl)
         print("format missing=? separator=/;", file = wf, end = nl)
         print("matrix", file = wf, end = nl)
-        print("pop1:", file = wf, end = nl)
-        for d in data:
-            print(
-                " ".join(
-                    ["sample.{}".format(d[0])] +
-                    ["{}/{}".format(*i) for i in d[2]]
-                ),
-                file = wf,
-                end=nl
-            )
+        begin, end = getsubboundaries(size)
+        subs = [itertools.islice(data, b, e) for b, e in zip(begin, end)]
+        for i, sub in enumerate(subs):
+            print("subpop.{}:".format(i), file = wf, end = nl)
+            for d in sub:
+                print(
+                    " ".join(
+                        ["sample.{}".format(d[0])] +
+                        ["{}/{}".format(*j) for j in d[2]]
+                    ),
+                    file = wf,
+                    end=nl
+                )
+            if i < len(size) - 1:
+                print(",", file = wf, end = nl)
         print(";", file = wf, end = nl)
         print("end;", file = wf, end = nl)
 
 
 def rmes(a):
+    print("Processing {}...".format(a.FILE))
     nl = getnlchar(a)
 
     ofname = ".".join(a.FILE.split(".")[:-1] + ["rmes"])
