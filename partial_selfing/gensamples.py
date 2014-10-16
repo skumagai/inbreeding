@@ -6,6 +6,7 @@ def main():
     p = argparse.ArgumentParser()
     sp = p.add_subparsers()
     ssp = sp.add_parser("sample")
+    sssp = sp.add_parser("subsample")
     psp = sp.add_parser("phase")
     nsp = sp.add_parser("nexus")
     rsp = sp.add_parser("rmes")
@@ -15,19 +16,36 @@ def main():
 
     ssp.add_argument(
         "FILE",
-        type = str,
+        type = str
     )
     ssp.add_argument(
         "GEN",
-        type = int,
+        type = int
     )
     ssp.add_argument(
         "SAMPLE",
-        type = int,
+        type = int
     )
     ssp.add_argument(
         "REP",
         type = int
+    )
+    sssp.add_argument(
+        "INPUT",
+        type = str
+    )
+    sssp.add_argument(
+        "OUTPUT",
+        type = str
+    )
+    sssp.add_argument(
+        "SAMPLE",
+        type = int
+    )
+    sssp.add_argument(
+        "LOCI",
+        type = int,
+        nargs = "*"
     )
     psp.add_argument(
         "FILE",
@@ -61,11 +79,6 @@ def main():
         type = str
     )
     asp.add_argument(
-        "SIZE",
-        type = int,
-        nargs = "*"
-    )
-    asp.add_argument(
         "-n",
         action = "store_true",
         default = False
@@ -94,6 +107,7 @@ def main():
     )
 
     ssp.set_defaults(func = sample)
+    sssp.set_defaults(func = subsample)
     psp.set_defaults(func = phase)
     nsp.set_defaults(func = nexus)
     rsp.set_defaults(func = rmes)
@@ -159,6 +173,22 @@ def simplify(i, vals):
             (i, j) for i, j in zip(*vals["geno"])
         )
     ]
+
+def subsample(a):
+    with open(a.INPUT, "r") as rf:
+        data = json.load(rf)
+        size = getn(data)
+        loc = getnloc(data)
+        if size < a.SAMPLE:
+            print("SAMPLE too large", file = sys.stderr)
+            sys.exit(1)
+        if loc < len(a.LOCI):
+            print("Too many loci", file = sys.stderr)
+
+        samples = random.sample(data, a.SAMPLE)
+        d = [[s[0], s[1], list(s[2][i] for i in a.LOCI)] for s in samples]
+        with open(a.OUTPUT, "w") as wf:
+            json.dump(d, wf)
 
 
 def phase(a):
@@ -260,39 +290,25 @@ def getnlchar(a):
 def inbcoeff(a):
     data = getdata(a.FILE)
     n = getn(data)
-    if len(a.SIZE) > 0 and sum(a.SIZE) != n:
-        print("Sum of subsample sizes is different from total sample size.", file = sys.stderr)
-        sys.exit(1)
-    elif len(a.SIZE) == 0:
-        size = [n]
-    else:
-        size = a.SIZE
 
     nloc = getnloc(data)
-    pdata = partitiondata(data, size)
-    hobs = gethobs(pdata, size)
-    hexp = gethexp(pdata, size)
-#    f = getf(pdata, size)
-#    fall = getfall(pdata, size)
-#    printlong(not a.n, a.FILE, hobs, hexp, f, fall)
-    printlong(not a.n, a.FILE, hobs, hexp, pdata, size)
+    pdata = partitiondata(data, [n])
+    hobs = gethobs(pdata, [n])
+    hexp = gethexp(pdata, [n])
+    printlong(not a.n, a.FILE, hobs, hexp, pdata, [n])
 
 
-#def printlong(hasheader, fname, hobs, hexp, f, fall):
 def printlong(hasheader, fname, hobs, hexp, data, size):
-    fs, gs = getfg(data, size)
     if hasheader:
         print("\t".join(["dataset", "locus", "Hobs", "Hexp", "Fis", "f", "g"]))
-    Fis = [(h - g) / (1. - g) for h, g in zip(fs, gs)]
-    for i, (j, k, F, f, g) in enumerate(zip(hobs, hexp, Fis, fs, gs)):
-        print("{}\tlocus.{}\t{}\t{}\t{}\t{}\t{}".format(fname, i, j, k, F, f, g))
-    print("{}\toverall\t{}\t{}\t{}\t{}\t{}".format(
+    Fis = [1.0 - ho / he for ho, he in zip(hobs, hexp)]
+    for i, (j, k, F) in enumerate(zip(hobs, hexp, Fis)):
+        print("{}\tlocus.{}\t{}\t{}\t{}".format(fname, i, j, k, F))
+    print("{}\toverall\t{}\t{}\t{}".format(
             fname,
             sum(hobs) / len(hobs),
             sum(hexp) / len(hobs),
             sum(Fis) / len(Fis),
-            sum(fs) / len(fs),
-            sum(gs) / len(gs)
         )
     )
 
@@ -317,7 +333,7 @@ def getn(data):
 
 def getnloc(data):
     if len(data) > 0:
-        return len(data[1][2])
+        return len(data[0][2])
     else:
         return 0
 
@@ -329,7 +345,7 @@ def getsubboundaries(size):
         end.append(begin[-1])
     end.append(sum(size))
     return begin, end
- 
+
 def transposedata(data):
     return [list(v) for v in zip(*[ind[2] for ind in data])]
 
