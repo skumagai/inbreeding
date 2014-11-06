@@ -295,7 +295,8 @@ def inbcoeff(a):
     tdata = t(genes(data))
     hobs = gethobs(tdata)
     hexp = gethexp(tdata)
-    printlong(not a.n, a.FILE, hobs, hexp, tdata, [n])
+    nalleles = getnumalleles(tdata)
+    printlong(not a.n, a.FILE, hobs, hexp, nalleles, tdata, [n])
 
 
 def eofratio(fis):
@@ -307,24 +308,26 @@ def ratioofes(hobs, hexp):
     he = sum(hexp)
     return 1.0 - ho / he if he != 0.0 else float('nan')
 
-def printlong(hasheader, fname, hobs, hexp, data, size):
+def printlong(hasheader, fname, hobs, hexp, nalleles, data, size):
     if hasheader:
-        print("\t".join(["dataset", "locus", "Hobs", "Hexp", "Fis"]))
+        print("\t".join(["dataset", "locus", "Hobs", "Hexp", "Fis", "alleles"]))
     Fis = [1.0 - ho / he if he != 0.0 else float('nan') for ho, he in zip(hobs, hexp)]
-    for i, (j, k, F) in enumerate(zip(hobs, hexp, Fis)):
-        print("{}\tlocus.{}\t{}\t{}\t{}".format(fname, i, j, k, F))
-    print("{}\toverall.E.of.ratio\t{}\t{}\t{}".format(
+    for i, (j, k, F, n) in enumerate(zip(hobs, hexp, Fis, nalleles)):
+        print("{}\tlocus.{}\t{}\t{}\t{}\t{}".format(fname, i, j, k, F, n))
+    print("{}\toverall.E.of.ratio\t{}\t{}\t{}\t{}".format(
             fname,
             sum(hobs) / len(hobs),
-            sum(hexp) / len(hobs),
-            eofratio(Fis)
+            sum(hexp) / len(hexp),
+            eofratio(Fis),
+            sum(nalleles) / float(len(nalleles))
         )
     )
-    print("{}\toverall.ratio.of.Es\t{}\t{}\t{}".format(
+    print("{}\toverall.ratio.of.Es\t{}\t{}\t{}\t{}".format(
             fname,
             sum(hobs) / len(hobs),
-            sum(hexp) / len(hobs),
-            ratioofes(hobs, hexp)
+            sum(hexp) / len(hexp),
+            ratioofes(hobs, hexp),
+            sum(nalleles) / float(len(nalleles))
         )
     )
 
@@ -387,6 +390,8 @@ def gethexp(data):
     als = getallelefreq(data)
     return [1.0 - sum(a * a for a in locus) for locus in als]
 
+def getnumalleles(data):
+    return [len(set(allele for genot in locus for allele in genot)) for locus in data]
 
 def rmescombine(a):
     nl = getnlchar(a)
