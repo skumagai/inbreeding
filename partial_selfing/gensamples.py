@@ -1,5 +1,5 @@
 from __future__ import print_function
-import argparse, random, pickle, operator, json, sys, itertools
+import argparse, random, pickle, operator, json, sys, itertools, math
 from collections import Counter, defaultdict
 
 def main():
@@ -292,23 +292,39 @@ def inbcoeff(a):
     n = getn(data)
 
     nloc = getnloc(data)
-    pdata = partitiondata(data, [n])
-    hobs = gethobs(pdata, [n])
-    hexp = gethexp(pdata, [n])
-    printlong(not a.n, a.FILE, hobs, hexp, pdata, [n])
+    tdata = t(genes(data))
+    hobs = gethobs(tdata)
+    hexp = gethexp(tdata)
+    printlong(not a.n, a.FILE, hobs, hexp, tdata, [n])
 
+
+def eofratio(fis):
+    data = [f for f in fis if not math.isnan(f)]
+    return sum(data) / len(data) if len(data) > 0 else float('nan')
+
+def ratioofes(hobs, hexp):
+    ho = sum(hobs)
+    he = sum(hexp)
+    return 1.0 - ho / he if he != 0.0 else float('nan')
 
 def printlong(hasheader, fname, hobs, hexp, data, size):
     if hasheader:
-        print("\t".join(["dataset", "locus", "Hobs", "Hexp", "Fis", "f", "g"]))
-    Fis = [1.0 - ho / he for ho, he in zip(hobs, hexp)]
+        print("\t".join(["dataset", "locus", "Hobs", "Hexp", "Fis"]))
+    Fis = [1.0 - ho / he if he != 0.0 else float('nan') for ho, he in zip(hobs, hexp)]
     for i, (j, k, F) in enumerate(zip(hobs, hexp, Fis)):
         print("{}\tlocus.{}\t{}\t{}\t{}".format(fname, i, j, k, F))
-    print("{}\toverall\t{}\t{}\t{}".format(
+    print("{}\toverall.E.of.ratio\t{}\t{}\t{}".format(
             fname,
             sum(hobs) / len(hobs),
             sum(hexp) / len(hobs),
-            sum(Fis) / len(Fis),
+            eofratio(Fis)
+        )
+    )
+    print("{}\toverall.ratio.of.Es\t{}\t{}\t{}".format(
+            fname,
+            sum(hobs) / len(hobs),
+            sum(hexp) / len(hobs),
+            ratioofes(hobs, hexp)
         )
     )
 
@@ -346,76 +362,30 @@ def getsubboundaries(size):
     end.append(sum(size))
     return begin, end
 
-def transposedata(data):
-    return [list(v) for v in zip(*[ind[2] for ind in data])]
+def genes(data):
+    return [d[2] for d in data]
 
-def partitiondata(data, size):
-    begin, end = getsubboundaries(size)
-    nal = [float(d) for d in size]
-    # tranpose data: now row (outer-most list) corresponds to locus rather than individual
-    tdata = transposedata(data)
-    # partition data into per-subpopulation basis
-    return [[list(itertools.islice(locus, b, e)) for b, e in zip(begin, end)] for locus in tdata]
+def t(data):
+    return list(zip(*data))
 
-def gethomofreq(data, size):
-    count = [[Counter(genot[0] for genot in deme if genot[0] == genot[1]).values() for deme in locus] for locus in data]
-    return [[[float(val) / s for val in deme] for deme, s in zip(locus, size)] for locus in count]
+def gethomofreq(data):
+    size = len(data[0])
+    count = [Counter(genot[0] for genot in locus if genot[0] == genot[1]).values() for locus in data]
+    return [[float(val) / size for val in locus] for locus in count]
 
-def getallelefreq(data, size):
-    count = [[Counter(allele for genot in deme for allele in genot).values() for deme in locus] for locus in data]
-    return [[[float(val) / (2 * s) for val in deme] for deme, s in zip(locus, size)] for locus in count]
+def getallelefreq(data):
+    size = 2 * len(data[0])
+    count = [Counter(allele for genot in locus for allele in genot).values() for locus in data]
+    return [[float(val) / size for val in locus] for locus in count]
 
-def gethobs(data, size):
-    hs = gethomofreq(data, size)
-    freqs = [float(s) / sum(size) for s in size]
-    return [1.0 - sum(sum(deme) * f for deme, f in zip(locus, freqs)) for locus in hs]
+def gethobs(data):
+    hs = gethomofreq(data)
+    return [1.0 - sum(locus) for locus in hs]
 
 
-def gethexp(data, size):
-    als = getallelefreq(data, size)
-    freqs = [float(s) / sum(size) for s in size]
-    return [1.0 - sum(sum(a * a for a in deme) * f for deme, f in zip(locus, freqs)) for locus in als]
-
-
-def unstructuredata(data):
-    return [list(itertools.chain(*locus)) for locus in data]
-
-def getf(data, size):
-    fs, gs = getfg(data, size)
-    return [(f - g) / (1.0 - g) for f, g in zip(fs, gs)]
-
-
-def getfg(data, size):
-    nf = float(sum(size))
-    data = unstructuredata(data)
-    fs = [len(list(True for ind in locus if ind[0] == ind[1])) / nf for locus in data]
-    gdata = unstructuredata(data)
-    ng = len(gdata[1])
-    gs = [float(len(list(True for i in range(ng) for j in range(i + 1, ng) if locus[i] == locus[j]))) / (ng * (ng - 1) / 2) for locus in gdata]
-    return fs, gs
-
-def getfall(data, size):
-    f = getf(data, size)
-    return sum(f) / len(f)
-
-def getp(data, n, nloc):
-    nf2 = 2 * float(n)
-    a = [[] for i in range(nloc)]
-    for d in data:
-        da = d[2]
-        for i in range(nloc):
-            a[i].extend(da[i])
-    return [{j: k / nf2 for j, k in Counter(i).items()} for i in a]
-
-
-def getP(data, n, nloc):
-    nf = float(n)
-    g = [[] for i in range(nloc)]
-    for d in data:
-        da = d[2]
-        for i in range(nloc):
-            g[i].append(tuple(da[i]))
-    return [{j: k / nf for j, k in Counter(i).items()} for i in g]
+def gethexp(data):
+    als = getallelefreq(data)
+    return [1.0 - sum(a * a for a in locus) for locus in als]
 
 
 def rmescombine(a):
