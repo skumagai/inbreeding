@@ -1,5 +1,5 @@
 from __future__ import print_function
-import argparse, random, pickle, operator, json, sys, itertools, math
+import argparse, random, pickle, operator, json, sys, itertools, math, os.path
 from collections import Counter, defaultdict
 
 def main():
@@ -8,6 +8,7 @@ def main():
     ssp = sp.add_parser("sample")
     sssp = sp.add_parser("subsample")
     psp = sp.add_parser("phase")
+    p2rsp = sp.add_parser("phase2rmes")
     nsp = sp.add_parser("nexus")
     rsp = sp.add_parser("rmes")
     asp = sp.add_parser("inbcoeff")
@@ -50,6 +51,15 @@ def main():
     psp.add_argument(
         "FILE",
         type = str
+    )
+    p2rsp.add_argument(
+        "FILE",
+        type = str
+    )
+    p2rsp.add_argument(
+        "-w",
+        action = "store_true",
+        default = False
     )
     nsp.add_argument(
         "FILE",
@@ -109,6 +119,7 @@ def main():
     ssp.set_defaults(func = sample)
     sssp.set_defaults(func = subsample)
     psp.set_defaults(func = phase)
+    p2rsp.set_defaults(func = phase2rmes)
     nsp.set_defaults(func = nexus)
     rsp.set_defaults(func = rmes)
     asp.set_defaults(func = inbcoeff)
@@ -415,6 +426,27 @@ def rmescombine(a):
             print(h, file = wf, end = nl)
         for b in bds:
             print(b, file = wf, end = nl)
+
+def phase2rmes(a):
+    popname = a.FILE
+    outfile = os.path.splitext(popname)[0] + ".rmes"
+    nl = getnlchar(a)
+    data = []
+    with open(popname, "r") as rf:
+        norg = next(rf).strip()
+        nloc = next(rf).strip()
+        next(rf)
+        for l in rf:
+            it = iter(l.strip().split("\t")[1:])
+            data.append(" ".join(["0" if i == j else "1" for i, j in itertools.izip(it, it)]))
+
+    with open(outfile, "w") as wf:
+        print(1, file = wf, end = nl)
+        print(popname, file = wf, end = nl)
+        print(norg, file = wf, end = nl)
+        print(nloc, file = wf, end = nl)
+        for d in data:
+            print(d, file = wf, end = nl)
 
 if __name__ == "__main__":
     main()
