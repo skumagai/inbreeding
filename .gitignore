@@ -8,3 +8,4 @@ doc/auto/
 *.tar.*
 results/
 *.csv
+*.swp
