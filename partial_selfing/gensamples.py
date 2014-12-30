@@ -438,7 +438,16 @@ def phase2rmes(a):
         next(rf)
         for l in rf:
             it = iter(l.strip().split("\t")[1:])
-            data.append(" ".join(["0" if i == j else "1" for i, j in itertools.izip(it, it)]))
+            cols = []
+            for i, j in itertools.izip(it, it):
+                if i == "NA" or j == "NA":
+                    cols.append("-9")
+                elif i == j:
+                    cols.append("0")
+                else:
+                    cols.append("1")
+
+            data.append(" ".join(cols))
 
     with open(outfile, "w") as wf:
         print(1, file = wf, end = nl)
