@@ -319,25 +319,37 @@ def ratioofes(hobs, hexp):
     he = sum(hexp)
     return 1.0 - ho / he if he != 0.0 else float('nan')
 
+def ratioofes2(hobs, hexp, n):
+    nn = 2 * n[0]
+    ho = sum(hobs)
+    he = sum(hexp)
+    c = sum(h / nn for h in hobs)
+    return (he - ho + c) / (he - c) if he - c != 0.0 else float('nan')
+
+
 def printlong(hasheader, fname, hobs, hexp, nalleles, data, size):
+    nn = 2 * size[0]
     if hasheader:
-        print("\t".join(["dataset", "locus", "Hobs", "Hexp", "Fis", "alleles"]))
+        print("\t".join(["dataset", "locus", "Hobs", "Hexp", "Fis", "Fis.corrected", "alleles"]))
     Fis = [1.0 - ho / he if he != 0.0 else float('nan') for ho, he in zip(hobs, hexp)]
-    for i, (j, k, F, n) in enumerate(zip(hobs, hexp, Fis, nalleles)):
-        print("{}\tlocus.{}\t{}\t{}\t{}\t{}".format(fname, i, j, k, F, n))
-    print("{}\toverall.E.of.ratio\t{}\t{}\t{}\t{}".format(
+    Fis2 = [(he - ho + ho / nn) / (he - ho / nn) if he - ho / nn != 0.0 else float('nan') for ho, he in zip(hobs, hexp)]
+    for i, (j, k, F, F2, n) in enumerate(zip(hobs, hexp, Fis, Fis2, nalleles)):
+        print("{}\tlocus.{}\t{}\t{}\t{}\t{}\t{}".format(fname, i, j, k, F, F2, n))
+    print("{}\toverall.E.of.ratio\t{}\t{}\t{}\t{}\t{}".format(
             fname,
             sum(hobs) / len(hobs),
             sum(hexp) / len(hexp),
             eofratio(Fis),
+            eofratio(Fis2),
             sum(nalleles) / float(len(nalleles))
         )
     )
-    print("{}\toverall.ratio.of.Es\t{}\t{}\t{}\t{}".format(
+    print("{}\toverall.ratio.of.Es\t{}\t{}\t{}\t{}\t{}".format(
             fname,
             sum(hobs) / len(hobs),
             sum(hexp) / len(hexp),
             ratioofes(hobs, hexp),
+            ratioofes2(hobs, hexp, size),
             sum(nalleles) / float(len(nalleles))
         )
     )
