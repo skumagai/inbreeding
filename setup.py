@@ -8,7 +8,7 @@ config = {
         'author': 'Seiji Kumagai',
         'url': 'https://github.com/skumagai/selfingsim.git',
         'author_email': 'seiji.kumagai@gmail.com',
-        'verson': 1.0,
+        'version': 1.0,
         'install_requires': ['nose'],
         'packages': ['selfingsim'],
         'scripts': ['bin/selfingsim'],
