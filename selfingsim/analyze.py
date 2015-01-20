@@ -10,9 +10,10 @@ import data
 import utils
 
 def main():
-    sp = argparse.ArgumentParser().add_subparsers()
+    p = argparse.ArgumentParser()
+    sp = p.add_subparsers()
     setup_command_line(sp)
-    a = sp.parse_args()
+    a = p.parse_args()
     a.func(a)
 
 def setup_command_line(sp):
@@ -35,6 +36,13 @@ def setup_command_line(sp):
     p.set_defaults(func = inbtime)
 
 def inbcoeff(a):
+    """
+    Computes and prints inbreeding coefficients, Fis, and other related statistics
+    for each locus as well as overall.
+
+    Other statistics are observed and expected heterozygosities, bias-corrected
+    inbreeding coefficients, and number of alleles.
+    """
     sample = data.createsample(a.samplefile)
     coeffs = sample.inbreedingcoefficient()
     src = sample.source
@@ -55,6 +63,13 @@ def inbcoeff(a):
                 )
 
 def inbtime(a):
+    """
+    Computes and prints number of generations untill the first outcrossing
+    event along pedigree.
+
+    This statistics are reported per-individual.
+    If the most recent mating is outcrossing, this function returns 0.
+    """
     sample = data.createsample(a.samplefile)
     src = sample.source
 

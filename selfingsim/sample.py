@@ -59,6 +59,10 @@ def setup_command_line(sp):
     p.set_defaults(func = subsample)
 
 def sample(a):
+    """
+    Samples a subset of individuals from the current sample from simulation
+    results in TSV format.
+    """
     sims = data.createsample(a.simfile, a.generation)
     fbase = a.simfile.split(".")[:-1]
 
@@ -67,6 +71,8 @@ def sample(a):
     nd = _ndigits(a.reps)
     ns = _ndigits(len(sims))
 
+    # the following template is used for having the right amount of padding
+    # in the output file name.
     template = fbase + ".simrep{{:0{}}}.{}.{{:0{}}}.json"
 
     for i, sim in enumerate(sims):
@@ -77,6 +83,9 @@ def sample(a):
                 print(s.tojson(), sep = nl, end = nl, file = f)
 
 def subsample(a):
+    """
+    Gets a subsample from already a sample in a JSON-formatted file.
+    """
     sample = data.createsample(a.samplefile)
     subsample = sample.sample(a.samplesize)
 
@@ -86,6 +95,9 @@ def subsample(a):
         print(subsample.tojson(), sep = nl, end = nl, file = f)
 
 def _ndigits(n):
+    """
+    Count the number of digits required to represent in decimal.
+    """
     digits = 1
     n = float(n)
     while n > 10.:

@@ -7,7 +7,8 @@ import sys
 
 def main():
     p = argparse.ArgumentParser()
-    setup_command_line(p)
+    sp = p.add_subparsers()
+    setup_command_line(sp)
     args = p.parse_args()
     args.func(args)
 
@@ -27,6 +28,9 @@ def setup_command_line(sp):
     p.set_defaults(func = simulate)
 
 def simulate(args):
+    """
+    Runs simulation.
+    """
     config = Config(json.load(args.CONFIG), args.STR)
 
     if config.mode == 'infinite sites':
@@ -38,6 +42,10 @@ def simulate(args):
         sys.exit(1)
 
 class Config(object):
+    """
+    Stores input parameters for simulations include mutation rates, population
+    size etc.
+    """
 
     def __init__(self, cobj, subst):
         N = int(cobj['population']['N'])
@@ -104,12 +112,18 @@ class Config(object):
 # does not simuPOP re-imported.  Therefore, those
 # submodules will automatically use the right version of simuPOP.
 def exec_infinite_sites(config):
+    """
+    Launches simulations with the infinite-sites model.
+    """
     import partial_selfing.infinite_sites as model
     model.run(config)
 
 
 # See the comment in front of exec_two_loci
 def exec_infinite_alleles(config):
+    """
+    Launches simulations with the infinite-alleles model.
+    """
     import partial_selfing.infinite_alleles as model
     model.run(config)
 

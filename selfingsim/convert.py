@@ -10,9 +10,10 @@ import data
 import utils
 
 def main():
-    sp = argparse.ArgumentParser().add_subparsers()
+    s = argparse.ArgumentParser()
+    sp = s.add_subparsers()
     setup_commnad_line(sp)
-    a = sp.parse_args()
+    a = p.parse_args()
     a.func(a)
 
 def setup_command_line(sp):
@@ -65,10 +66,15 @@ def setup_command_line(sp):
             help = "one or more sample files in RMES format")
     p.set_defaults(func = rmescombine)
 
-# The following functions are mainly thing-wrapper of formatting methods in
+# The following functions are mainly thin-wrapper of formatting methods in
 # data.{Basic,Full}Sample objects.
 
 def phase(a):
+    """
+    Creates a PHASE-formatted file.
+
+    The result can be used as an input to BALI-PHY.
+    """
     ofname = ".".join(a.samplefile.split(".")[:-1] + ["phase"])
     sample = data.createsample(a.samplefile)
     nl = utils.getnewlinechar(a)
@@ -76,6 +82,11 @@ def phase(a):
         print(sample.tophase(), sep = nl, end = nl, file = f)
 
 def nexus(a):
+    """
+    Creates a NEXUS-formatted file.
+
+    The result can be used as an input to GDA.
+    """
     ofname = ".".join(a.samplefile.split(".")[:-1] + ["nex"])
     sample = data.createsample(a.samplefile)
     nl = utils.getnewlinechar(a)
@@ -83,6 +94,11 @@ def nexus(a):
         print(*(sample.tonexus()), sep = nl, end = nl, file = f)
 
 def rmes(a):
+    """
+    Creates a RMES-formatted file.
+
+    The result can be used as an input to RMES.
+    """
     ofname = ".".join(a.samplefile.split(".")[:-1] + ["rmes"])
     sample = data.createsample(a.samplefile)
     nl = utils.getnewlinechar(a)
@@ -90,6 +106,11 @@ def rmes(a):
         print(*(sample.tormes()), sep = nl, end = nl, file = f)
 
 def rmescombine(a):
+    """
+    Combines multiple RMES-formatted files.
+
+    The result can still be used as an input to RMES.
+    """
     samples = [data.createsample(fname) for fname in a.rmesfiles]
     nl = utils.getnewlinechar(a)
     with open(a.combinedfile, "w") as f:
@@ -100,6 +121,9 @@ def rmescombine(a):
                 file = f)
 
 def phase2rmes(a):
+    """
+    Converts a PHASE-formatted file to a RMES-formatted file.
+    """
     # TODO: Handle missing value (represented as "-9").
     ofname = ".".join(a.samplefile.split(".")[:-1] + ["rmes"])
     sample = data.createsample(a.samplefile)
@@ -107,3 +131,5 @@ def phase2rmes(a):
     with open(ofname, "w") as f:
         print(*(sample.tormes()), sep = nl, end = nl, file = f)
 
+if __name__ == '__main__':
+    main()

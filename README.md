@@ -61,9 +61,31 @@ run `pip install master.zip`.
 ## Running selfingsim
 
 Selfingsim is designed to work from command line.
+Basic form of invokation is:
+
+```
+selfingsim [command] [options]
+```
+
+You can get a list of available commands by `selfingsim -h`.
+
+### Simulation
+
+To run simulations,
+
+```
+selfingsim simulate configfile
+```
+
+where configfile should be replaced by the name of configuration file
+in JSON format.
+An example configuration file can be found at [link][selfingsimex].
+This example is annotated by ``// comment``, but an actual configuration file
+can't have annotation.
 
 [manuscript]: http://www.example.com
 [selfingsimdl]: https://github.com/skumagai/selfingsim/archive/master.zip
+[selfingsimex]: https://github.com/skumagai/selfingsim/blob/master/example.json.annotated
 [simuPOP]: http://simupop.sourceforge.net
 [simuPOPinst]: http://simupop.sourceforge.net/Main/Download
 [nose]: https://github.com/nose-devs/nose

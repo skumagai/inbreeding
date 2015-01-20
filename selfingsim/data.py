@@ -333,6 +333,8 @@ def tonexus(ss, miss, sep):
 def tormes(ss):
     """
     Create a RMES-formatted string from a list of samples.
+
+    The output can be fed to RMES.
     """
 
     if type(ss) is not list:
