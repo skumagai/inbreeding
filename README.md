@@ -25,4 +25,4 @@ The dependencies of this program are:
 
 To install this software, first download this so
 
-[manuscript]: Redelings et al. Bayesian co-estimation of selfing rate and locus-specific mutation rates for a partially selfing population
+[manuscript]: http://www.example.com "Redelings et al. Bayesian co-estimation of selfing rate and locus-specific mutation rates for a partially selfing population"
