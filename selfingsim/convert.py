@@ -1,10 +1,13 @@
+from __future__ import print_function
 # standard imports
 import argparse
 import itertools
+import os
 import os.path
 
 # within-package imports
-from utils import getdata, getn, getnloc
+import data
+import utils
 
 def main():
     sp = argparse.ArgumentParser().add_subparsers()
@@ -20,7 +23,7 @@ def setup_command_line(sp):
             type = str,
             help = "file containing samples (output of (sub)sample command)")
 
-    pp2 = argparse.ArgumentParser()
+    pp2 = argparse.ArgumentParser(add_help = False)
     pp2.add_argument(
             "-w",
             action = "store_true",
@@ -28,7 +31,7 @@ def setup_command_line(sp):
             help = "set this flag to force Windows newline character (CRLF).")
 
     # setup command line arguments for individual subcommands
-    p = sp.add_parser("phase", parents = [pp1])
+    p = sp.add_parser("phase", parents = [pp1, pp2])
     p.set_defaults(func = phase)
 
     p = sp.add_parser("phase2rmes", parents = [pp2])
@@ -62,156 +65,45 @@ def setup_command_line(sp):
             help = "one or more sample files in RMES format")
     p.set_defaults(func = rmescombine)
 
+# The following functions are mainly thing-wrapper of formatting methods in
+# data.{Basic,Full}Sample objects.
+
 def phase(a):
     ofname = ".".join(a.samplefile.split(".")[:-1] + ["phase"])
-    data = getdata(a.samplefile)
-    with open(ofname, "w") as wf:
-        size = getn(data)
-        loc = getnloc(data)
-        print(
-                "{}\n{}\n{}".format(
-                    size,
-                    loc,
-                    "M" * loc
-                    ),
-                file = wf
-                )
-        for d in data:
-            print(
-                    "sample.{}\t{}".format(
-                        d[0],
-                        "\t".join([str(j) for i in d[2] for j in i])
-                        ),
-                    file = wf
-                    )
+    sample = data.createsample(a.samplefile)
+    nl = utils.getnewlinechar(a)
+    with open(ofname, "w") as f:
+        print(sample.tophase(), sep = nl, end = nl, file = f)
 
-            def nexus(a):
-                nl = getnlchar(a)
-
+def nexus(a):
     ofname = ".".join(a.samplefile.split(".")[:-1] + ["nex"])
-    data = getdata(a.samplefile)
-
-    n = getn(data)
-    if len(a.localsizes) > 0:
-        if n != sum(a.localsizes):
-            print("Sum of subsample sizes does not match the total sample size", file = sys.stderr)
-            sys.exit(1)
-        size = a.localsizes
-    else:
-        size = [n]
-
-    with open(ofname, "w") as wf:
-        loc = getnloc(data)
-        print("#NEXUS", file = wf, end = nl)
-        print("begin gdadata;", file = wf, end=nl)
-        print("dimensions npops={} nloci={};".format(len(size), loc), file = wf, end = nl)
-        print("format missing=? separator=/;", file = wf, end = nl)
-        print("matrix", file = wf, end = nl)
-        begin, end = getsubboundaries(size)
-        subs = [itertools.islice(data, b, e) for b, e in zip(begin, end)]
-        for i, sub in enumerate(subs):
-            print("subpop.{}:".format(i), file = wf, end = nl)
-            for d in sub:
-                print(
-                        " ".join(
-                            ["sample.{}".format(d[0])] +
-                            ["{}/{}".format(*j) for j in d[2]]
-                            ),
-                        file = wf,
-                        end=nl
-                        )
-                if i < len(size) - 1:
-                    print(",", file = wf, end = nl)
-        print(";", file = wf, end = nl)
-        print("end;", file = wf, end = nl)
+    sample = data.createsample(a.samplefile)
+    nl = utils.getnewlinechar(a)
+    with open(ofname, "w") as f:
+        print(*(sample.tonexus()), sep = nl, end = nl, file = f)
 
 def rmes(a):
-    print("Processing {}...".format(a.samplefile))
-    nl = getnlchar(a)
-
     ofname = ".".join(a.samplefile.split(".")[:-1] + ["rmes"])
-    data = getdata(a.samplefile)
-    with open(ofname, "w") as wf:
-        size = getn(data)
-        loc = getnloc(data)
-        print(1, file = wf, end = nl)
-        print(a.samplefile, file = wf, end = nl)
-        print(size, file = wf, end = nl)
-        print(loc, file = wf, end = nl)
-        for d in data:
-            print(
-                    " ".join([
-                        "0" if g[0] == g[1] else "1"
-                        for g in d[2]
-                        ]),
-                    file = wf,
-                    end = nl
-                    )
+    sample = data.createsample(a.samplefile)
+    nl = utils.getnewlinechar(a)
+    with open(ofname, "w") as f:
+        print(*(sample.tormes()), sep = nl, end = nl, file = f)
 
-            def rmescombine(a):
-                nl = getnlchar(a)
-
-    hds, bds = [], []
-
-    npop = 0
-
-    for f in a.rmesfiles:
-        with open(f, "r") as rf:
-            next(rf)
-            npop += 1
-            for dummy in range(3):
-                hds.append(next(rf).rstrip())
-            for l in rf:
-                bds.append(l.rstrip())
-
-    with open(a.combinedfile, "w") as wf:
-        print(npop, file = wf, end = nl)
-        for h in hds:
-            print(h, file = wf, end = nl)
-        for b in bds:
-            print(b, file = wf, end = nl)
+def rmescombine(a):
+    samples = [data.createsample(fname) for fname in a.rmesfiles]
+    nl = utils.getnewlinechar(a)
+    with open(a.combinedfile, "w") as f:
+        print(
+                *([l for sample in samples for line in sample.tormes()]),
+                sep = nl,
+                end = nl,
+                file = f)
 
 def phase2rmes(a):
-    popname = a.phasefile
-    outfile = os.path.splitext(popname)[0] + ".rmes"
-    nl = getnlchar(a)
-    data = []
-    with open(popname, "r") as rf:
-        norg = next(rf).strip()
-        nloc = next(rf).strip()
-        next(rf)
-        for l in rf:
-            it = iter(l.strip().split("\t")[1:])
-            cols = []
-            for i, j in itertools.izip(it, it):
-                if i == "NA" or j == "NA":
-                    cols.append("-9")
-                elif i == j:
-                    cols.append("0")
-                else:
-                    cols.append("1")
+    # TODO: Handle missing value (represented as "-9").
+    ofname = ".".join(a.samplefile.split(".")[:-1] + ["rmes"])
+    sample = data.createsample(a.samplefile)
+    nl = utils.getnewlinechar(a)
+    with open(ofname, "w") as f:
+        print(*(sample.tormes()), sep = nl, end = nl, file = f)
 
-            data.append(" ".join(cols))
-
-    with open(outfile, "w") as wf:
-        print(1, file = wf, end = nl)
-        print(popname, file = wf, end = nl)
-        print(norg, file = wf, end = nl)
-        print(nloc, file = wf, end = nl)
-        for d in data:
-            print(d, file = wf, end = nl)
-
-def getnlchar(a):
-    if a.w:
-        return "\r\n"
-    else:
-        return "\n"
-
-def getsubboundaries(size):
-    begin = [0]
-    end = []
-    for s in size[:-1]:
-        begin.append(begin[-1] + s)
-        end.append(begin[-1])
-    end.append(sum(size))
-    return begin, end

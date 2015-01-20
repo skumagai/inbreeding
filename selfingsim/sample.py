@@ -6,6 +6,10 @@ import json
 import random
 import sys
 
+# within-package import
+import data
+import utils
+
 def main():
     "Run this script as stand-alone."
     p = argparse.ArgumentParser()
@@ -15,14 +19,13 @@ def main():
 
 def setup_command_line(sp):
     p = sp.add_parser("sample")
-    p = sp.add_parser("subsample")
 
     p.add_argument(
             "simfile",
             type = str,
             help = "file containing simulation results")
     p.add_argument(
-            "generations",
+            "generation",
             type = int,
             help = "sampling generation")
     p.add_argument(
@@ -32,9 +35,10 @@ def setup_command_line(sp):
     p.add_argument(
             "reps",
             type = int,
-            "number of replicates")
+            help = "number of replicates")
     p.set_defaults(func = sample)
 
+    p = sp.add_parser("subsample")
     p.add_argument(
             "samplefile",
             type = str,
@@ -55,79 +59,39 @@ def setup_command_line(sp):
     p.set_defaults(func = subsample)
 
 def sample(a):
+    sims = data.createsample(a.simfile, a.generation)
     fbase = a.simfile.split(".")[:-1]
-    data = getgeneration(a.simfile, a.generations)
-    digits = 1
-    reps = float(a.reps)
-    while reps > 10.:
-        reps /= 10.
-        digits += 1
 
-    for i in xrange(a.reps):
-        s = getsample(data, a.samplesize)
-        ofname = ".".join(
-                fbase +
-                [
-                    str(a.samplesize),
-                    ("{:0" + str(digits) + "}").format(i + 1),
-                    "json"
-                    ]
-                )
-        with open(ofname, "w") as wf:
-            json.dump(s, wf)
+    nl = utils.getnewlinechar(a)
+
+    nd = _ndigits(a.reps)
+    ns = _ndigits(len(sims))
+
+    template = fbase + ".simrep{{:0{}}}.{}.{{:0{}}}.json"
+
+    for i, sim in enumerate(sims):
+        for j in xrange(a.reps):
+            s = sim.sample(a.samplesize)
+            ofname = template.format(ns, a.samplesize, nd).format(i, j)
+            with open(ofname, "w") as f:
+                print(s.tojson(), sep = nl, end = nl, file = f)
 
 def subsample(a):
-    with open(a.samplefile, "r") as rf:
-        data = json.load(rf)
-        size = getn(data)
-        loc = getnloc(data)
-        if size < a.samplesize:
-            print("sub sample size too large", file = sys.stderr)
-            sys.exit(1)
-        if loc < len(a.sampleloci):
-            print("Too many loci", file = sys.stderr)
+    sample = data.createsample(a.samplefile)
+    subsample = sample.sample(a.samplesize)
 
-        samples = random.sample(data, a.samplesize)
-        d = [[s[0], s[1], list(s[2][i] for i in a.sampleloci)] for s in samples]
-        with open(a.subsamplefile, "w") as wf:
-            json.dump(d, wf)
+    nl = utils.getnewlinechar(a)
 
-def getgeneration(fname, gen):
-    data = {}
-    with open(fname, "r") as f:
-        next(f)
-        for line in f:
-            fields = [int(round(float(i))) for i in line.split("\t")]
-            if fields[1] == gen:
-                try:
-                    data[fields[0]]
-                except KeyError:
-                    data[fields[0]] = {}
-                try:
-                    data[fields[0]][fields[2]]["geno"].append(fields[5:])
-                except KeyError:
-                    data[fields[0]][fields[2]] = {
-                            "selfing": fields[3],
-                            "geno": [fields[5:]]
-                            }
-                    return data
+    with open(a.subsamplefile, "w") as f:
+        print(subsample.tojson(), sep = nl, end = nl, file = f)
 
+def _ndigits(n):
+    digits = 1
+    n = float(n)
+    while n > 10.:
+        n /= 10.
+        digits += 1
+    return digits
 
-def getsample(d, s, repidx = 0):
-    size = len(d[repidx])
-    return sorted(
-            [simplify(i, d[repidx][i]) for i in random.sample(xrange(size), s)],
-            key = operator.itemgetter(0)
-            )
-
-    def simplify(i, vals):
-        return [
-                i,
-                vals["selfing"],
-                list(
-                    (i, j) for i, j in zip(*vals["geno"])
-                    )
-                ]
-
-        if __name__ == '__main__':
-            main()
+if __name__ == '__main__':
+    main()

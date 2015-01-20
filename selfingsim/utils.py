@@ -1,12 +1,5 @@
-def getdata(f):
-    with open(f, "r") as rf:
-        return json.load(rf)
-
-def getn(data):
-    return len(data)
-
-def getnloc(data):
-    if len(data) > 0:
-        return len(data[0][2])
+def getnewlinechar(a):
+    if a.w:
+        return "\r\n"
     else:
-        return 0
+        return os.linesep
