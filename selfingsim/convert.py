@@ -1,6 +1,11 @@
+from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
+from __future__ import unicode_literals
+
 # standard imports
 import argparse
+import io
 import itertools
 import os
 import os.path
@@ -78,7 +83,7 @@ def phase(a):
     ofname = ".".join(a.samplefile.split(".")[:-1] + ["phase"])
     sample = data.createsample(a.samplefile)
     nl = utils.getnewlinechar(a)
-    with open(ofname, "w") as f:
+    with io.open(ofname, "w") as f:
         print(sample.tophase(), sep = nl, end = nl, file = f)
 
 def nexus(a):
@@ -90,7 +95,7 @@ def nexus(a):
     ofname = ".".join(a.samplefile.split(".")[:-1] + ["nex"])
     sample = data.createsample(a.samplefile)
     nl = utils.getnewlinechar(a)
-    with open(ofname, "w") as f:
+    with io.open(ofname, "w") as f:
         print(*(sample.tonexus()), sep = nl, end = nl, file = f)
 
 def rmes(a):
@@ -102,7 +107,7 @@ def rmes(a):
     ofname = ".".join(a.samplefile.split(".")[:-1] + ["rmes"])
     sample = data.createsample(a.samplefile)
     nl = utils.getnewlinechar(a)
-    with open(ofname, "w") as f:
+    with io.open(ofname, "w") as f:
         print(*(sample.tormes()), sep = nl, end = nl, file = f)
 
 def rmescombine(a):
@@ -113,7 +118,7 @@ def rmescombine(a):
     """
     samples = [data.createsample(fname) for fname in a.rmesfiles]
     nl = utils.getnewlinechar(a)
-    with open(a.combinedfile, "w") as f:
+    with io.open(a.combinedfile, "w") as f:
         print(
                 *([l for sample in samples for line in sample.tormes()]),
                 sep = nl,
@@ -128,7 +133,7 @@ def phase2rmes(a):
     ofname = ".".join(a.samplefile.split(".")[:-1] + ["rmes"])
     sample = data.createsample(a.samplefile)
     nl = utils.getnewlinechar(a)
-    with open(ofname, "w") as f:
+    with io.open(ofname, "w") as f:
         print(*(sample.tormes()), sep = nl, end = nl, file = f)
 
 if __name__ == '__main__':

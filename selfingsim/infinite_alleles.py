@@ -1,4 +1,10 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import csv
+import io
 
 import simuOpt
 simuOpt.setOptions(alleleType='long')
@@ -69,7 +75,7 @@ def get_output_operator(config, field = 'self_gen'):
         """A class handling output of genetic information of the entire population."""
 
         def __init__(self):
-            with open(output, 'w') as f:
+            with io.open(output, 'w') as f:
                 writer = csv.DictWriter(f, header, delimiter = "\t")
                 writer.writeheader()
 
@@ -89,7 +95,7 @@ def get_output_operator(config, field = 'self_gen'):
             # consider an upside, the simplicity of the output file
             # structure, is well worth the cost.
 
-            with open(output, 'a') as f:
+            with io.open(output, 'a') as f:
                 dvars = pop.dvars()
                 rep = dvars.rep
                 gen = dvars.gen

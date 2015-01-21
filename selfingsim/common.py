@@ -1,3 +1,8 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import simuPOP.sampling as sampling
 
 def get_population(simu, size, loci, infoFields='self_gen'):
@@ -17,7 +22,7 @@ def get_init_genotype_by_count(simu, n):
     """
     Set genotype of inital population.
     """
-    return (n, simu.InitGenotype(prop=[1.0 / n for dummy in range(n)]))
+    return (n, simu.InitGenotype(prop=[1 / n for dummy in range(n)]))
 
 
 def pick_pure_hermaphrodite_parents(simu, s):

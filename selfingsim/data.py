@@ -1,6 +1,12 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 # standeard imports
 from collections import Counter
 import csv
+import io
 from itertools import groupby, izip
 import json
 import math
@@ -100,7 +106,7 @@ class BasicSample(object):
         """
         Create an instance of BasicSample.
         """
-        with open(fname, "rU") as f:
+        with io.open(fname, "rU") as f:
             nsam = int(next(f).strip())
             nloc = int(next(f).strip())
             types = next(f).strip()
@@ -164,13 +170,13 @@ class BasicSample(object):
                 for loc in xrange(self._nloc)]
         total = float(2 * self.n)
         afreq = [[v / total for v in Counter(a).values()] for a in alleles]
-        hexp = [1. - sum(a * a for a in locus) for locus in afreq]
+        hexp = [1 - sum(a * a for a in locus) for locus in afreq]
         na = [len(a) for a in afreq]
 
-        fis = [1. - ho / he if he != 0. else float('nan')
+        fis = [1 - ho / he if he != 0. else float('nan')
             for ho, he in zip(hobs, hexp)]
         fis2 = [(he - ho + ho / total) / (he - ho / total)
-            if he - ho / total != 0.0 else float('nan')
+            if he - ho / total != 0. else float('nan')
             for ho, he in zip(hobs, hexp)]
 
         ho = sum(hobs)
@@ -180,9 +186,9 @@ class BasicSample(object):
         fis.append((he - ho) / he if he != 0. else float('nan'))
         fis2.append((he - ho + c) / (he - c) if he - c != 0. else float('nan'))
 
-        hobs.append(sum(hobs) / float(len(hobs)))
-        hexp.append(sum(hexp) / float(len(hexp)))
-        na.append(sum(na) / float(len(na)))
+        hobs.append(sum(hobs) / len(hobs))
+        hexp.append(sum(hexp) / len(hexp))
+        na.append(sum(na) / len(na))
 
         keys = [i for i in xrange(self.nloc)]
         keys.append("overall")
@@ -241,7 +247,7 @@ class FullSample(BasicSample):
         If specified generations are not recorded, this returns an empty list.
         """
         samples = []
-        with open(fname, "r") as f:
+        with io.open(fname, "r") as f:
             reader = csv.reader(f, delimiter = "\t")
             # Throw out a header row
             next(f)
@@ -281,7 +287,7 @@ class FullSample(BasicSample):
         This function always return a single FullSample object.
         """
 
-        with open(fname, "r") as f:
+        with io.open(fname, "r") as f:
             data = json.load(f)
             ids = [val[0] for val in data]
             inbgens = [val[1] for val in data]

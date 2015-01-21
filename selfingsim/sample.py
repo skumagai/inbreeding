@@ -1,7 +1,11 @@
+from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
+from __future__ import unicode_literals
 
 # standard imports
 import argparse
+import io
 import json
 import random
 import sys
@@ -79,7 +83,7 @@ def sample(a):
         for j in xrange(a.reps):
             s = sim.sample(a.samplesize)
             ofname = template.format(ns, a.samplesize, nd).format(i, j)
-            with open(ofname, "w") as f:
+            with io.open(ofname, "w") as f:
                 print(s.tojson(), sep = nl, end = nl, file = f)
 
 def subsample(a):
@@ -91,7 +95,7 @@ def subsample(a):
 
     nl = utils.getnewlinechar(a)
 
-    with open(a.subsamplefile, "w") as f:
+    with io.open(a.subsamplefile, "w") as f:
         print(subsample.tojson(), sep = nl, end = nl, file = f)
 
 def _ndigits(n):
