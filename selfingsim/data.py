@@ -9,6 +9,11 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+try:
+    str = unicode
+except NameError:
+    pass
+
 # standeard imports
 from collections import Counter
 import csv
@@ -153,10 +158,10 @@ class BasicSample(object):
         Write this sample as a phase-formatted string.
         """
 
-        lines = [unicode(self._nsam), unicode(self._nloc), "M" * self._nloc]
+        lines = [str(self._nsam), str(self._nloc), "M" * self._nloc]
 
         for idx, geno in zip(self._ids, self._genos):
-            line = "\t".join([unicode(idx)] + [unicode(j) for i in geno for j in i])
+            line = "\t".join([str(idx)] + [str(j) for i in geno for j in i])
             lines.append(line)
 
         return lines
@@ -346,7 +351,7 @@ class FullSample(BasicSample):
 
         data = [[i, j, k] for i, j, k in zip(self._ids, self._inbgens, self._genos)]
 
-        return unicode(json.dumps(data))
+        return str(json.dumps(data))
 
 def tonexus(samples, miss, sep):
     """
@@ -368,7 +373,7 @@ def tonexus(samples, miss, sep):
     for pop, sample in enumerate(samples):
         lines.append("{}:".format(sample.source))
         for idx, geno in zip(sample.ids, sample.genotypes):
-            line = [unicode(idx)] + ["{}{}{}".format(i[0], sep, i[1]) for i in geno]
+            line = [str(idx)] + ["{}{}{}".format(i[0], sep, i[1]) for i in geno]
             lines.append(" ".join(line))
         if pop < npops - 1:
             lines.append(",")
@@ -391,10 +396,10 @@ def tormes(samples):
 
     npops = len(samples)
 
-    lines = [unicode(npops)]
+    lines = [str(npops)]
 
     for sample in samples:
-        lines.extend([unicode(sample.source), unicode(sample.nsam), unicode(sample.nloc)])
+        lines.extend([str(sample.source), str(sample.nsam), str(sample.nloc)])
 
     for sample in samples:
         for genotype in sample.genotypes:

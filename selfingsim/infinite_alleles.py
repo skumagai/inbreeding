@@ -11,12 +11,13 @@ from __future__ import unicode_literals
 
 import csv
 import io
+import sys
 
 import simuOpt
 simuOpt.setOptions(alleleType='long')
 import simuPOP as simu
 from . import common as cf
-
+from . import utils
 
 def get_init_genotype_by_prop(prop):
     """
@@ -80,13 +81,17 @@ def get_output_operator(config, field='self_gen'):
         'chromosome'
     ] + ['locus {}'.format(i) for i in range(config.loci)]
 
+    # For compatibility with python2.
+    # csv module does not support unicode.
+    delim = str("\t")
+    field = str(field)
 
     class MyWriter(simu.PyOperator):
         """A class handling output of genetic information of the entire population."""
 
         def __init__(self):
-            with io.open(output, 'w') as f:
-                writer = csv.DictWriter(f, header, delimiter="\t")
+            with io.open(output, utils.getmode("w")) as f:
+                writer = csv.DictWriter(f, header, delimiter=delim)
                 writer.writeheader()
 
             if output_per > 0:
@@ -105,12 +110,12 @@ def get_output_operator(config, field='self_gen'):
             # consider an upside, the simplicity of the output file
             # structure, is well worth the cost.
 
-            with io.open(output, 'a') as f:
+            with io.open(output, utils.getmode("a")) as f:
                 dvars = pop.dvars()
                 rep = dvars.rep
                 gen = dvars.gen
 
-                writer = csv.DictWriter(f, header, delimiter="\t")
+                writer = csv.DictWriter(f, header, delimiter=delim)
 
                 # write genotype row by row.  Each row contains a list
                 # of genes on a single chromosome.  Because simulated
@@ -133,18 +138,16 @@ def execute(config, pop, mating_op):
     Executes simulations with appropriate mutation model and mating scheme.
     """
 
-    init = config.init['model']
+    init = config.initial_genotype
 
-    if init == 'monomorphic':
+    if init[0] == 'monomorphic':
         next_idx, init_genotype_op = cf.get_init_genotype_by_count(simu, 1)
-    elif init == 'unique':
+    elif init[0] == 'unique':
         next_idx, init_genotype_op = cf.get_init_genotype_by_count(simu, 2 * config.N)
-    else:
-        try:
-            c = config.init['count']
-            next_idx, init_genotype_op = cf.get_init_genotype_by_count(simu, c)
-        except:
-            next_idx, init_genotype_op = get_init_genotype_by_prop(config.init['freq'])
+    elif init[0] == 'count':
+        next_idx, init_genotype_op = cf.get_init_genotype_by_count(simu, init[1])
+    elif init[0] == 'frequency':
+        next_idx, init_genotype_op = get_init_genotype_by_prop(init[1])
 
     init_info_op = cf.get_init_info(simu)
 
@@ -176,14 +179,15 @@ def execute(config, pop, mating_op):
         gen=config.gens + config.burnin)
 
 
-
 def run(config):
     """
     Runs simulations under an appropriate mating scheme.
     """
-    if config.model == 'androdioecy':
+    if config.mating_model == 'androdioecy':
         cf.androdioecy(simu, execute, config)
-    elif config.model == 'gynodioecy':
+    elif config.mating_model == 'gynodioecy':
         cf.gynodioecy(simu, execute, config)
-    else:
+    elif config.mating_model == 'pure hermaphrodite':
         cf.pure_hermaphrodite(simu, execute, config)
+    else:
+        sys.exit('Unrecognized mating model.')

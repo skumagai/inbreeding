@@ -14,12 +14,12 @@ def get_population(simu, size, loci, info_fields='self_gen'):
     return simu.Population(size=size,
                            ploidy=2,
                            loci=loci,
-                           infoFields=info_fields)
+                           infoFields=str(info_fields))
 
 
 def get_init_info(simu, field='self_gen'):
     """Zero initialize info field `field`."""
-    return simu.InitInfo(0, infoFields=field)
+    return simu.InitInfo(0, infoFields=str(field))
 
 
 def get_init_genotype_by_count(simu, nalleles):
@@ -142,7 +142,7 @@ def get_selfing_tagger(simu, field):
         """
 
         def __init__(self, field='self_gen'):
-            self.field = field
+            self.field = field.encode("utf-8")
             super(MySelfingTagger, self).__init__(func=self.record)
 
         def record(self, pop, off, dad, mom):
@@ -151,7 +151,7 @@ def get_selfing_tagger(simu, field):
             Otherwise reset the value to 0.
             """
             if mom is not None:
-                off.setInfo(0, self.field)
+                off.setInfo(0, str(self.field))
             else:
                 off.setInfo(dad.info(self.field) + 1, self.field)
             return True
@@ -169,7 +169,7 @@ def get_pure_hermaphrodite_mating(simu, r_rate, s, size, rec_sites, field='self_
     """
 
     parents_chooser = simu.PyParentsChooser(
-        pick_pure_hermaphrodite_parents(simu=simu, s=s)
+        pick_pure_hermaphrodite_parents(simu, s)
     )
 
     selfing_tagger = get_selfing_tagger(simu, field)

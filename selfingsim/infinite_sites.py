@@ -17,7 +17,9 @@ import sys
 import simuOpt
 simuOpt.setOptions(alleleType='binary')
 import simuPOP as simu
+
 from . import common as cf
+from . import utils
 
 
 def get_pure_hermaphrodite_mating(r_rate, weight, size, loci, allele_length, field='self_gen'):
@@ -30,6 +32,7 @@ def get_pure_hermaphrodite_mating(r_rate, weight, size, loci, allele_length, fie
     individual can mate with any other individuals in a population.
     Furthermore, a parent can participate in both selfing and outcrossing.
     """
+    field = str(field)
     # Index of sites, after which recombinations happen.
     rec_loci = [allele_length * i - 1 for i in range(1, loci + 1)]
     selfing = simu.SelfMating(ops=[simu.Recombinator(rates=r_rate,
@@ -200,6 +203,8 @@ def get_output_operator(config, field='self_gen'):
     """
     Sets up operator for writing out simulation results (and progress).
     """
+    field = str(field)
+
     output = config.outfile
     output_per = config.output_per
     N = config.N
@@ -264,7 +269,7 @@ def get_output_operator(config, field='self_gen'):
             # configurable).
             self._output = output
 
-            with io.open(output, 'w') as f:
+            with io.open(output, utils.getmode('w')) as f:
                 writer = csv.DictWriter(f, header)
                 writer.writeheader()
 
@@ -286,7 +291,7 @@ def get_output_operator(config, field='self_gen'):
             # consider an upside, the simplicity of the output file
             # structure, is well worth the cost.
 
-            with io.open(self._output, 'a') as f:
+            with io.open(self._output, utils.getmode('a')) as f:
                 dvars = pop.dvars()
                 rep = dvars.rep
                 gen = dvars.gen - burnin
