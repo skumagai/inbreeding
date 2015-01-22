@@ -1,3 +1,10 @@
+"""
+selfingsim.sample
+=================
+
+Sample subsets of organisms from simulation results or other samples.
+"""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -6,108 +13,106 @@ from __future__ import unicode_literals
 # standard imports
 import argparse
 import io
-import json
-import random
-import sys
 
 # within-package import
-import data
-import utils
+from . import data
+from . import utils
 
-def main():
-    "Run this script as stand-alone."
-    p = argparse.ArgumentParser()
-    setup_command_line(sp)
-    args = p.parse_args()
+def run():
+    """
+    Runs this script as stand-alone.
+    """
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers()
+    setup_command_line(subparsers)
+    args = parser.parse_args()
     args.func(args)
 
-def setup_command_line(sp):
-    p = sp.add_parser("sample")
+def setup_command_line(subparsers):
+    """
+    Sets up command line arguments.
+    """
+    parser = subparsers.add_parser("sample")
+    parser.add_argument(
+        "simfile",
+        type=str,
+        help="file containing simulation results")
+    parser.add_argument(
+        "generation",
+        type=int,
+        help="sampling generation")
+    parser.add_argument(
+        "samplesize",
+        type=int,
+        help="sample size")
+    parser.add_argument(
+        "reps",
+        type=int,
+        help="number of replicates")
+    parser.set_defaults(func=sample)
 
-    p.add_argument(
-            "simfile",
-            type = str,
-            help = "file containing simulation results")
-    p.add_argument(
-            "generation",
-            type = int,
-            help = "sampling generation")
-    p.add_argument(
-            "samplesize",
-            type = int,
-            help = "sample size")
-    p.add_argument(
-            "reps",
-            type = int,
-            help = "number of replicates")
-    p.set_defaults(func = sample)
+    parser = subparsers.add_parser("subsample")
+    parser.add_argument(
+        "samplefile",
+        type=str,
+        help="file containing sample (output of sample command)")
+    parser.add_argument(
+        "subsamplefile",
+        type=str,
+        help="file storing subsamples")
+    parser.add_argument(
+        "samplesize",
+        type=int,
+        help="sample size")
+    parser.add_argument(
+        "sampleloci",
+        type=int,
+        nargs="*",
+        help="indicies of loci to sample (0-based index)")
+    parser.set_defaults(func=subsample)
 
-    p = sp.add_parser("subsample")
-    p.add_argument(
-            "samplefile",
-            type = str,
-            help = "file containing sample (output of sample command)")
-    p.add_argument(
-            "subsamplefile",
-            type = str,
-            help = "file storing subsamples")
-    p.add_argument(
-            "samplesize",
-            type = int,
-            help = "sample size")
-    p.add_argument(
-            "sampleloci",
-            type = int,
-            nargs = "*",
-            help = "indicies of loci to sample (0-based index)")
-    p.set_defaults(func = subsample)
-
-def sample(a):
+def sample(config):
     """
     Samples a subset of individuals from the current sample from simulation
     results in TSV format.
     """
-    sims = data.createsample(a.simfile, a.generation)
-    fbase = a.simfile.split(".")[:-1]
+    sims = data.createsample(config.simfile, config.generation)
+    fbase = ".".join(config.simfile.split(".")[:-1])
 
-    nl = utils.getnewlinechar(a)
-
-    nd = _ndigits(a.reps)
-    ns = _ndigits(len(sims))
+    dreps = _ndigits(config.reps)
+    dsims = _ndigits(len(sims))
 
     # the following template is used for having the right amount of padding
     # in the output file name.
     template = fbase + ".simrep{{:0{}}}.{}.{{:0{}}}.json"
 
     for i, sim in enumerate(sims):
-        for j in xrange(a.reps):
-            s = sim.sample(a.samplesize)
-            ofname = template.format(ns, a.samplesize, nd).format(i, j)
-            with io.open(ofname, "w") as f:
-                print(s.tojson(), sep = nl, end = nl, file = f)
+        for j in xrange(config.reps):
+            newsamp = sim.sample(config.samplesize)
+            ofname = template.format(dsims, config.samplesize, dreps).format(i, j)
+            print(ofname)
+            with io.open(ofname, "w") as fhandle:
+                print(newsamp.tojson(), file=fhandle)
 
-def subsample(a):
+def subsample(config):
     """
     Gets a subsample from already a sample in a JSON-formatted file.
     """
-    sample = data.createsample(a.samplefile)
-    subsample = sample.sample(a.samplesize)
+    samp = data.createsample(config.samplefile)
+    subs = samp.sample(config.samplesize, config.sampleloci)
 
-    nl = utils.getnewlinechar(a)
+    with io.open(config.subsamplefile, "w") as fhandle:
+        print(subs.tojson(), file=fhandle)
 
-    with io.open(a.subsamplefile, "w") as f:
-        print(subsample.tojson(), sep = nl, end = nl, file = f)
-
-def _ndigits(n):
+def _ndigits(number):
     """
     Count the number of digits required to represent in decimal.
     """
     digits = 1
-    n = float(n)
-    while n > 10.:
-        n /= 10.
+    while number > 10.:
+        number /= 10.
         digits += 1
     return digits
 
 if __name__ == '__main__':
-    main()
+    run()

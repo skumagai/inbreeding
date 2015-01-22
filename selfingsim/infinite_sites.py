@@ -1,3 +1,9 @@
+"""
+selfingsim.infinite_sites
+=========================
+
+Simulation related code specific to mutational model (the infinite sites model).
+"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -11,7 +17,7 @@ import sys
 import simuOpt
 simuOpt.setOptions(alleleType='binary')
 import simuPOP as simu
-import partial_selfing.common as cf
+from . import common as cf
 
 
 def get_pure_hermaphrodite_mating(r_rate, weight, size, loci, allele_length, field='self_gen'):
@@ -26,66 +32,91 @@ def get_pure_hermaphrodite_mating(r_rate, weight, size, loci, allele_length, fie
     """
     # Index of sites, after which recombinations happen.
     rec_loci = [allele_length * i - 1 for i in range(1, loci + 1)]
-    selfing = simu.SelfMating(ops = [simu.Recombinator(rates = r_rate,
-                                                       loci = rec_loci),
-                                     cf.MySelfingTagger(field)],
-                              weight = weight)
+    selfing = simu.SelfMating(ops=[simu.Recombinator(rates=r_rate,
+                                                     loci=rec_loci),
+                                   cf.MySelfingTagger(field)],
+                              weight=weight)
 
-    outcross = simu.HomoMating(chooser = simu.PyParentsChooser(generator = cf.pickTwoParents),
-                               generator = simu.OffspringGenerator(
-                                   ops = [simu.Recombinator(rates = r_rate,
-                                                            loci = rec_loci),
-                                          cf.MyOutcrossingTagger(field)]),
-                               weight = 1.0 - weight)
+    outcross = simu.HomoMating(chooser=simu.PyParentsChooser(generator=cf.pickTwoParents),
+                               generator=simu.OffspringGenerator(
+                                   ops=[simu.Recombinator(rates=r_rate,
+                                                          loci=rec_loci),
+                                        cf.MyOutcrossingTagger(field)]),
+                               weight=1.0 - weight)
 
-    return simu.HeteroMating(matingSchemes = [selfing, outcross],
-                               subPopSize = size)
-
-
-def get_androdioecious_mating(r_rate, weight, size, sex_ratio, loci, allele_length, field='self_gen'):
-
-    sexMode = (simu.PROB_OF_MALES, sex_ratio)
-
-    rec_loci = [allele_length * i - 1 for i in range(1, loci + 1)]
-
-    selfing = simu.SelfMating(ops = [simu.Recombinator(rates = r_rate,
-                                                       loci = rec_loci),
-                                     cf.MySelfingTagger(field)],
-                              sexMode = sexMode,
-                              subPops = [(0, 1)],
-                              weight = weight)
-
-    outcross = simu.RandomMating(ops = [simu.Recombinator(rates = r_rate,
-                                                          loci = rec_loci)],
-                                 sexMode = sexMode,
-                                 weight = weight)
-
-    return simu.HeteroMating(matingSchemes = [selfing, outcross],
-                             subPopSize = size)
+    return simu.HeteroMating(matingSchemes=[selfing, outcross],
+                             subPopSize=size)
 
 
-def get_gynodioecious_mating(r_rate, weight, size, sex_ratio, loci, allele_length, field='self_gen'):
+def get_androdioecious_mating(
+        r_rate,
+        weight,
+        size,
+        sex_ratio,
+        loci,
+        allele_length,
+        field='self_gen'):
+    """
+    Sets up androdioecious mating.
+    """
 
-    sexMode = (simu.PROB_OF_MALES, sex_ratio)
+    sex_mode = (simu.PROB_OF_MALES, sex_ratio)
 
     rec_loci = [allele_length * i - 1 for i in range(1, loci + 1)]
 
-    selfing = simu.SelfMating(ops = [simu.Recombinator(rates = r_rate,
-                                                       loci = rec_loci)],
-                              sexMode = sexMode,
-                              subPops = [(0, 0)],
-                              weight = weight)
+    selfing = simu.SelfMating(ops=[simu.Recombinator(rates=r_rate,
+                                                     loci=rec_loci),
+                                   cf.MySelfingTagger(field)],
+                              sexMode=sex_mode,
+                              subPops=[(0, 1)],
+                              weight=weight)
 
-    outcross = simu.RandomMating(ops = [simu.Recombinator(rates = r_rate,
-                                                          loci = rec_loci)],
-                                 sexMode = sexMode,
-                                 weight = weight)
+    outcross = simu.RandomMating(ops=[simu.Recombinator(rates=r_rate,
+                                                        loci=rec_loci)],
+                                 sexMode=sex_mode,
+                                 weight=weight)
 
-    return simu.HeteroMating(matingSchemes = [selfing, outcross],
-                             subPopSize = size)
+    return simu.HeteroMating(matingSchemes=[selfing, outcross],
+                             subPopSize=size)
+
+
+def get_gynodioecious_mating(
+        r_rate,
+        weight,
+        size,
+        sex_ratio,
+        loci,
+        allele_length,
+        field='self_gen'):
+    """
+    Sets up gynodioecious mating.
+    """
+
+    sex_mode = (simu.PROB_OF_MALES, sex_ratio)
+
+    rec_loci = [allele_length * i - 1 for i in range(1, loci + 1)]
+
+    selfing = simu.SelfMating(ops=[simu.Recombinator(rates=r_rate,
+                                                     loci=rec_loci),
+                                   cf.MySelfingTagger(field)],
+                              sexMode=sex_mode,
+                              subPops=[(0, 0)],
+                              weight=weight)
+
+    outcross = simu.RandomMating(ops=[simu.Recombinator(rates=r_rate,
+                                                        loci=rec_loci),
+                                      cf.MySelfingTagger(field)],
+                                 sexMode=sex_mode,
+                                 weight=weight)
+
+    return simu.HeteroMating(matingSchemes=[selfing, outcross],
+                             subPopSize=size)
 
 
 def get_mutation_operator(m_rate, loci, allele_length, nrep, burnin):
+    """
+    Sets up matation model (the infinite sites model).
+    """
     class MyMutator(simu.PyOperator):
         """
         A mutation operator representing the infinite sites model.
@@ -96,7 +127,7 @@ def get_mutation_operator(m_rate, loci, allele_length, nrep, burnin):
             self.available = list(list(range(i * allele_length, (i + 1) * allele_length)
                                        for i in range(loci))
                                   for r in range(nrep))
-            super(MyMutator, self).__init__(func = self.mutate)
+            super(MyMutator, self).__init__(func=self.mutate)
 
 
         def mutate(self, pop):
@@ -107,7 +138,7 @@ def get_mutation_operator(m_rate, loci, allele_length, nrep, burnin):
             rep = dvars.rep
             gen = dvars.gen - burnin
 
-            for i, ind in enumerate(pop.individuals()):
+            for ind in pop.individuals():
                 for locus in range(loci):
                     for ploidy in range(2):
                         if rng.randUniform() < m_rate[locus]:
@@ -126,7 +157,7 @@ def get_mutation_operator(m_rate, loci, allele_length, nrep, burnin):
                             # ancestral state is always represented by
                             # 0, and mutated state is therefore always
                             # 1.
-                            ind.setAllele(1, idx, ploidy = ploidy)
+                            ind.setAllele(1, idx, ploidy=ploidy)
             return True
 
 
@@ -157,15 +188,18 @@ def get_mutation_operator(m_rate, loci, allele_length, nrep, burnin):
             # Re-initialize newly freed sites by setting their values 0.
             for ind in pop.individuals():
                 for site in available:
-                    ind.setAllele(0, site, ploidy = 0)
-                    ind.setAllele(0, site, ploidy = 1)
+                    ind.setAllele(0, site, ploidy=0)
+                    ind.setAllele(0, site, ploidy=1)
             self.available[rep][locus] = available
 
 
     return MyMutator()
 
 
-def get_output_operator(config, field = 'self_gen'):
+def get_output_operator(config, field='self_gen'):
+    """
+    Sets up operator for writing out simulation results (and progress).
+    """
     output = config.outfile
     output_per = config.output_per
     N = config.N
@@ -218,8 +252,6 @@ def get_output_operator(config, field = 'self_gen'):
                    'number of selfing',
                    'chromosome'] + ['locus {}'.format(i) for i in range(loci)])
 
-    """Output genetic information of a population."""
-
     class MyWriter(simu.PyOperator):
         """A class handling output of genetic information of the entire population."""
 
@@ -230,6 +262,7 @@ def get_output_operator(config, field = 'self_gen'):
             # sites, which can hold polymorphic sites, and it is
             # there for strictly an implementation reason (albeit user
             # configurable).
+            self._output = output
 
             with io.open(output, 'w') as f:
                 writer = csv.DictWriter(f, header)
@@ -237,11 +270,14 @@ def get_output_operator(config, field = 'self_gen'):
 
             if output_per > 0:
                 ats = [i + burnin for i in range(0, ngen, output_per)]
-                super(MyWriter, self).__init__(func = self.write, at = ats)
+                super(MyWriter, self).__init__(func=self.write, at=ats)
             else:
-                super(MyWriter, self).__init__(func = self.write)
+                super(MyWriter, self).__init__(func=self.write)
 
         def write(self, pop):
+            """
+            Writes population state into a file.
+            """
             # In order to keep output file structure simple, all
             # information regarding to simulation such as model
             # parameters are included into each row.  This obviously
@@ -250,7 +286,7 @@ def get_output_operator(config, field = 'self_gen'):
             # consider an upside, the simplicity of the output file
             # structure, is well worth the cost.
 
-            with io.open(output, 'a') as f:
+            with io.open(self._output, 'a') as f:
                 dvars = pop.dvars()
                 rep = dvars.rep
                 gen = dvars.gen - burnin
@@ -272,7 +308,7 @@ def get_output_operator(config, field = 'self_gen'):
                 for idx, ind in enumerate(pop.individuals()):
                     selfing = ind.info(field)
                     for ploidy in range(2):
-                        geno = ind.genotype(ploidy = ploidy)
+                        geno = ind.genotype(ploidy=ploidy)
                         geno = [''.join(str(geno[site]) for site in locus)
                                 for locus in poly_sites]
                         geno = [hex(int(i, 2)) for i in geno if len(i) > 0]
@@ -288,18 +324,18 @@ def get_output_operator(config, field = 'self_gen'):
 def execute(config, pop, mating_op):
     """Configure and run simulations."""
 
-    next_idx, init_genotype_op = cf.get_init_genotype_by_count(simu, 1)
+    _, init_genotype_op = cf.get_init_genotype_by_count(simu, 1)
     init_info_op = cf.get_init_info(simu)
 
-    mutation_op = get_mutation_operator(m_rate = config.m,
-                                        loci = config.loci,
-                                        allele_length = config.allele_length,
-                                        nrep = config.reps,
-                                        burnin = config.burnin)
+    mutation_op = get_mutation_operator(m_rate=config.m,
+                                        loci=config.loci,
+                                        allele_length=config.allele_length,
+                                        nrep=config.reps,
+                                        burnin=config.burnin)
 
     output_op = get_output_operator(config)
 
-    simulator = simu.Simulator(pops = pop, rep = config.reps)
+    simulator = simu.Simulator(pops=pop, rep=config.reps)
 
     if config.debug > 0:
         post_op = [simu.Stat(alleleFreq=simu.ALL_AVAIL, step=config.debug),
@@ -311,15 +347,18 @@ def execute(config, pop, mating_op):
         post_op.append(output_op)
 
     simulator.evolve(
-        initOps = [init_info_op, init_genotype_op],
-        preOps = mutation_op,
-        matingScheme = mating_op,
-        postOps = post_op,
-        finalOps = output_op,
-        gen = config.gens + config.burnin)
+        initOps=[init_info_op, init_genotype_op],
+        preOps=mutation_op,
+        matingScheme=mating_op,
+        postOps=post_op,
+        finalOps=output_op,
+        gen=config.gens + config.burnin)
 
 
 def run(config):
+    """
+    Launches simulations under appropriate mutational model and mating scheme.
+    """
     if config.model == 'androdioecy':
         cf.androdioecy(simu, execute, config)
     elif config.model == 'gynodioecy':

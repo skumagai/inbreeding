@@ -1,3 +1,9 @@
+"""
+selfingsim.simulate
+###################
+
+Run a forward-in-time population genetics simulation for partially selfing organisms.
+"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -8,27 +14,33 @@ import argparse
 import json
 import sys
 
-def main():
-    p = argparse.ArgumentParser()
-    sp = p.add_subparsers()
-    setup_command_line(sp)
-    args = p.parse_args()
+def run():
+    """
+    Runs simulations as a stand-alone script.
+    """
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers()
+    setup_command_line(subparsers)
+    args = parser.parse_args()
     args.func(args)
 
-def setup_command_line(sp):
+def setup_command_line(subparsers):
+    """
+    Sets up command line interface.
+    """
     # Forward simulation
-    p = sp.add_parser(
-            'simulate',
-            help = 'run forward simulations with selfing')
-    p.add_argument(
-            'config',
-            type = argparse.FileType('r'),
-            help = 'the settings of simulation as a JSON file')
-    p.add_argument(
-            'result',
-            type = str,
-            help = 'the name of file storing simulation results')
-    p.set_defaults(func = simulate)
+    parser = subparsers.add_parser(
+        'simulate',
+        help='run forward simulations with selfing')
+    parser.add_argument(
+        'config',
+        type=argparse.FileType('r'),
+        help='the settings of simulation as a JSON file')
+    parser.add_argument(
+        'result',
+        type=str,
+        help='the name of file storing simulation results')
+    parser.set_defaults(func=simulate)
 
 def simulate(args):
     """
@@ -41,7 +53,7 @@ def simulate(args):
     elif config.mode == 'infinite alleles':
         exec_infinite_alleles(config)
     else:
-        print("Unknown mutational model specified", file = sys.stderr)
+        print("Unknown mutational model specified", file=sys.stderr)
         sys.exit(1)
 
 class Config(object):
@@ -56,14 +68,13 @@ class Config(object):
         self._p = cobj['population']
         self.outfile = self._g['outfile'].format(*subst)
         self.m = [
-                float(t['value']) / (4 * N)
-                for t in self._p['mutation']['theta']
-                for rep in range(t['times'])
-                ]
+            float(t['value']) / (4 * N)
+            for t in self._p['mutation']['theta']
+            for _ in range(t['times'])]
 
         try:
             self._pp = cobj['post process']
-        except:
+        except KeyError:
             pass
 
         self.gens = self._p['N'] * self._g['gens']
@@ -87,12 +98,14 @@ class Config(object):
             else:
                 Nh = N * float(self._p['sex ratio'])
                 Nf = N - Nh
-                self.s = at * Nh / (at * Nh + Nh * (1 - self.a) + Nf * self.sigma)
-                self.h = Nh * (1 - self.a) / (Nh * (1 - self.a) + Nf * self.sigma)
+                self.s = at * Nh / (at * Nh + Nh * (1 - self.a) \
+                        + Nf * self.sigma)
+                self.h = Nh * (1 - self.a) / (Nh * (1 - self.a) \
+                        + Nf * self.sigma)
 
         try:
             self.allele_length = self._p['allele_length']
-        except:
+        except KeyError:
             self.allele_length = 1
 
 
@@ -100,13 +113,13 @@ class Config(object):
         name1 = name.replace('_', ' ')
         try:
             return self._g[name1]
-        except:
+        except KeyError:
             try:
                 return self._p[name1]
-            except:
+            except KeyError:
                 try:
                     return self._pp[name1]
-                except:
+                except KeyError:
                     raise KeyError('{}'.format(name))
 
 
@@ -118,7 +131,7 @@ def exec_infinite_sites(config):
     """
     Launches simulations with the infinite-sites model.
     """
-    import partial_selfing.infinite_sites as model
+    import selfingsim.infinite_sites as model
     model.run(config)
 
 
@@ -127,8 +140,8 @@ def exec_infinite_alleles(config):
     """
     Launches simulations with the infinite-alleles model.
     """
-    import partial_selfing.infinite_alleles as model
+    import selfingsim.infinite_alleles as model
     model.run(config)
 
 if __name__ == '__main__':
-    main()
+    run()

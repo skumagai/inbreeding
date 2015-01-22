@@ -1,3 +1,9 @@
+"""
+selfingsim.infinite_alleles
+===========================
+
+Simulation related code specific to mutational model (the infinite alleles model).
+"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -9,7 +15,7 @@ import io
 import simuOpt
 simuOpt.setOptions(alleleType='long')
 import simuPOP as simu
-import partial_selfing.common as cf
+from . import common as cf
 
 
 def get_init_genotype_by_prop(prop):
@@ -22,6 +28,9 @@ def get_init_genotype_by_prop(prop):
 
 
 def get_mutation_operator(m_rate, loci, nrep, burnin, new_idx=0):
+    """
+    Sets up a mutation scheme under the infinite alleles model.
+    """
     class MyMutator(simu.PyOperator):
         """
         A mutation operator class representing the infinite-alleles model.
@@ -31,7 +40,7 @@ def get_mutation_operator(m_rate, loci, nrep, burnin, new_idx=0):
         def __init__(self):
             self.idx = list([new_idx] * loci for i in range(nrep))
 
-            super(MyMutator, self).__init__(func = self.mutate)
+            super(MyMutator, self).__init__(func=self.mutate)
 
 
         def mutate(self, pop):
@@ -46,14 +55,17 @@ def get_mutation_operator(m_rate, loci, nrep, burnin, new_idx=0):
                 for locus in range(loci):
                     for ploidy in range(2):
                         if  rng.randUniform() < m_rate[locus]:
-                            ind.setAllele(self.idx[rep][locus], locus, ploidy = ploidy)
+                            ind.setAllele(self.idx[rep][locus], locus, ploidy=ploidy)
                             self.idx[rep][locus] += 1
             return True
 
     return MyMutator()
 
 
-def get_output_operator(config, field = 'self_gen'):
+def get_output_operator(config, field='self_gen'):
+    """
+    Sets up an operator to write out simulation results (and progress).
+    """
     output = config.outfile
     output_per = config.output_per
     N = config.N
@@ -69,21 +81,19 @@ def get_output_operator(config, field = 'self_gen'):
     ] + ['locus {}'.format(i) for i in range(config.loci)]
 
 
-    """Output genetic information of a population."""
-
     class MyWriter(simu.PyOperator):
         """A class handling output of genetic information of the entire population."""
 
         def __init__(self):
             with io.open(output, 'w') as f:
-                writer = csv.DictWriter(f, header, delimiter = "\t")
+                writer = csv.DictWriter(f, header, delimiter="\t")
                 writer.writeheader()
 
             if output_per > 0:
                 ats = [i + burnin for i in range(0, ngen, output_per)]
-                super(MyWriter, self).__init__(func = self.write, at = ats)
+                super(MyWriter, self).__init__(func=self.write, at=ats)
             else:
-                super(MyWriter, self).__init__(func = self.write)
+                super(MyWriter, self).__init__(func=self.write)
 
 
         def write(self, pop):
@@ -100,7 +110,7 @@ def get_output_operator(config, field = 'self_gen'):
                 rep = dvars.rep
                 gen = dvars.gen
 
-                writer = csv.DictWriter(f, header, delimiter = "\t")
+                writer = csv.DictWriter(f, header, delimiter="\t")
 
                 # write genotype row by row.  Each row contains a list
                 # of genes on a single chromosome.  Because simulated
@@ -109,7 +119,7 @@ def get_output_operator(config, field = 'self_gen'):
                 for idx, ind in enumerate(pop.individuals()):
                     selfing = ind.info(field)
                     for ploidy in range(2):
-                        geno = list(ind.genotype(ploidy = ploidy))
+                        geno = list(ind.genotype(ploidy=ploidy))
                         writer.writerow({key: value for key, value in
                                          zip(header,
                                              [rep, gen, idx, selfing, ploidy] + geno)})
@@ -119,6 +129,9 @@ def get_output_operator(config, field = 'self_gen'):
     return MyWriter()
 
 def execute(config, pop, mating_op):
+    """
+    Executes simulations with appropriate mutation model and mating scheme.
+    """
 
     init = config.init['model']
 
@@ -135,15 +148,15 @@ def execute(config, pop, mating_op):
 
     init_info_op = cf.get_init_info(simu)
 
-    mutation_op = get_mutation_operator(m_rate = config.m,
-                                        loci = config.loci,
-                                        nrep = config.reps,
-                                        burnin = config.burnin,
-                                        new_idx = next_idx)
+    mutation_op = get_mutation_operator(m_rate=config.m,
+                                        loci=config.loci,
+                                        nrep=config.reps,
+                                        burnin=config.burnin,
+                                        new_idx=next_idx)
 
     output_op = get_output_operator(config)
 
-    simulator = simu.Simulator(pops = pop, rep = config.reps)
+    simulator = simu.Simulator(pops=pop, rep=config.reps)
 
     if config.debug > 0:
         post_op = [simu.Stat(alleleFreq=simu.ALL_AVAIL, step=config.debug),
@@ -155,16 +168,19 @@ def execute(config, pop, mating_op):
         post_op.append(output_op)
 
     simulator.evolve(
-        initOps = [init_info_op, init_genotype_op],
-        preOps = mutation_op,
-        matingScheme = mating_op,
-        postOps = post_op,
-        finalOps = output_op,
-        gen = config.gens + config.burnin)
+        initOps=[init_info_op, init_genotype_op],
+        preOps=mutation_op,
+        matingScheme=mating_op,
+        postOps=post_op,
+        finalOps=output_op,
+        gen=config.gens + config.burnin)
 
 
 
 def run(config):
+    """
+    Runs simulations under an appropriate mating scheme.
+    """
     if config.model == 'androdioecy':
         cf.androdioecy(simu, execute, config)
     elif config.model == 'gynodioecy':

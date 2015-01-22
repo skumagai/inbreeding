@@ -1,16 +1,20 @@
+"""
+selfingsim.common
+=================
+
+Common code used in simulations.
+"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import simuPOP.sampling as sampling
-
-def get_population(simu, size, loci, infoFields='self_gen'):
+def get_population(simu, size, loci, info_fields='self_gen'):
     """Construct a population object."""
-    return simu.Population(size = size,
-                           ploidy = 2,
-                           loci = loci,
-                           infoFields = infoFields)
+    return simu.Population(size=size,
+                           ploidy=2,
+                           loci=loci,
+                           infoFields=info_fields)
 
 
 def get_init_info(simu, field='self_gen'):
@@ -18,30 +22,33 @@ def get_init_info(simu, field='self_gen'):
     return simu.InitInfo(0, infoFields=field)
 
 
-def get_init_genotype_by_count(simu, n):
+def get_init_genotype_by_count(simu, nalleles):
     """
-    Set genotype of inital population.
+    Set genotype of inital population by equi-probable n alleles.
     """
-    return (n, simu.InitGenotype(prop=[1 / n for dummy in range(n)]))
+    return (nalleles, simu.InitGenotype(prop=[1 / nalleles for _ in range(nalleles)]))
 
 
-def pick_pure_hermaphrodite_parents(simu, s):
+def pick_pure_hermaphrodite_parents(simu, cond):
     """
-    Picks parent(s) under pure hermaphroditism.
+    Sets up a mechanism to pick parent(s) under pure hermaphroditism.
     """
     rng = simu.getRNG()
     runif = rng.randUniform
     rint = rng.randInt
     def generator(pop):
-        N = pop.popSize()
+        """
+        Generates parents under pure hermaphroditism.
+        """
+        npop = pop.popSize()
         while True:
-            if runif() < s:         # uniparental
+            if runif() < cond:         # uniparental
                 # print(1)
-                yield rint(N)
+                yield rint(npop)
             else:                   # biparental
-                pair = [rint(N), rint(N)]
+                pair = [rint(npop), rint(npop)]
                 while pair[0] == pair[1]:
-                    pair[1] = rint(N)
+                    pair[1] = rint(npop)
                 # print(2)
                 yield pair
     return generator
@@ -49,12 +56,15 @@ def pick_pure_hermaphrodite_parents(simu, s):
 
 def pick_androdioecious_parents(simu, a, tau, sigma):
     """
-    Picks parent(s) under dndrodioecy.
+    Sets up a mechanism to pick parent(s) under androdioecy.
     """
     rng = simu.getRNG()
     runif = rng.randUniform
     rint = rng.randInt
     def generator(pop):
+        """
+        Picks up parent(s) under androdioecy.
+        """
         gen = -1
         while True:
             ngen = pop.dvars().gen
@@ -64,30 +74,33 @@ def pick_androdioecious_parents(simu, a, tau, sigma):
                 # population. The sex-specific subpopulations are used
                 # throughout mating events in one generation.
                 gen = ngen
-                m = pop.extractSubPops(subPops = [(0, 0)])
-                h = pop.extractSubPops(subPops = [(0, 1)])
-                Nm = m.popSize()
-                Nh = h.popSize()
+                males = pop.extractSubPops(subPops=[(0, 0)])
+                herms = pop.extractSubPops(subPops=[(0, 1)])
+                nmale = males.popSize()
+                nherm = herms.popSize()
 
             if runif() < a:         # uniparental
                 if runif() < tau:   # zygote survives
                     # print(1)
-                    yield h.individual(rint(Nh))
+                    yield herms.individual(rint(nherm))
             else:                   # biparental
                 if runif() < sigma: # successful fertilization
                     # print(2)
-                    yield [m.individual(rint(Nm)), h.individual(rint(Nh))]
+                    yield [males.individual(rint(nmale)), herms.individual(rint(nherm))]
     return generator
 
 
 def pick_gynodioecious_parents(simu, a, tau, sigma):
     """
-    Picks parent(s) under gynodioecy.
+    Sets up a mechanism to pick up parent(s) under gynodioecy.
     """
     rng = simu.getRNG()
     runif = rng.randUniform
     rint = rng.randInt
     def generator(pop):
+        """
+        Picks up parent(s) under gynodioecy.
+        """
         gen = -1
         while True:
             ngen = pop.dvars().gen
@@ -97,8 +110,8 @@ def pick_gynodioecious_parents(simu, a, tau, sigma):
                 # population. The sex-specific subpopulations are used
                 # throughout mating events in one generation.
                 gen = ngen
-                h = pop.extractSubPops(subPops = [(0, 0)])
-                f = pop.extractSubPops(subPops = [(0, 1)])
+                h = pop.extractSubPops(subPops=[(0, 0)])
+                f = pop.extractSubPops(subPops=[(0, 1)])
                 Nh = h.popSize()
                 Nf = f.popSize()
 
@@ -130,7 +143,7 @@ def get_selfing_tagger(simu, field):
 
         def __init__(self, field='self_gen'):
             self.field = field
-            super(MySelfingTagger, self).__init__(func = self.record)
+            super(MySelfingTagger, self).__init__(func=self.record)
 
         def record(self, pop, off, dad, mom):
             """
@@ -156,20 +169,20 @@ def get_pure_hermaphrodite_mating(simu, r_rate, s, size, rec_sites, field='self_
     """
 
     parents_chooser = simu.PyParentsChooser(
-        pick_pure_hermaphrodite_parents(simu = simu, s = s)
+        pick_pure_hermaphrodite_parents(simu=simu, s=s)
     )
 
     selfing_tagger = get_selfing_tagger(simu, field)
 
-    return simu.HomoMating(chooser = parents_chooser,
-                           generator = simu.OffspringGenerator(
-                               ops = [simu.Recombinator(rates = r_rate, loci = rec_sites),
-                                      selfing_tagger]),
-                           subPopSize = size)
+    return simu.HomoMating(chooser=parents_chooser,
+                           generator=simu.OffspringGenerator(
+                               ops=[simu.Recombinator(rates=r_rate, loci=rec_sites),
+                                    selfing_tagger]),
+                           subPopSize=size)
 
 
 def get_androdioecious_mating(simu, r_rate, a, tau, sigma,
-                              size, sex_ratio, rec_sites, field = 'self_gen'):
+                              size, sex_ratio, rec_sites, field='self_gen'):
     """
     Constructs a mating operator under androdioecy.
     """
@@ -177,55 +190,55 @@ def get_androdioecious_mating(simu, r_rate, a, tau, sigma,
     sexMode = (simu.PROB_OF_MALES, sex_ratio)
 
     parents_chooser = simu.PyParentsChooser(
-        pick_androdioecious_parents(simu = simu, a = a, tau = tau, sigma = sigma)
+        pick_androdioecious_parents(simu=simu, a=a, tau=tau, sigma=sigma)
     )
 
     selfing_tagger = get_selfing_tagger(simu, field)
-    return simu.HomoMating(chooser = parents_chooser,
-                           generator = simu.OffspringGenerator(
-                               ops = [simu.Recombinator(rates = r_rate, loci = rec_sites),
-                                      selfing_tagger],
-                               sexMode = sexMode),
-                           subPopSize = size)
+    return simu.HomoMating(chooser=parents_chooser,
+                           generator=simu.OffspringGenerator(
+                               ops=[simu.Recombinator(rates=r_rate, loci=rec_sites),
+                                    selfing_tagger],
+                               sexMode=sexMode),
+                           subPopSize=size)
 
 
 def get_gynodioecious_mating(simu, r_rate, a, tau, sigma,
-                             size, sex_ratio, rec_sites, field = 'self_gen'):
+                             size, sex_ratio, rec_sites, field='self_gen'):
     """
     Constructs a mating operator under gynodioecy.
     """
 
-    sexMode = (simu.PROB_OF_MALES, sex_ratio)
+    sex_mode = (simu.PROB_OF_MALES, sex_ratio)
 
     parents_chooser = simu.PyParentsChooser(
-        pick_gynodioecious_parents(simu = simu, a = a, tau = tau, sigma = sigma)
+        pick_gynodioecious_parents(simu=simu, a=a, tau=tau, sigma=sigma)
     )
 
     selfing_tagger = get_selfing_tagger(simu, field)
-    return simu.HomoMating(chooser = parents_chooser,
-                           generator = simu.OffspringGenerator(
-                               ops = [simu.Recombinator(rates = r_rate, loci = rec_sites),
-                                      selfing_tagger],
-                               sexMode = sexMode),
-                           subPopSize = size)
+    return simu.HomoMating(chooser=parents_chooser,
+                           generator=simu.OffspringGenerator(
+                               ops=[simu.Recombinator(rates=r_rate, loci=rec_sites),
+                                    selfing_tagger],
+                               sexMode=sex_mode),
+                           subPopSize=size)
 
 
 def pure_hermaphrodite(simu, execute_func, config):
     """
     Sets up pure hermaphroditic simulation.
     """
-    pop = get_population(simu = simu,
-                         size = config.N,
-                         loci = config.loci * config.allele_length)
+    pop = get_population(simu=simu,
+                         size=config.N,
+                         loci=config.loci * config.allele_length)
 
     # Index of sites, after which recombinations happen.
     rec_loci = [config.allele_length * i - 1 for i in range(1, config.loci)]
 
     mating_op = get_pure_hermaphrodite_mating(simu,
-                                              r_rate = config.r,
-                                              s = config.s,
-                                              size = config.N,
-                                              rec_sites = rec_loci)
+                                              r_rate=config.r,
+                                              s=config.s,
+                                              size=config.N,
+                                              rec_sites=rec_loci)
 
     execute_func(config, pop, mating_op)
 
@@ -234,25 +247,25 @@ def androdioecy(simu, execute_func, config):
     """
     Sets up androdioecious simulation.
     """
-    pop = get_population(simu = simu,
-                         size = config.N,
-                         loci = config.loci * config.allele_length)
+    pop = get_population(simu=simu,
+                         size=config.N,
+                         loci=config.loci * config.allele_length)
 
     sex_ratio = 1.0 - config.sex_ratio
-    simu.initSex(pop, maleFreq = sex_ratio)
+    simu.initSex(pop, maleFreq=sex_ratio)
     pop.setVirtualSplitter(simu.SexSplitter())
 
     # Index of sites, after which recombinations happen.
     rec_loci = [config.allele_length * i - 1 for i in range(1, config.loci)]
 
     mating_op = get_androdioecious_mating(simu,
-                                          r_rate = config.r,
-                                          a = config.a,
-                                          tau = config.tau,
-                                          sigma = config.sigma,
-                                          size = config.N,
-                                          sex_ratio = sex_ratio,
-                                          rec_sites = rec_loci)
+                                          r_rate=config.r,
+                                          a=config.a,
+                                          tau=config.tau,
+                                          sigma=config.sigma,
+                                          size=config.N,
+                                          sex_ratio=sex_ratio,
+                                          rec_sites=rec_loci)
 
     execute_func(config, pop, mating_op)
 
@@ -262,24 +275,24 @@ def gynodioecy(simu, execute_func, config):
     """
     Sets up gynodioecious mating.
     """
-    pop = get_population(simu = simu,
-                         size = config.N,
-                         loci = config.loci * config.allele_length)
+    pop = get_population(simu=simu,
+                         size=config.N,
+                         loci=config.loci * config.allele_length)
 
     sex_ratio = config.sex_ratio
-    simu.initSex(pop, maleFreq = sex_ratio)
+    simu.initSex(pop, maleFreq=sex_ratio)
     pop.setVirtualSplitter(simu.SexSplitter())
 
     # Index of sites, after which recombinations happen.
     rec_loci = [config.allele_length * i - 1 for i in range(1, config.loci)]
 
     mating_op = get_gynodioecious_mating(simu,
-                                         r_rate = config.r,
-                                         a = config.a,
-                                         tau = config.tau,
-                                         sigma = config.sigma,
-                                         size = config.N,
-                                         sex_ratio = sex_ratio,
-                                         rec_sites = rec_loci)
+                                         r_rate=config.r,
+                                         a=config.a,
+                                         tau=config.tau,
+                                         sigma=config.sigma,
+                                         size=config.N,
+                                         sex_ratio=sex_ratio,
+                                         rec_sites=rec_loci)
 
     execute_func(config, pop, mating_op)
