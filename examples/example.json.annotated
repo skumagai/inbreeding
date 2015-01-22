@@ -1,0 +1,122 @@
+{
+    "general": {
+        "outfile": "outfile.{}.csv", // name of output file. '{}' can take substitution
+        "gens": 20,                  // number of generations to run (unit N generations)
+        "burnin": 0,                 // number of burnin generations (unit N generations)
+        "reps": 1,                   // number of replicates
+        "debug": 0,                  // emit allele frequency per 'debug' generations. (0 no output)
+        "output per": 0              // frequency of outputting population states
+                                     // in the middle of a simulation.  (unit N generations)
+    },
+
+    "population": {
+        "N": 10000,             // number of individuals
+        "loci": 32,             // number of loci
+        "sex ratio": 0.5        // proportion of hermaphrodiates in a population.
+                                // (not used in pure hermaphrodite population (1.0)
+
+        "init": {
+            // It is currently not supported to specify initial condition of each locus separately.
+
+
+            // state of an initial population.  It has three modes specified by "model" parameter.
+            // The first model is "monomorphic", when the initial population is monorphic.
+            // The second model is "polymorphic", when the initial population contains more
+            // than one allele.
+            // The last model is "unique".  This is a special case of "polymorphic model", when
+            // every genes in the initial population is distinct from any other.
+
+            "model": "monomorphic" // initial population contains only one allele
+
+            // 'polymorphic' mode takes an additional parameter 'count' or 'freq'.
+
+            // 'count' specifies the number of alleles in the initial population.
+            // Proportion of each allele is made as uniform as possible.
+            // In this example, there are 16 alleles, and their frequencies are about 1/16.
+            "model": "polymorphic",
+            "count": 16
+
+            // 'polymorphic' mode can take another paremeter 'freq'.  In this case,
+            // 'param' specifies allele frequencies.  Frequencies will be normalized when
+            // they do not sum to 1.  Number of alleles are implicitly defined by the number
+            // of elements in 'freq' parameters.
+            "model": "polymorphic",
+            "freq": [0.25, 0.75]
+
+            "model": "unique"
+        },
+
+        "mating": {
+            // mating type is specified by "model, and it can take one of
+            // "pure hermaphrodite", "androdioecy", or "gynodioecy".
+            // Depending on a specific "model", each model can take one to
+            // three parameters.
+
+            // List of parameters
+            // a: proportion of self-fertilized eggs by hermaphrodites
+            // sigma: proportion of successful fertilization of unfertilized eggs by
+            //        two parents
+            // tau: viability of uniparental offspring relative to biparental offspring
+
+            // For 'pure hermaphrodite" model, sigma is not required.
+            "model": "pure hermaphrodite",
+            "a": 0.4,
+            "tau": 0.5
+            // s = 0.5
+
+            // For 'androdioecy' model, all three parameters are required.
+            "model": "androdioecy",
+            "a": 0.4,
+            "sigma": 0.33333,
+            "tau": 0.5
+            // s_A = 0.5
+
+            // For 'gynodioecy' model, all three parameters are required.
+            "model": "gynodioecy",
+            "a": 0.8,
+            "sigma": 0.3,
+            "tau": 0.625
+            // s_G = 0.5
+            // H = 0.4
+
+        },
+
+        "r": 0.5,
+        "mutation": {
+            "model": "infinite allele",
+            "theta": [{"value": 0.5, "times": 16}, {"value": 1.5, "times": 16}]
+        }
+    },
+
+    "post process": { // Optional
+        // This section may contains post-processing commands to run after simulations are
+        // successfully terminated.
+
+        "sample" { // Sample some individuals and store them in files.
+            // Sample size (mandatory): number of individuals to sample
+            "size": 70,
+            // file format (optional): formats of result files.
+            // One of "json", "phase", "rmes", and "nexus", or combination of them.
+            "formats": ["phase", "rmes"],
+            //
+            "reps": 10
+        },
+
+
+        // 'command' specifies the list of commands to run.
+        "command": ["phase", "rmes"],
+
+        // 'gen' specifies which generation 'command' should work on.  This takes 'last' or 'every'
+        "gen": "last"
+
+        // delete intermediate files generated during the post processing
+        "clean": true,
+
+        // sample size
+        "sample size": 70,
+
+        // number of sample sets taken from each geneations.
+        "reps": 10
+    }
+
+}
