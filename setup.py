@@ -1,10 +1,7 @@
-try:
-    from setuptools import setup
-except:
-    from distutils.core import setup
+from setuptools import setup
 
 setup(description='A forward simulator for partially selfing population based on simuPOP',
-      long_discription="""
+      long_description="""
         A forward-in-time population genetic simulator for partially selfing organisms.
         Currently three modes of mating (pure hermaphroditism, androdioecy, and gynodioecy)
         are supported.
@@ -17,9 +14,14 @@ setup(description='A forward simulator for partially selfing population based on
       version=1.0,
       install_requires=['nose'],
       packages=['selfingsim'],
-      scripts=['scripts/selfingsim'],
+#      scripts=['scripts/selfingsim'],
+      entry_points={
+          'console_scripts': [
+              'selfingsim=selfingsim:run',
+          ],
+      },
       name='selfingsim',
-      license='GPLv3',
+      license='GPLv2',
       classifiers=[
          'Development Status :: 5 - Production/Stable',
          'Intended Audience :: Science/Research',
