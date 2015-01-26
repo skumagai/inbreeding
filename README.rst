@@ -1,19 +1,34 @@
-# selfingsim
+==========
+Selfingsim
+==========
 
-Selfingsim is a forward population genetic simulator
-for a partially selfing, constant-size population.
+Selfingsim is a forward-in-time population genetic simulator for studying
+evolution of partially selfing organisms.
+It was developed for and used in
+"Bayesian co-estimation of selfing rate and locus-specific mutation
+rates for a partially selfing population"
+(Redelings *et al.* 2015, `link`_).
 
-This program was developed for and used in "Bayesian co-estimation of selfing rate
-and locus-specific mutation rates for a partially selfing population"
-(Redelings *et al.* 2015, [link][manuscript])
+Characteristics of selfingsim are:
+- a constant population size
+- inter-locus (but not intra-locus) recombination
+- three different mating schemes:
+  - pure hermaphroditism,
+  - androdioecy: hermaphrodites and males,
+  - gynodioecy: hermaphrodites and females.
+- two mutational models:
+  - the infinite-alleles model,
+  - the infinite-sites model.
+
+Installation
+============
+
+Selfingsim depends on three projects:
+1. Python (required; version 2.7 or version 3.0 or later)
+2. `simuPOP`_ (rquired): a framework for forward-in-time population genetic simulations
+3. `nose`_ (optional): a testing framework for python
 
 
-## Supported mating schemes
-
-Three mating schemes are currently supported:
-- pure hermaphroditism,
-- androdioecy: hermaphrodites and males,
-- gynodioecy: hermaphrodites and females.
 
 ## Model of mutations
 
@@ -83,9 +98,9 @@ An example configuration file can be found at [link][selfingsimex].
 This example is annotated by ``// comment``, but an actual configuration file
 can't have annotation.
 
-[manuscript]: http://www.example.com
+.. _link: http://www.example.com
 [selfingsimdl]: https://github.com/skumagai/selfingsim/archive/master.zip
 [selfingsimex]: https://github.com/skumagai/selfingsim/blob/master/example.json.annotated
-[simuPOP]: http://simupop.sourceforge.net
+.. _simuPOP: http://simupop.sourceforge.net
 [simuPOPinst]: http://simupop.sourceforge.net/Main/Download
-[nose]: https://github.com/nose-devs/nose
+.. _nose: https://github.com/nose-devs/nose
