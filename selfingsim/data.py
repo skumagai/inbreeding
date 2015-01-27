@@ -10,8 +10,10 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 try:
+    _str = str
     str = unicode
 except NameError:
+    _str = str
     pass
 
 # standeard imports
@@ -22,6 +24,8 @@ from itertools import groupby, izip
 import json
 import os.path
 import random
+
+from . import utils
 
 def createsample(fname, gen=None):
     """
@@ -297,8 +301,8 @@ class FullSample(BasicSample):
         If specified generations are not recorded, this returns an empty list.
         """
         samples = []
-        with io.open(fname, "r") as fhandle:
-            reader = csv.reader(fhandle, delimiter=str("\t"))
+        with io.open(fname, utils.getmode("r")) as fhandle:
+            reader = csv.reader(fhandle, delimiter=_str("\t"))
             # Throw out a header row
             next(fhandle)
             rows = [row for row in reader if int(row[1]) == gen]
