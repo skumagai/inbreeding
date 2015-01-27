@@ -76,23 +76,21 @@ def sample(config):
     Samples a subset of individuals from the current sample from simulation
     results in TSV format.
     """
-    sims = data.createsample(config.simfile, config.generation)
+    # Assume that one simulation result does not contain results of more than one replicates.
+    sim = data.createsample(config.simfile, config.generation)[0]
     fbase = ".".join(config.simfile.split(".")[:-1])
 
     dreps = _ndigits(config.reps)
-    dsims = _ndigits(len(sims))
 
     # the following template is used for having the right amount of padding
     # in the output file name.
-    template = fbase + ".simrep{{:0{}}}.{}.{{:0{}}}.json"
+    template = fbase + ".size_{}.sample_rep_{{:0{}}}.json"
 
-    for i, sim in enumerate(sims):
-        for j in xrange(config.reps):
-            newsamp = sim.sample(config.samplesize)
-            ofname = template.format(dsims, config.samplesize, dreps).format(i, j)
-            print(ofname)
-            with io.open(ofname, "w") as fhandle:
-                print(newsamp.tojson(), file=fhandle)
+    for j in xrange(config.reps):
+        newsamp = sim.sample(config.samplesize)
+        ofname = template.format(config.samplesize, dreps).format(j)
+        with io.open(ofname, "w") as fhandle:
+            print(newsamp.tojson(), file=fhandle)
 
 def subsample(config):
     """

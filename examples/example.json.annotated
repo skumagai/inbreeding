@@ -5,7 +5,6 @@
                                      // supply substitution in the command line.
         "gens": 20,                  // number of generations to run (unit N generations)
         "burnin": 0,                 // number of burnin generations (unit N generations)
-        "reps": 1,                   // number of replicates
         "debug": 0,                  // emit allele frequency per 'debug' generations. (0 no output)
         "output per": 0              // frequency of outputting population states
                                      // in the middle of a simulation.  (unit N generations)

@@ -216,7 +216,7 @@ def get_output_operator(config, field='self_gen'):
     data = ['infinite sites',
             N,
             ngen,
-            config.reps,
+            1,
             loci,
             config.m,
             config.s,
@@ -335,12 +335,12 @@ def execute(config, pop, mating_op):
     mutation_op = get_mutation_operator(m_rate=config.m,
                                         loci=config.loci,
                                         allele_length=config.allele_length,
-                                        nrep=config.reps,
+                                        nrep=1,
                                         burnin=config.burnin)
 
     output_op = get_output_operator(config)
 
-    simulator = simu.Simulator(pops=pop, rep=config.reps)
+    simulator = simu.Simulator(pops=pop, rep=1)
 
     if config.debug > 0:
         post_op = [simu.Stat(alleleFreq=simu.ALL_AVAIL, step=config.debug),

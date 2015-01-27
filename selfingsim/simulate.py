@@ -72,7 +72,6 @@ class Config(object):
                        lambda x: x.format(*substs))
         self._addparam(cobj, 'general', 'gens', lambda x: self._params['N'] * x)
         self._addparam(cobj, 'general', 'burnin', lambda x: self._params['N'] * x)
-        self._addparam(cobj, 'general', 'reps')
         self._addparam(cobj, 'general', 'debug')
         self._addparam(cobj, 'general', 'output per', lambda x: self._params['N'] * x)
 

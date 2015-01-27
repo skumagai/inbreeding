@@ -3,7 +3,6 @@
         "outfile": "outfile.{}.tsv",
         "gens": 10,
         "burnin": 10,
-        "reps": 1,
         "debug": 0,
         "output per": 1
     },
