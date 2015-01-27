@@ -1,6 +1,8 @@
+/// All parameters are mandatory.
 {
     "general": {
-        "outfile": "outfile.{}.csv", // name of output file. '{}' can take substitution
+        "outfile": "outfile.{}.csv", // name of output file. '{}' is a placeholder, and you can
+                                     // supply substitution in the command line.
         "gens": 20,                  // number of generations to run (unit N generations)
         "burnin": 0,                 // number of burnin generations (unit N generations)
         "reps": 1,                   // number of replicates
@@ -12,45 +14,35 @@
     "population": {
         "N": 10000,             // number of individuals
         "loci": 32,             // number of loci
-        "sex ratio": 0.5        // proportion of hermaphrodiates in a population.
-                                // (not used in pure hermaphrodite population (1.0)
 
+        // Initial genotypes of a population.
+        //
+        // There are three ways to initialize genotypes of a population at the beginning
+        // of a simulation.
+        // The simplest is to set a population to be monomorphic.
+        "init": "monomorphic",
+        // The next is to make all genes unique, so the number of alleles per locus is 2N.
+        "init": "unique",
+        // Then, the number of alleles can also be used.  In this mode, alleles will have
+        // (roughly) equal frequencies.
         "init": {
-            // It is currently not supported to specify initial condition of each locus separately.
-
-
-            // state of an initial population.  It has three modes specified by "model" parameter.
-            // The first model is "monomorphic", when the initial population is monorphic.
-            // The second model is "polymorphic", when the initial population contains more
-            // than one allele.
-            // The last model is "unique".  This is a special case of "polymorphic model", when
-            // every genes in the initial population is distinct from any other.
-
-            "model": "monomorphic" // initial population contains only one allele
-
-            // 'polymorphic' mode takes an additional parameter 'count' or 'freq'.
-
-            // 'count' specifies the number of alleles in the initial population.
-            // Proportion of each allele is made as uniform as possible.
-            // In this example, there are 16 alleles, and their frequencies are about 1/16.
-            "model": "polymorphic",
-            "count": 16
-
-            // 'polymorphic' mode can take another paremeter 'freq'.  In this case,
-            // 'param' specifies allele frequencies.  Frequencies will be normalized when
-            // they do not sum to 1.  Number of alleles are implicitly defined by the number
-            // of elements in 'freq' parameters.
-            "model": "polymorphic",
-            "freq": [0.25, 0.75]
-
-            "model": "unique"
+            "type": "count",
+            "value: 10
+        },
+        // Finally, similar to the preivous mode, frequencies of alleles can be specified.
+        // Again, each alleles will be equally frequent.
+        "init": {
+            "type": "frquency",
+            "value": 0.125
         },
 
         "mating": {
-            // mating type is specified by "model, and it can take one of
+            // Mating scheme
+            //
+            // Mating type is specified by "model", and it takes one of
             // "pure hermaphrodite", "androdioecy", or "gynodioecy".
-            // Depending on a specific "model", each model can take one to
-            // three parameters.
+            // Depending on a specific model, up to three additional parameters
+            // are needed.
 
             // List of parameters
             // a: proportion of self-fertilized eggs by hermaphrodites
@@ -81,42 +73,36 @@
 
         },
 
+        // Recommbination probability
+        //
+        // One rate applies to all loci.
+        // The rate is given as a probability of recombination between two adjacent loci
+        // per-generation.
         "r": 0.5,
+
         "mutation": {
+            // Mutation model
+            //
+            // Supported models are the infinite alleles and sites models.
+            // Note that code for the infinite sites model is not well tested, and its use
+            // is not recommended.
+
+            // The infinite alleles model
             "model": "infinite allele",
+
+            // Scaled mutation rate(s) (4Nmu)
+            // There are three ways to specify mutation rates.
+            //
+            // The first is to use uniform mutation rate across all loci.
+            "theta": 0.5,
+            // Or, as a list, whose length is equal to the number of loci:
+            "theta": [0, 1,..., 31],
+            // Or, as a list of named pairs.  The first key, "value" specifies
+            // mutation rate, and the second key, "times", specifies the number of
+            // repetitions.
+            // For example, [{"value": 1, "times": 2}, {"value": 3, "times": 3}] is
+            // equal to [1, 1, 3, 3, 3].
             "theta": [{"value": 0.5, "times": 16}, {"value": 1.5, "times": 16}]
         }
-    },
-
-    "post process": { // Optional
-        // This section may contains post-processing commands to run after simulations are
-        // successfully terminated.
-
-        "sample" { // Sample some individuals and store them in files.
-            // Sample size (mandatory): number of individuals to sample
-            "size": 70,
-            // file format (optional): formats of result files.
-            // One of "json", "phase", "rmes", and "nexus", or combination of them.
-            "formats": ["phase", "rmes"],
-            //
-            "reps": 10
-        },
-
-
-        // 'command' specifies the list of commands to run.
-        "command": ["phase", "rmes"],
-
-        // 'gen' specifies which generation 'command' should work on.  This takes 'last' or 'every'
-        "gen": "last"
-
-        // delete intermediate files generated during the post processing
-        "clean": true,
-
-        // sample size
-        "sample size": 70,
-
-        // number of sample sets taken from each geneations.
-        "reps": 10
     }
-
 }
