@@ -94,9 +94,9 @@ Currently supported format and known programs to work with each format are:
 ====== ====== ==========================
 format suffix known program to work with
 ====== ====== ==========================
-phase  .phase bali-phy
-rmes   .rmes  RMES
-nexus  .nex   GDA
+phase  .phase `bali-phy`_
+rmes   .rmes  `RMES`_
+nexus  .nex   `GDA`_
 ====== ====== ==========================
 
 Conversion can be performed from the sample file as:
@@ -111,3 +111,6 @@ is replaced by either ".phase", ".rmes", or ".nex".
 .. _here:
 .. _simuPOP: http://simupop.sourceforge.net
 .. _nose: https://github.com/nose-devs/nose
+.. _bali-phy: http://www.bali-phy.org/
+.. _gda: http://hydrodictyon.eeb.uconn.edu/people/plewis/software.php
+.. _rmes: http://www.cefe.cnrs.fr/index.php/fr/recherche/accueil-dpt-ecologie-evolutive/genetique-et-ecologie-evolutive/800-gge/gge-chercheurs/196-patrice-david
