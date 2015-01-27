@@ -91,9 +91,13 @@ Thrid-party inference software often requires dataset in a specific format.
 We provide conversion to several formats.
 Currently supported format and known programs to work with each format are:
 
-- Phase format (.phase): bali-phy
-- RMES format (.rmes): RMES
-- Nexus foramt (.nex): GDA
+====== ====== ==========================
+format suffix known program to work with
+====== ====== ==========================
+phase  .phase bali-phy
+rmes   .rmes  RMES
+nexus  .nex   GDA
+====== ====== ==========================
 
 Conversion can be performed from the sample file as:
 
