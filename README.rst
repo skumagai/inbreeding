@@ -10,6 +10,7 @@ rates for a partially selfing population"
 (Redelings *et al.* 2015, `link`_).
 
 Characteristics of selfingsim are:
+
 - constant population size
 - inter-locus (but not intra-locus) recombination
 - three different mating schemes (pure hermaproditism, androdioecy, and gynodioecy)
@@ -19,6 +20,7 @@ Installation
 ============
 
 Selfingsim depends on other projects:
+
 - Python (required; version 2.7, or version 3.0+)
 - pip (required; comes with recent verions of Python): a tool to install python packages
 - `simuPOP`_ (rquired): a framework for forward-in-time population genetic simulations
