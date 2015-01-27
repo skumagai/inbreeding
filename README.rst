@@ -23,7 +23,7 @@ Selfingsim depends on other projects:
 
 - Python (required; version 2.7, or version 3.0+)
 - pip (required; comes with recent verions of Python): a tool to install python packages
-- `simuPOP`_ (rquired): a framework for forward-in-time population genetic simulations
+- `simuPOP`_ (required): a framework for forward-in-time population genetic simulations
 - `nose`_ (optional): a testing framework for python
 
 After installing Python and simuPOP following their instructions,
