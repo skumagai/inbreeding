@@ -82,9 +82,7 @@
         "mutation": {
             // Mutation model
             //
-            // Supported models are the infinite alleles and sites models.
-            // Note that code for the infinite sites model is not well tested, and its use
-            // is not recommended.
+            // Only the infinite-alleles model is currently supported.
 
             // The infinite alleles model
             "model": "infinite allele",

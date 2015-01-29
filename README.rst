@@ -14,7 +14,7 @@ Characteristics of selfingsim are:
 - constant population size
 - inter-locus (but not intra-locus) recombination
 - three different mating schemes (pure hermaproditism, androdioecy, and gynodioecy)
-- two mutational models (the infinite-alleles model and infinite-sites model)
+- the infinitie-alleles model of mutation
 
 Installation
 ============
