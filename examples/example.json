@@ -17,7 +17,7 @@
 
         "mating": {
             "model": "pure hermaphrodite",
-            "s": 0.0
+            "s*": 0.0
         },
 
         "r": 0.5,

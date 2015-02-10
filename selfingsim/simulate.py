@@ -162,30 +162,25 @@ class Config(object):
         except KeyError:
             sys.exit('Mating model(scheme) not specified.')
 
-        if model == 'pure hermaphrodite' or model == 'androdioecy':
-            try:
-                self._params['s'] = mating['s']
-            except KeyError:
-                try:
-                    tau = mating['tau']
-                    stilde = mating['stilde']
-                    val = tau * stilde
-                    self._params['s'] = val / (val + 1 - stilde)
-                except KeyError:
-                    sys.exit('Probaiblity of uniparental individual uncomputable.')
-        elif model == 'gynodioecy':
-            try:
-                tau = mating['tau']
-                aval = mating['a']
-                sigma = mating['sigma']
-                nffrac = mating['% females']
-                nhfrac = mating['% hermaphrodites']
-                tna = tau * nhfrac * aval
-                self._params['s'] = tna / (tna + nhfrac * (1 - aval) + nffrac * sigma)
-            except KeyError:
-                sys.exit('Mating parameters are not fully specified.')
-        else:
+        if model not in ['pure hermaphrodite', 'androdioecy', 'gynodioecy']
             sys.exit('Unrecognized mating model "{}".'.format(model))
+
+        try:
+            self._params['sstar'] = mating['s*']
+        except KeyError:
+            sys.exit('s* not specified.')
+        if model == 'gynodioecy' or model == 'androdioecy':
+            try:
+                self._params['N_hermaphrodites'] = mating['N_hermaphrodites']
+            except KeyError:
+                sys.exit('Number of hermaphrodites not specified.')
+            if self._params['N_hermaphrodites'] > self._params['N']:
+                sys.exit('Number of hermaphrodites larger than population size.')
+        if model == 'gynodioecy':
+            try:
+                self._params['H'] = mating['H']
+            except KeyError:
+                sys.exit('H (proportion of biparental offspring with a hermaphroditic seed) unspecified.')
 
     def __getattr__(self, name):
         """

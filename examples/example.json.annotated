@@ -40,35 +40,28 @@
             //
             // Mating type is specified by "model", and it takes one of
             // "pure hermaphrodite", "androdioecy", or "gynodioecy".
-            // Depending on a specific model, up to three additional parameters
-            // are needed.
-
-            // List of parameters
-            // a: proportion of self-fertilized eggs by hermaphrodites
-            // sigma: proportion of successful fertilization of unfertilized eggs by
-            //        two parents
-            // tau: viability of uniparental offspring relative to biparental offspring
+            // All of these model takes another entry "s*", the proportion of
+            // uniparental offspring.
+            // Androdioecy and gynodioecy additionally take 'N_hermaprhodites', the
+            // number of hermpaphrodites in a reproducing population.
+            // For an obvious reason, this value has to be less or equal to 'N', the
+            // total size of a reproducing population.
+            // Gynodioecy also takes yet another parameter 'H', the proportion of
+            // biparental offspring with hermaphroditic seed parent.
 
             // For 'pure hermaphrodite" model, sigma is not required.
             "model": "pure hermaphrodite",
-            "a": 0.4,
-            "tau": 0.5
-            // s = 0.5
+            s* = 0.5
 
             // For 'androdioecy' model, all three parameters are required.
             "model": "androdioecy",
-            "a": 0.4,
-            "sigma": 0.33333,
-            "tau": 0.5
-            // s_A = 0.5
+            s* = 0.4,
+            N_hermaprhodites = 100
 
             // For 'gynodioecy' model, all three parameters are required.
             "model": "gynodioecy",
-            "a": 0.8,
-            "sigma": 0.3,
-            "tau": 0.625
-            // s_G = 0.5
-            // H = 0.4
+            s* = 0.3,
+            H = 0.2
 
         },
 
