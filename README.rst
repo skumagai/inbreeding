@@ -14,7 +14,7 @@ Characteristics of selfingsim are:
 - constant population size
 - inter-locus (but not intra-locus) recombination
 - three different mating schemes (pure hermaproditism, androdioecy, and gynodioecy)
-- two mutational models (the infinite-alleles model and infinite-sites model)
+- the infinitie-alleles model of mutation
 
 Installation
 ============
@@ -91,13 +91,13 @@ Thrid-party inference software often requires dataset in a specific format.
 We provide conversion to several formats.
 Currently supported format and known programs to work with each format are:
 
-====== ====== ==========================
-format suffix known program to work with
-====== ====== ==========================
-phase  .phase `bali-phy`_
-rmes   .rmes  `RMES`_
-nexus  .nex   `GDA`_
-====== ====== ==========================
+======= ====== ====== ==========================
+command format suffix known program to work with
+======= ====== ====== ==========================
+phase   PHASE  .phase `bali-phy`_
+rmes    RMES   .rmes  `RMES`_
+nexus   NEXUS  .nex   `GDA`_
+======= ====== ====== ==========================
 
 Conversion can be performed from the sample file as:
 
@@ -105,6 +105,15 @@ Conversion can be performed from the sample file as:
 
 The result file is identically name to the sample file except file extension
 is replaced by either ".phase", ".rmes", or ".nex".
+Note that these conversion commands generate new files with platform-native
+new line character by default.
+For example, if running "rmes" commands on Linux creates a file with "\n".
+However, RMES and GDA are known to only work with Windows-native new line
+characters in their respective input file.
+To force Windows' new line character on any platform, add "-w" to the command:
+
+    selfingsim <phase/rmes/nexus> -w <sample file>
+
 
 .. _link: http://www.example.com
 .. _download link: https://github.com/skumagai/selfingsim/archive/master.zip

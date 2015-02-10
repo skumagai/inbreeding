@@ -50,6 +50,8 @@ def simulate(args):
     config = Config(json.load(args.config), args.substs)
 
     if config.mutation_model == 'infinite sites':
+        print("The infinite-sites model is disabled")
+        sys.exit(1)
         exec_infinite_sites(config)
     elif config.mutation_model == 'infinite alleles':
         exec_infinite_alleles(config)
