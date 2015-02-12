@@ -36,32 +36,76 @@
         },
 
         "mating": {
-            // Mating scheme
+            // Mating schemes
             //
-            // Mating type is specified by "model", and it takes one of
-            // "pure hermaphrodite", "androdioecy", or "gynodioecy".
-            // All of these model takes another entry "s*", the proportion of
-            // uniparental offspring.
-            // Androdioecy and gynodioecy additionally take 'N_hermaprhodites', the
-            // number of hermpaphrodites in a reproducing population.
-            // For an obvious reason, this value has to be less or equal to 'N', the
-            // total size of a reproducing population.
+            // Mating scheme is specified by "model".  This variable takes one of
+            // "pure hermaphroditism", "androdioecy", or "gynodioecy".
+            //
+            // There are two different ways to specify parameters. The first way is
+            // to directly supply s* and auxiliary parameters, and the second way is
+            // to supply fundamental biological parameters.
+            //
+            // The first case: all three schemes take "s*", the proportion of
+            // uniparental offspring in surviving offspring.
+            // Androdioecy and gynodioecy additionally take 'N_hermaphrodites', the
+            // number of hermpaphrodites in a reproducing population. 'N', total
+            // number of reproducing organism, must be strictly larger than
+            // 'N_hermaphrodites'.
             // Gynodioecy also takes yet another parameter 'H', the proportion of
             // biparental offspring with hermaphroditic seed parent.
+            //
+            // The second case: as the number of necessary parameters are larger,
+            // we provide a list of definitions of all parameters before presenting
+            // scheme-specific sets of parameters.
+            //
+            // - s tilde: fraction of uniparental offspring at conception
+            // - tau: rate of survival of uniparental relative to biparental offspring
+            // - a: fractioin of seeds of hermaphroditis set by self-pollen
+            // - sigma: seed fertility of females relative to hermaphrodites
+            // - N_hermaphrodites: number of reproducing hermaphrodites
+            //
+            // Pure-hermaphroditism needs tilde_s and tau
+            // Androdioecy needs tilde_s, tau, and N_hermaphrodites
+            // Gynodioecy needs a, tau, sigma, and N_hermaphrodites
+            //
+            // Examples for both the first and second cases are shown below:
+            //
+            // Examples for the first case:
 
-            // For 'pure hermaphrodite" model, sigma is not required.
-            "model": "pure hermaphrodite",
+            // For 'pure hermaphroditism'
+            "model": "pure hermaphroditism",
             s* = 0.5
 
-            // For 'androdioecy' model, all three parameters are required.
+            // For 'androdioecy'
             "model": "androdioecy",
             s* = 0.4,
-            N_hermaprhodites = 100
+            N_hermaphrodites = 100
 
-            // For 'gynodioecy' model, all three parameters are required.
+            // For 'gynodioecy'
             "model": "gynodioecy",
             s* = 0.3,
-            H = 0.2
+            H = 0.2,
+            N_hermaprhodites = 200
+
+            // Examples for the second case:
+
+            // For 'pure hermaprhoditism'
+            "model": "pure hermaphroditism",
+            "s tilde": 0.5,
+            "tau": 0.1
+
+            // For 'androdioecy'
+            "model": "androdioecy",
+            "s tilde": 0.4,
+            "tau": 0.2,
+            "N_hermaphrodites": 200
+
+            // For 'gynodioecy'
+            "model": "gynodioecy",
+            "a": 0.2,
+            "tau": 0.3,
+            "sigma": 0.4,
+            "N_hermaphrodites": 100
 
         },
 

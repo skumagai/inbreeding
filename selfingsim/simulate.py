@@ -164,25 +164,49 @@ class Config(object):
         except KeyError:
             sys.exit('Mating model(scheme) not specified.')
 
-        if model not in ['pure hermaphrodite', 'androdioecy', 'gynodioecy']
+        if model not in ['pure hermaphroditism', 'androdioecy', 'gynodioecy']
             sys.exit('Unrecognized mating model "{}".'.format(model))
 
-        try:
-            self._params['sstar'] = mating['s*']
-        except KeyError:
-            sys.exit('s* not specified.')
-        if model == 'gynodioecy' or model == 'androdioecy':
+        # Get number of hermaphrodites.
+        if model == ('androdioecy', 'gynodioecy'):
             try:
-                self._params['N_hermaphrodites'] = mating['N_hermaphrodites']
+                Nh = mating['N_hermaphrodites']
+                self._params['N_hermaphrodites'] = Nh
             except KeyError:
                 sys.exit('Number of hermaphrodites not specified.')
             if self._params['N_hermaphrodites'] > self._params['N']:
                 sys.exit('Number of hermaphrodites larger than population size.')
-        if model == 'gynodioecy':
-            try:
-                self._params['H'] = mating['H']
-            except KeyError:
-                sys.exit('H (proportion of biparental offspring with a hermaphroditic seed) unspecified.')
+
+        if 's*' in mating: # first case (directly specify s* and others)
+            self._params['sstar'] = mating['s*']
+            if model == 'gynodioecy':
+                try:
+                    self._params['H'] = mating['H']
+                except KeyError:
+                    sys.exit('H (proportion of biparental offspring with a hermaphroditic seed) unspecified.')
+        elif 'tau' in mating: # second case (s* computed from parameters)
+            tau = mating['tau']
+            if model in ('pure hermaphroditism', 'androdioecy'):
+                try:
+                    s = mating['s tilde']
+                except KeyError:
+                    sys.exit('s tilde not specified')
+                self._params['sstar'] = s * tau / (s * tau + 1 - s)
+            elif model == 'gynodioecy':
+                try:
+                    a = mating['a']
+                    sigma = mating['sigma']
+                    tna = tau * Nh * a
+                    n1a = Nh * (1 - a)
+                    ns = Nh * sigma
+                    self._params['sstar'] = tna / (tna + n1a + ns)
+                    self._params['H'] = n1a / (n1a + ns)
+                except KeyError:
+                    sys.exit('missing parameter(s) for gynodioecy')
+
+        else: # deadend
+            sys.exit('improper specification of mating scheme')
+
 
     def __getattr__(self, name):
         """
