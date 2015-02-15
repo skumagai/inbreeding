@@ -75,7 +75,15 @@ class Config(object):
         self._addparam(cobj, 'general', 'gens', lambda x: self._params['N'] * x)
         self._addparam(cobj, 'general', 'burnin', lambda x: self._params['N'] * x)
         self._addparam(cobj, 'general', 'debug')
-        self._addparam(cobj, 'general', 'output per', lambda x: self._params['N'] * x)
+
+        # check if "output per" exists in an input file.  If not, set the value to
+        # the last generation.
+        self._params['output_per'] = self._params['N']
+        print(cobj)
+        try:
+            self._params['output_per'] *= cobj['general']['output per']
+        except KeyError:
+            self._params['output_per'] *= self._params['gens'] * self._params['burnin']
 
         # Sets up more complex parameters
         # start with mtaing scheme
@@ -164,7 +172,7 @@ class Config(object):
         except KeyError:
             sys.exit('Mating model(scheme) not specified.')
 
-        if model not in ['pure hermaphroditism', 'androdioecy', 'gynodioecy']
+        if model not in ['pure hermaphroditism', 'androdioecy', 'gynodioecy']:
             sys.exit('Unrecognized mating model "{}".'.format(model))
 
         # Get number of hermaphrodites.
