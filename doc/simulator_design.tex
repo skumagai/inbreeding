@@ -1,0 +1,56 @@
+%&context
+\setuppapersize[letter]
+\setuplayout[topspace=0.75in, backspace=0.75in, height=middle, width=middle]
+\setupbodyfont[12pt]
+\setupwhitespace[medium]
+\setuppagenumbering[location=footer]
+\setupheader[state=none]
+
+\starttext
+
+\title{Design of a Selfing Simulator}
+
+\startsection[title={Introduction}]
+This document describes the design of \cap {Selfingsim},
+a forward-in-time population genetics simulator with selfing
+under pure-hermaphroditism, androdioecy, or gynodioecy.
+\stopsection
+
+\startsection[title={Design}]
+One run of \cap {Selfingsim} comprises three distinct phases: initialization,
+iteration, and termination.
+These phases are described below.
+
+\startsubsection[title={Initialization}]
+The first stage of a simulation is to set up a population.
+Given a user-specified population size \m{N}, the simulator creates \m{N} organisms.
+Under pure-hermaphroditism, all organisms are hermaphrodites.
+Under andro- and gynodioecy, an additional user-defined parameter
+\m{N_h} such that \m{N_h < N} determines the number of hermaprhodites in the population.
+The remaining \m{N - N_h} organisms are respectively male or female in andro- and gynodioecy.
+Each organisms have \m{L} autosomal genes, where number of loci \m{L} is again user-sepcified.
+
+The next step is to set initial genotype of all organisms.
+Three initialization methods are currently available.
+One method is to assign an identical allele to all genes.
+Another method is to make all genes distinct.
+The last method is to randomly set gene from equiprobable \m{M} alleles.
+
+Primary runs in pure-hermaphroditism case revealed that staring a simulation with a monomorphic
+population took long time to reach mutation-drift equilibrium, whereas
+staring with a highly polymorphic poplation quickly shed excess alleles.
+Therefore simulations so far have been initialized with the second method.
+\stopsubsection
+
+\startsubsection[title={Iteration}]
+A simulation runs
+\stopsubsection
+
+\startsubsection[title={Termination}]
+During the termination phase of a simulation, the state of the last generation is stored in file.
+In addition to genotypes, the time since last outcrossing event is also recorded for all organism.
+\stopsubsection
+
+\stopsection
+
+\stoptext
