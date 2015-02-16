@@ -43,13 +43,11 @@ def pick_pure_hermaphrodite_parents(simu, sstar):
         npop = pop.popSize()
         while True:
             if runif() < sstar:         # uniparental
-                # print(1)
                 yield rint(npop)
             else:                   # biparental
                 pair = [rint(npop), rint(npop)]
                 while pair[0] == pair[1]:
                     pair[1] = rint(npop)
-                # print(2)
                 yield pair
     return generator
 
@@ -149,7 +147,7 @@ def get_selfing_tagger(simu, field):
             return True
     return MySelfingTagger(field)
 
-def get_pure_hermaphrodite_mating(simu, r_rate, s, size, rec_sites, field='self_gen'):
+def get_pure_hermaphrodite_mating(simu, r_rate, sstar, size, rec_sites, field='self_gen'):
     """
     Constructs mating scheme for pure hermaphrodite with partial selfing under
     the infinite alleles model.
@@ -161,7 +159,7 @@ def get_pure_hermaphrodite_mating(simu, r_rate, s, size, rec_sites, field='self_
     """
 
     parents_chooser = simu.PyParentsChooser(
-        pick_pure_hermaphrodite_parents(simu, s)
+        pick_pure_hermaphrodite_parents(simu, sstar)
     )
 
     selfing_tagger = get_selfing_tagger(simu, field)
@@ -228,7 +226,7 @@ def pure_hermaphrodite(simu, execute_func, config):
 
     mating_op = get_pure_hermaphrodite_mating(simu,
                                               r_rate=config.r,
-                                              s=config.s,
+                                              sstar=config.sstar,
                                               size=config.N,
                                               rec_sites=rec_loci)
 
@@ -244,8 +242,9 @@ def androdioecy(simu, execute_func, config):
     pop = get_population(simu=simu,
                          size=N,
                          loci=config.loci * config.allele_length)
+    sex_ratio = 1 - Nh / N
 
-    simu.initSex(pop, maleFreq=1-Nh/N)
+    simu.initSex(pop, maleFreq=sex_ratio)
     pop.setVirtualSplitter(simu.SexSplitter())
 
     # Index of sites, after which recombinations happen.
@@ -253,9 +252,7 @@ def androdioecy(simu, execute_func, config):
 
     mating_op = get_androdioecious_mating(simu,
                                           r_rate=config.r,
-                                          a=config.a,
-                                          tau=config.tau,
-                                          sigma=config.sigma,
+                                          sstar=config.sstar,
                                           size=config.N,
                                           sex_ratio=sex_ratio,
                                           rec_sites=rec_loci)
@@ -273,8 +270,8 @@ def gynodioecy(simu, execute_func, config):
     pop = get_population(simu=simu,
                          size=N,
                          loci=config.loci * config.allele_length)
-
-    simu.initSex(pop, maleFreq=Nh/N)
+    sex_ratio = Nh / N
+    simu.initSex(pop, maleFreq=sex_ratio)
     pop.setVirtualSplitter(simu.SexSplitter())
 
     # Index of sites, after which recombinations happen.
@@ -282,9 +279,8 @@ def gynodioecy(simu, execute_func, config):
 
     mating_op = get_gynodioecious_mating(simu,
                                          r_rate=config.r,
-                                         a=config.a,
-                                         tau=config.tau,
-                                         sigma=config.sigma,
+                                         sstar=config.sstar,
+                                         H=config.H,
                                          size=config.N,
                                          sex_ratio=sex_ratio,
                                          rec_sites=rec_loci)

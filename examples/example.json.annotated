@@ -24,10 +24,11 @@
         "init": "unique",
         // Then, the number of alleles can also be used.  In this mode, alleles will have
         // (roughly) equal frequencies.
-        "init": {
-            "type": "count",
-            "value: 10
-        },
+        "init": 10,
+        // Finally, an array of positive number can be used as frequencies of alleles.
+        // The frequencies are normalized, so it doesn't have to be sum to one.
+        "init": [0.5, 0.8, 0.9, 1.6],
+
         // Finally, similar to the preivous mode, frequencies of alleles can be specified.
         // Again, each alleles will be equally frequent.
         "init": {
@@ -64,8 +65,8 @@
             // - sigma: seed fertility of females relative to hermaphrodites
             // - N_hermaphrodites: number of reproducing hermaphrodites
             //
-            // Pure-hermaphroditism needs tilde_s and tau
-            // Androdioecy needs tilde_s, tau, and N_hermaphrodites
+            // Pure-hermaphroditism needs s tilde and tau
+            // Androdioecy needs s tilde, tau, and N_hermaphrodites
             // Gynodioecy needs a, tau, sigma, and N_hermaphrodites
             //
             // Examples for both the first and second cases are shown below:

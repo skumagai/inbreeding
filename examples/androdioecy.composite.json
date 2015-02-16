@@ -3,27 +3,25 @@
         "outfile": "outfile.{}.tsv",
         "gens": 10,
         "burnin": 10,
-        "debug": 0,
-        "output per": 1
+        "debug": 0
     },
 
     "population": {
         "N": 100,
-        "loci": 10,
+        "loci": 4,
 
-        "init": {
-            "model": "unique"
-        },
+        "init": "unique",
 
         "mating": {
-            "model": "pure hermaphrodite",
-            "s*": 0.0
+            "model": "androdioecy",
+            "s*": 0.2,
+            "N_hermaphrodites": 50
         },
 
         "r": 0.5,
         "mutation": {
             "model": "infinite alleles",
-            "theta": [{"value": 0.5, "times": 16}, {"value": 1.5, "times": 16}]
+            "theta": [0.25, 0.5, 1.0, 1.5]
         }
     }
 }

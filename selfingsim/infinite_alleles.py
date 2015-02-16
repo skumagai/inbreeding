@@ -127,7 +127,7 @@ def get_output_operator(config, field='self_gen'):
                         geno = list(ind.genotype(ploidy=ploidy))
                         writer.writerow({key: value for key, value in
                                          zip(header,
-                                             [rep, gen, idx, selfing, ploidy] + geno)})
+                                             [rep, gen, idx, int(selfing), ploidy] + geno)})
 
             return True
 
@@ -187,7 +187,7 @@ def run(config):
         cf.androdioecy(simu, execute, config)
     elif config.mating_model == 'gynodioecy':
         cf.gynodioecy(simu, execute, config)
-    elif config.mating_model == 'pure hermaphrodite':
+    elif config.mating_model == 'pure hermaphroditism':
         cf.pure_hermaphrodite(simu, execute, config)
     else:
-        sys.exit('Unrecognized mating model.')
+        sys.exit('Unrecognized mating model: {}.'.format(config.mating_model))

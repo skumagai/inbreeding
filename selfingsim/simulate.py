@@ -79,7 +79,6 @@ class Config(object):
         # check if "output per" exists in an input file.  If not, set the value to
         # the last generation.
         self._params['output_per'] = self._params['N']
-        print(cobj)
         try:
             self._params['output_per'] *= cobj['general']['output per']
         except KeyError:
@@ -97,11 +96,23 @@ class Config(object):
         """
         Adds settings of initial genotypes of a simulated population.
         """
-        init = cobj['init']
+        init = cobj['population']['init']
         if init == 'unique' or init == 'monomorphic':
             self._params['initial_genotype'] = [init]
-        elif type(init) is dict:
-            self._params['initial_genotype'] = [init['type'], init['value']]
+        elif type(init) is int and init > 0:
+            self._params['initial_genotype'] = ['count', init]
+        else:
+            try:
+                if all(i >= 0.0 for i in init):
+                    norm = sum(init)
+                    self._params['initial_genotype'] = ['frequency', [i / norm for i in init]]
+                else:
+                    sys.exit('Initial frequencies of alleles must be all non-negative: {}.'.
+                            format(init))
+            except TypeError:
+                sys.exit('Unknown init: {}.'.format(init))
+        else:
+            sys.exit('Unrecognized mode of genotype initialization: {}.'.format(init))
 
     def _addparam(self, cobj, sec, key, mod=None):
         """
@@ -176,7 +187,7 @@ class Config(object):
             sys.exit('Unrecognized mating model "{}".'.format(model))
 
         # Get number of hermaphrodites.
-        if model == ('androdioecy', 'gynodioecy'):
+        if model in ('androdioecy', 'gynodioecy'):
             try:
                 Nh = mating['N_hermaphrodites']
                 self._params['N_hermaphrodites'] = Nh
@@ -221,10 +232,9 @@ class Config(object):
         Makes self._params[X] accessible as self.X.
         """
         try:
-            print(name, self._params)
             return self._params[name]
         except KeyError:
-            sys.exit('Unrecognized parameter')
+            sys.exit('Unrecognized parameter: {}'.format(name))
 
 
 # Selectively import simuPOP with an appropriate alleleType.  Because

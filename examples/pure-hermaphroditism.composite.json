@@ -1,0 +1,26 @@
+{
+    "general": {
+        "outfile": "outfile.{}.tsv",
+        "gens": 10,
+        "burnin": 10,
+        "debug": 0
+    },
+
+    "population": {
+        "N": 100,
+        "loci": 4,
+
+        "init": "unique",
+
+        "mating": {
+            "model": "pure hermaphroditism",
+            "s*": 0.2
+        },
+
+        "r": 0.5,
+        "mutation": {
+            "model": "infinite alleles",
+            "theta": [0.25, 0.5, 1.0, 1.5]
+        }
+    }
+}
