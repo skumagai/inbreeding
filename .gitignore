@@ -10,3 +10,4 @@ results/
 *.csv
 *.swp
 *.tuc
+*.egg-info/
