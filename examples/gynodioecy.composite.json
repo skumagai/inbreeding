@@ -14,9 +14,8 @@
 
         "mating": {
             "model": "gynodioecy",
-            "a": 0.2,
-            "tau": 0.3,
-            "sigma": 0.4,
+            "s*": 0.2,
+            "H": 0.3,
             "N_hermaphrodites": 50
         },
 
