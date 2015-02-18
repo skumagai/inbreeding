@@ -111,8 +111,6 @@ class Config(object):
                             format(init))
             except TypeError:
                 sys.exit('Unknown init: {}.'.format(init))
-        else:
-            sys.exit('Unrecognized mode of genotype initialization: {}.'.format(init))
 
     def _addparam(self, cobj, sec, key, mod=None):
         """
