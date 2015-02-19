@@ -1,7 +1,6 @@
 %&context
 \setuppapersize[letter]
 \setuplayout[topspace=0.75in, backspace=0.75in, height=middle, width=middle]
-\setupbodyfont[12pt]
 \setupwhitespace[medium]
 \setuppagenumbering[location=footer]
 \setupheader[state=none]
@@ -11,39 +10,72 @@
 \title{Design of a Selfing Simulator}
 
 \startsection[title={Introduction}]
-This document describes the design of \cap {Selfingsim},
+This document describes the design of {\sc SelfingSim},
 a forward-in-time population genetics simulator with selfing
 under pure-hermaphroditism, androdioecy, or gynodioecy.
 \stopsection
 
 \startsection[title={Design}]
-One run of \cap {Selfingsim} comprises three distinct phases: initialization,
-iteration, and termination.
-These phases are described below.
+{\sc SelfingSim} simulates a constant size population without
+generation overlap under the infinite-alleles model of mutation.
+One run of {\sc SelfingSim} can be broken into three distinct phases:
+initialization, iteration, and termination.
+Explanations of each phase are provided below.
 
 \startsubsection[title={Initialization}]
-The first stage of a simulation is to set up a population.
-Given a user-specified population size \m{N}, the simulator creates \m{N} organisms.
-Under pure-hermaphroditism, all organisms are hermaphrodites.
-Under andro- and gynodioecy, an additional user-defined parameter
-\m{N_h} such that \m{N_h < N} determines the number of hermaprhodites in the population.
-The remaining \m{N - N_h} organisms are respectively male or female in andro- and gynodioecy.
-Each organisms have \m{L} autosomal genes, where number of loci \m{L} is again user-sepcified.
+At the beginning of a simulation, {\sc SelfingSim} initializes a population
+based on users' input.
+The first step is to assign \m {N} reproducing orgniams with \m {L} autosomal
+loci to the population.
+Although all organisms are hermaphrodites under pure-hermaphroditism,
+only \m {N_h} organisms are hermaprhodites under
+andro- and gynodioecies.
+The rest of the population under the latter two models are males or females
+under andro- or gynodioecy, respectively.
 
-The next step is to set initial genotype of all organisms.
-Three initialization methods are currently available.
-One method is to assign an identical allele to all genes.
-Another method is to make all genes distinct.
-The last method is to randomly set gene from equiprobable \m{M} alleles.
-
-Primary runs in pure-hermaphroditism case revealed that staring a simulation with a monomorphic
-population took long time to reach mutation-drift equilibrium, whereas
-staring with a highly polymorphic poplation quickly shed excess alleles.
-Therefore simulations so far have been initialized with the second method.
+The next step is to determine haplotypes of the orngiams.
+\cap {Selfingsim} currently supports four methods to initialze haplotypes,
+\quotation {\tt monomorphic}, \quotation {\tt unique}, \quotation {\tt count},
+and \quotation {\tt frequency}.
+The first two modes are straightfoward.
+All genes are identical under \quotation {\tt monomorphic} or distinct under
+\quotation {\tt unique}.
+Under \quotation {\tt count}, a state of a gene is drawn from \m {M} alleles
+equiprobably.
+Finally, \quotation {\tt freqnecy} randomly determines a state of a gene
+similar to \quotation {\tt count}, but a user can specify frequency of
+each allele.
+A common attributes of the currently implemented haplotype initialization
+methods is independence of each gene.
+It is impossible to assign multi-locus haplotype or genotype directly.
 \stopsubsection
 
 \startsubsection[title={Iteration}]
-A simulation runs
+Immediately following the completion of the initialization,
+{\sc SelfignSim} starts simulating evolution of the population
+for \m {T_{max}} generations.
+Additionally, \m {T_B} generations of burn-in can be preceded the main
+iterations.
+The burn-in allows the population to reach a equilibrium state.
+The simulator performs the exactly same sequence of events
+during burn-in and main iterations.
+
+At the beginning of a generation/iteration, genes of the current constituents
+of the simulation organisms are mutated.
+A gene at locus \m {i} mutates to a completely new state with probability \m {m_i}.
+Otherwise, a gene remains unchanged.
+
+After mutation, the simulater initiates model-specific mating.
+
+\startsubsubsection[title={Pure-Hermaphroditism}]
+\stopsubsubsection
+
+\startsubsubsection[title={Androdioecy}]
+\stopsubsubsection
+
+\startsubsubsection[title={Gynodioecy}]
+\stopsubsubsection
+
 \stopsubsection
 
 \startsubsection[title={Termination}]
