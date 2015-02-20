@@ -7,7 +7,7 @@
 
 \starttext
 
-\title{Design of a Selfing Simulator}
+\title{Design of a Selfing Simulator, {\sc SelfingSim}}
 
 \startsection[title={Introduction}]
 This document describes the design of {\sc SelfingSim},
@@ -27,60 +27,131 @@ At the beginning of a simulation, {\sc SelfingSim} initializes a population
 based on users' input.
 The first step is to assign \m {N} reproducing orgniams with \m {L} autosomal
 loci to the population.
-Although all organisms are hermaphrodites under pure-hermaphroditism,
-only \m {N_h} organisms are hermaprhodites under
-andro- and gynodioecies.
-The rest of the population under the latter two models are males or females
-under andro- or gynodioecy, respectively.
+All organisms are hermaphroditic under pure-hermaphroditism,
+but only \m {N_h} organisms are hermaprhoditic under andro- and gynodioecies.
+The rest of the population are either males (androdioecy) or females (gynodioecy).
 
-The next step is to determine haplotypes of the orngiams.
-\cap {Selfingsim} currently supports four methods to initialze haplotypes,
+After initializing organisms, genotypes of all organisms are determined.
+{\sc SelfingSim} currently supports four ways of initializing genotypes:
 \quotation {\tt monomorphic}, \quotation {\tt unique}, \quotation {\tt count},
 and \quotation {\tt frequency}.
-The first two modes are straightfoward.
+All these methods work with a single locus, and no method is provided
+to specify multi-locus genotypes or haplotypes.
+
+The first two methods are straightfoward.
 All genes are identical under \quotation {\tt monomorphic} or distinct under
 \quotation {\tt unique}.
-Under \quotation {\tt count}, a state of a gene is drawn from \m {M} alleles
-equiprobably.
-Finally, \quotation {\tt freqnecy} randomly determines a state of a gene
+Under \quotation {\tt count}, a state of a gene is uniformly sampled from
+\m {M} alleles.
+Finally, \quotation {\tt frequency} again randomly draws a state of a gene
 similar to \quotation {\tt count}, but a user can specify frequency of
 each allele.
-A common attributes of the currently implemented haplotype initialization
-methods is independence of each gene.
-It is impossible to assign multi-locus haplotype or genotype directly.
+
+Preliminary simulations have found that starting a simulation
+with \quotation {\tt monomorphic} scheme takes a long time to
+approach mutation-drift equilibrium.
+Mutation rate determines the rate of the approach.
+On the other hand, starting a simulation with \quotation {\tt unique}
+scheme allows to approach the equilibrium at much faster pace.
+Genetic drift quickly eliminates excessive standing variation from
+the population.
+Based on these findings, \quotation {\tt unique} scheme has been used
+throughout my simulations.
 \stopsubsection
 
 \startsubsection[title={Iteration}]
-Immediately following the completion of the initialization,
+After initializing a population,
 {\sc SelfignSim} starts simulating evolution of the population
 for \m {T_{max}} generations.
-Additionally, \m {T_B} generations of burn-in can be preceded the main
+Additionally, \m {T_B} generations of burn-in can precede the main
 iterations.
-The burn-in allows the population to reach a equilibrium state.
 The simulator performs the exactly same sequence of events
 during burn-in and main iterations.
+Therefore, running a simulation longer has the same effect on
+the outcome of the simulation as running a shorter simulation with
+burn-in period.
 
-At the beginning of a generation/iteration, genes of the current constituents
-of the simulation organisms are mutated.
-A gene at locus \m {i} mutates to a completely new state with probability \m {m_i}.
-Otherwise, a gene remains unchanged.
+One generation in a simulation consists of two events: mutation and mating.
+At the beginning of a generation/iteration, mutations are introduced
+to the current member of the population at the locus-specific rates
+\m {M_i} for locus \m {i}.
+These rates are user-specified.
+When a gene mutates, its new state has not been present throughout the entire
+history of the population.
 
-After mutation, the simulater initiates model-specific mating.
+After mutation, the simulater performs model-specific mating to generate
+offspring.
+In all three modes, a user can specify composite parameters \m {s^*} and
+\m {H}, which appear on the left-hand side of the following expressions,
+or fundamental parameters such as \m {\tau} and \m {\tilde{s}} appearing
+on the right-hand side.
+The only exception is \m {N_h} under andro- and gynodioecies.
+This parameter needs to be specified no matter if the rest of the parameters
+are fundamental or composite.
+
+Internally, if fundamental parameters are provided, those parameters are
+converted to the corresponding composite parameters \m {s^*} and \m {H}
+before starting a simulation.
+Then, {\sc SelfingSim} only uses the composite parameters during a
+simulation.
 
 \startsubsubsection[title={Pure-Hermaphroditism}]
+Under pure hermaphroditism, a selfing parent is randomly chosen from the
+entire population with probability
+\startformula
+s^* = \frac{ \tilde {s} \tau }{ \tilde {s} \tau + 1 - \tilde {s} }.
+\stopformula
+Otherwise, two distinct parents are randomly chosen.
 \stopsubsubsection
 
 \startsubsubsection[title={Androdioecy}]
+Under androdioecy, a selfing parent is randomly chosen from \m {N_h} hermaphroditic
+parents with proability
+\startformula
+s^* = \frac{ \tilde {s} \tau }{ \tilde {s} \tau + 1 - \tilde {s} }.
+\stopformula
+Otherwise, two distinct parents, one male and one hermaphrodite, are randomly
+chosen from \m {N - N_h} males and \m {N_h} hermaphrodites.
+
 \stopsubsubsection
 
 \startsubsubsection[title={Gynodioecy}]
+Under gynodioecy, a selfing parent is randomly chosen from \m {N_h} hermaphroditic
+parents with probability
+\startformula
+s^* = \frac{ \tau N_h a }{ \tau N_h a + N_h (1 - a) + N_f \sigma }.
+\stopformula
+Two distinct parents are chosen with probability \m { 1 - s^* }.
+When there are two parents, with probability
+\startformula
+H = \frac{ N_h (1 - a) }{ N_h (1 - a) + N_f \sigma },
+\stopformula
+both parents are hermaphroditic.
+Otherwise, one parent is hermaphroditic, and the other is female.
 \stopsubsubsection
+
+After parent(s) of an offspring are chonsen, the genotype of the offspring
+is determined by the standard autosomal transimssion.
+Furthermore, an identical recombination rate is applied to adjacent loci.
+In addition to genetic transmission, {\sc SelfingSim} keeps track of the
+number of generations since the last non-selfing event.
+
+After mating and reproduction, the simulator can optionally save the state
+of the entire population.
+Stored information are state of genes and the number of generations since
+the last outcrossing event.
+
+Above two steps (or three with optional steps) are repeated for \m {T_{max}}
+or \m {T_b + T_{max}} generations.
 
 \stopsubsection
 
-\startsubsection[title={Termination}]
-During the termination phase of a simulation, the state of the last generation is stored in file.
-In addition to genotypes, the time since last outcrossing event is also recorded for all organism.
+\startsubsection[title={Termination}, reference=sec:term]
+During the termination phase of a simulation, the state of the
+last generation is stored in file.
+The information saved during this stage is identical to the ones stored
+during the simulation (genotype and time since the last outcrossing event).
+
 \stopsubsection
 
 \stopsection
