@@ -1,9 +1,12 @@
 %&context
-\setuppapersize[letter]
+\setuppapersize[letter][letter]
 \setuplayout[topspace=0.75in, backspace=0.75in, height=middle, width=middle]
 \setupwhitespace[medium]
 \setuppagenumbering[location=footer]
 \setupheader[state=none]
+\usemodule[tikz]
+\usetikzlibrary[graphs,graphdrawing,quotes]
+\usegdlibrary[layered]
 
 \starttext
 
@@ -154,6 +157,49 @@ during the simulation (genotype and time since the last outcrossing event).
 
 \stopsubsection
 
+\stopsection
+
+\startsection[title={Equivalence of two formulations}]
+\starttikzpicture
+\graph[layered layout]
+{
+    start -> seed parent -> number of parents -> survival;
+
+    a [as=start];
+
+    { [same layer] seed parent, b [as=female], c [as=hermaphrodite] };
+    { [same layer] number of parents, d [as=1], e [as=2]};
+    { [same layer] survival, f [as=alive], g [as=dead] };
+
+    a -> {
+        b [> "$\frac {\sigma N_f} {\sigma N_f + N_h}$"],
+        c [> "$\frac {N_h} {\sigma N_f + N_h}$"]
+    },
+    b -> ["$i $"] e -> {f, g},
+    c -> {d, e},
+    d -> {f, g},
+    e -> {f, g};
+};
+\stoptikzpicture
+
+\starttikzpicture
+\graph[layered layout]
+{
+    start -> number of parents -> seed parent -> survival;
+
+    a [as=start];
+
+    { [same layer] number of parents, b [as=1], c [as=2] },
+    { [same layer] seed parent, d [as={biparental,female}], e [as=hermaphrodite] };
+    { [same layer] survival, f [as=alive], g [as=dead] };
+
+    a -> {b, c},
+    b -> e -> {f, g},
+    c -> {d, e},
+    d -> {f, g},
+    e -> {f, g};
+};
+\stoptikzpicture
 \stopsection
 
 \stoptext
