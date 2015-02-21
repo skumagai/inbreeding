@@ -5,8 +5,10 @@
 \setuppagenumbering[location=footer]
 \setupheader[state=none]
 \usemodule[tikz]
-\usetikzlibrary[graphs,graphdrawing,quotes]
-\usegdlibrary[layered]
+\usetikzlibrary[graphs, graphdrawing, quotes]
+\usegdlibrary[trees]
+\usemodule[simplefonts]
+\setmainfont[gentiumplus]
 
 \starttext
 
@@ -161,43 +163,34 @@ during the simulation (genotype and time since the last outcrossing event).
 
 \startsection[title={Equivalence of two formulations}]
 \starttikzpicture
-\graph[layered layout]
+\graph[tree layout, level distance=2cm, sibling distance=2cm]
 {
-    start -> seed parent -> number of parents -> survival;
-
-    a [as=start];
-
-    { [same layer] seed parent, b [as=female], c [as=hermaphrodite] };
-    { [same layer] number of parents, d [as=1], e [as=2]};
-    { [same layer] survival, f [as=alive], g [as=dead] };
-
-    a -> {
-        b [> "$\frac {\sigma N_f} {\sigma N_f + N_h}$"],
-        c [> "$\frac {N_h} {\sigma N_f + N_h}$"]
-    },
-    b -> ["$i $"] e -> {f, g},
-    c -> {d, e},
-    d -> {f, g},
-    e -> {f, g};
+    root -> {
+        female [>"$\frac{\sigma N_f}{\sigma N_f + N_h}$"],
+        hermaprhodite [>"$\frac{N_h}{\sigma N_f + N_h}$"]},
+    female -> fb [as=biparent, >"$1$"],
+    hermaprhodite -> {
+        hu [as=uniparent, >"$a$"],
+        hb [as=biparent, >"$1-a$"]},
+    fb -> {fba [as=alive, >"$\tau_b$"], fbd [as=dead, >"$1-\tau_b$"]},
+    hu-> {hua [as=alive, >"$\tau_u$"], hud [as=dead, >"$1-\tau_u$"]},
+    hb -> {hba [as=alive, >"$\tau_b$"], hbd [as=dead, >"$1-\tau_b$"]};
 };
 \stoptikzpicture
 
 \starttikzpicture
-\graph[layered layout]
+\graph[tree layout, level distance=2cm, sibling distance=2cm]
 {
-    start -> number of parents -> seed parent -> survival;
-
-    a [as=start];
-
-    { [same layer] number of parents, b [as=1], c [as=2] },
-    { [same layer] seed parent, d [as={biparental,female}], e [as=hermaphrodite] };
-    { [same layer] survival, f [as=alive], g [as=dead] };
-
-    a -> {b, c},
-    b -> e -> {f, g},
-    c -> {d, e},
-    d -> {f, g},
-    e -> {f, g};
+    root -> {
+        uniparent [>"$\frac{N_h a}{N_h + N_f \sigma}$"],
+        biparent [>"$\frac{N_f \sigma}{N_h + N_f \sigma}$"]},
+    uniparent -> hu [as=hermaprhodite, >"$1$"],
+    biparent -> {
+        fb [as=female, >"$\frac{N_h(1-a)}{N_h(1-a) + N_f \sigma}$"],
+        hb [as=hermaprhodite, >"$\frac{N_f \sigma}{N_h(1-a) + N_f \sigma}$"]},
+    hu -> {hua [as=alive, >"$\tau_u$"], hud [as=dead, >"$1-\tau_u$"]},
+    fb -> {fba [as=alive, >"$\tau_b$"]], fbd [as=dead, >"$1-\tau_b$"]},
+    hb -> {hba [as=alive, >"$\tau_b$"], hbd [as=dead, >"$1-\tau_b$"]};
 };
 \stoptikzpicture
 \stopsection
