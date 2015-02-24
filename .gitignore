@@ -1,4 +1,5 @@
 *.pyc
+*.pgf
 *.pdf
 *.log
 *.out
