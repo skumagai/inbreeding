@@ -22,21 +22,21 @@ under pure-hermaphroditism, androdioecy, or gynodioecy.
 
 \startsection[title={Design}]
 {\sc SelfingSim} simulates a constant size population without
-generation overlap under the infinite-alleles model of mutation.
+generation overlap.
+It uses the infinite-alleles model of mutation.
 One run of {\sc SelfingSim} can be broken into three distinct phases:
 initialization, iteration, and termination.
-Explanations of each phase are provided below.
 
 \startsubsection[title={Initialization}]
 At the beginning of a simulation, {\sc SelfingSim} initializes a population
 based on users' input.
-The first step is to assign \m {N} reproducing orgniams with \m {L} autosomal
-loci to the population.
+The first step is to populate a population with \m {N} reproducing orgniams,
+each of which has \m {L} autosomal loci.
 All organisms are hermaphroditic under pure-hermaphroditism,
-but only \m {N_h} organisms are hermaprhoditic under andro- and gynodioecies.
+but only \m {N_h} organisms are hermaprhoditic under andro- and gynodioecy.
 The rest of the population are either males (androdioecy) or females (gynodioecy).
 
-After initializing organisms, genotypes of all organisms are determined.
+The simulator initializes genotype after the determination of sex.
 {\sc SelfingSim} currently supports four ways of initializing genotypes:
 \quotation {\tt monomorphic}, \quotation {\tt unique}, \quotation {\tt count},
 and \quotation {\tt frequency}.
@@ -48,20 +48,22 @@ All genes are identical under \quotation {\tt monomorphic} or distinct under
 \quotation {\tt unique}.
 Under \quotation {\tt count}, a state of a gene is uniformly sampled from
 \m {M} alleles.
-Finally, \quotation {\tt frequency} again randomly draws a state of a gene
-similar to \quotation {\tt count}, but a user can specify frequency of
-each allele.
+Finally, \quotation {\tt frequency} again randomly draws from \m {M} alleles
+similar to \quotation {\tt count}, but the frequency of each allele is
+user-specified.
 
-Preliminary simulations have found that starting a simulation
-with \quotation {\tt monomorphic} scheme takes a long time to
-approach mutation-drift equilibrium.
-Mutation rate determines the rate of the approach.
-On the other hand, starting a simulation with \quotation {\tt unique}
-scheme allows to approach the equilibrium at much faster pace.
+Preliminary simulations have found that apporach to mutation-drift
+equilibrium is slow when runs started with \quotation {\tt monomorphic} scheme.
+Furthermore, simulations with lower mutation rates took longer to accumulate
+standing genetic variation than with higher mutation rates.
+Therefore, mutation rate seems to determine the rate of the approach.
+On the other hand, approach to the equilibrium occurred much faster rate
+under \quotation {\tt unique} scheme.
 Genetic drift quickly eliminates excessive standing variation from
 the population.
 Based on these findings, \quotation {\tt unique} scheme has been used
 throughout my simulations.
+The other two methods have not been explored.
 \stopsubsection
 
 \startsubsection[title={Iteration}]
@@ -77,22 +79,22 @@ the outcome of the simulation as running a shorter simulation with
 burn-in period.
 
 One generation in a simulation consists of two events: mutation and mating.
-At the beginning of a generation/iteration, mutations are introduced
-to the current member of the population at the locus-specific rates
+At the beginning of a generation/iteration, all organisms unergo a series
+of tests determining if a gene has mutated or not.
+These tests are conducted with locus-specific mutation rates
 \m {M_i} for locus \m {i}.
-These rates are user-specified.
-When a gene mutates, its new state has not been present throughout the entire
-history of the population.
+If mutated, a new allele, which has been never seen in the hisotry,
+replaces the current allele.
 
 After mutation, the simulater performs model-specific mating to generate
 offspring.
 In all three modes, a user can specify composite parameters \m {s^*} and
-\m {H}, which appear on the left-hand side of the following expressions,
+\m {H}, which appear on the left-hand side of expressions in the
+three subsequent subsections,
 or fundamental parameters such as \m {\tau} and \m {\tilde{s}} appearing
 on the right-hand side.
-The only exception is \m {N_h} under andro- and gynodioecies.
-This parameter needs to be specified no matter if the rest of the parameters
-are fundamental or composite.
+However, the number of hermaphrodites, \m {N_h}, is mandatory
+under andro- and gynodioecy.
 
 Internally, if fundamental parameters are provided, those parameters are
 converted to the corresponding composite parameters \m {s^*} and \m {H}
@@ -132,22 +134,27 @@ When there are two parents, with probability
 H = \frac{ N_h (1 - a) }{ N_h (1 - a) + N_f \sigma },
 \stopformula
 both parents are hermaphroditic.
-Otherwise, one parent is hermaphroditic, and the other is female.
+Otherwise, the seed-parent is female, and the other parent is hermaphroditic.
 \stopsubsubsection
 
-After parent(s) of an offspring are chonsen, the genotype of the offspring
-is determined by the standard autosomal transimssion.
-Furthermore, an identical recombination rate is applied to adjacent loci.
+\startsubsubsection[title={Formation of an offspring}]
+Each generation has exactly \m {N_h} hermaphrodites under andro- and
+gynodioecy.
+Genotype of an offspring is determined by the standard autosomal transimssion
+from its parent(s).
+If organisms have more than one loci, recombination rates between
+adjacent loci \m {r} are identical and user-specified.
 In addition to genetic transmission, {\sc SelfingSim} keeps track of the
 number of generations since the last non-selfing event.
+\stopsubsubsection
 
+\startsubsubsection[title={Saving state of a population}]
 After mating and reproduction, the simulator can optionally save the state
-of the entire population.
+of an entire population.
 Stored information are state of genes and the number of generations since
 the last outcrossing event.
-
-Above two steps (or three with optional steps) are repeated for \m {T_{max}}
-or \m {T_b + T_{max}} generations.
+A user can specify frequency of this operation.
+\stopsubsubsection
 
 \stopsubsection
 
@@ -168,11 +175,10 @@ This section shows equivalence between those two parent-choosing methods.
 In order to choose parent(s) under gynodioecy, three events have to occur
 in sequence.
 These events are a) the number of parents, b) sex of seed parent, and c)
-survival of an offspring until its sexual maturity.
+survival of an offspring until its maturity.
 Two methods differ in whether the number of parents is decided before sex of seed parents or not.
 
-Survival of an offspring is always determined the last. Let \m
-{\{\tau'_i \le 0|i=\{1,2\}\}} be absolute fitness of uniparental or
+Le \m {\{\tau'_i \le 0|i=\{1,2\}\}} be absolute fitness of uniparental or
 biparental offspring.
 Define \m {\tau_i = \tau'_i / \max(\tau'_1, \tau'_2)} as the rate of survival
 relative to organisms with higher fitness.
@@ -242,6 +248,7 @@ conditional on survival of offspring.
 
 Another way to choose parent(s) is to decide the number of parents before
 deciding the sex of seed-parent as depicted below.
+This sequence is currently implemented in {\sc SelfignSim}.
 
 \starttikzpicture
 \graph[tree layout, level distance=2cm, sibling distance=2cm]
@@ -297,8 +304,8 @@ events.
 \stopsubsection
 
 \startsubsection[title={Equivalence}]
-Comparison of the last column from both tables show that both methods
-lead to outcomes with identical probabilities.
+Comparing the last column from both tables show that both seqeunces
+of events leading to outcomes with identical probabilities.
 \stopsubsection
 
 \stopsection
