@@ -172,12 +172,12 @@ def get_pure_hermaphrodite_mating(simu, r_rate, sstar, size, rec_sites, field='s
 
 
 def get_androdioecious_mating(simu, r_rate, sstar,
-                              size, sex_ratio, rec_sites, field='self_gen'):
+                              size, sex_seq, rec_sites, field='self_gen'):
     """
     Constructs a mating operator under androdioecy.
     """
 
-    sexMode = (simu.PROB_OF_MALES, sex_ratio)
+    sex_mode = (simu.GLOBAL_SEQUENCE_OF_SEX,) + sex_seq
 
     parents_chooser = simu.PyParentsChooser(
         pick_androdioecious_parents(simu=simu, sstar=sstar)
@@ -193,12 +193,12 @@ def get_androdioecious_mating(simu, r_rate, sstar,
 
 
 def get_gynodioecious_mating(simu, r_rate, sstar, H,
-                             size, sex_ratio, rec_sites, field='self_gen'):
+                             size, sex_seq, rec_sites, field='self_gen'):
     """
     Constructs a mating operator under gynodioecy.
     """
 
-    sex_mode = (simu.PROB_OF_MALES, sex_ratio)
+    sex_mode = (simu.GLOBAL_SEQUENCE_OF_SEX,) + sex_seq
 
     parents_chooser = simu.PyParentsChooser(
         pick_gynodioecious_parents(simu=simu, sstar=sstar, H=H)
@@ -242,9 +242,9 @@ def androdioecy(simu, execute_func, config):
     pop = get_population(simu=simu,
                          size=N,
                          loci=config.loci * config.allele_length)
-    sex_ratio = 1 - Nh / N
+    sex_seq = tuple(simu.MALE for _ in xrange(N - Nh)) + tuple(simu.FEMALE for _ in xrange(Nh))
 
-    simu.initSex(pop, maleFreq=sex_ratio)
+    simu.initSex(pop, sex=sex_seq)
     pop.setVirtualSplitter(simu.SexSplitter())
 
     # Index of sites, after which recombinations happen.
@@ -254,7 +254,7 @@ def androdioecy(simu, execute_func, config):
                                           r_rate=config.r,
                                           sstar=config.sstar,
                                           size=config.N,
-                                          sex_ratio=sex_ratio,
+                                          sex_seq=sex_seq,
                                           rec_sites=rec_loci)
 
     execute_func(config, pop, mating_op)
@@ -270,8 +270,9 @@ def gynodioecy(simu, execute_func, config):
     pop = get_population(simu=simu,
                          size=N,
                          loci=config.loci * config.allele_length)
-    sex_ratio = Nh / N
-    simu.initSex(pop, maleFreq=sex_ratio)
+    sex_seq = tuple(simu.MALE for _ in xrange(Nh)) + tuple(simu.FEMALE for _ in xrange(N - Nh))
+
+    simu.initSex(pop, sex=sex_seq)
     pop.setVirtualSplitter(simu.SexSplitter())
 
     # Index of sites, after which recombinations happen.
@@ -282,7 +283,7 @@ def gynodioecy(simu, execute_func, config):
                                          sstar=config.sstar,
                                          H=config.H,
                                          size=config.N,
-                                         sex_ratio=sex_ratio,
+                                         sex_seq=seq_seq,
                                          rec_sites=rec_loci)
 
     execute_func(config, pop, mating_op)
