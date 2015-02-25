@@ -181,7 +181,7 @@ class Config(object):
         except KeyError:
             sys.exit('Mating model(scheme) not specified.')
 
-        elif model == 'pure hermaphroditism':
+        if model == 'pure hermaphroditism':
             self._pure_hermaphroditism(mating)
         elif model == 'androdioecy':
             self._androdioecy(mating)
@@ -194,7 +194,7 @@ class Config(object):
         try:
             self._params['sstar'] = mating['s*']
         except KeyError:
-            self._params['s tilde'] = mating['s tilde']
+            self._params['stilde'] = mating['s tilde']
             self._params['tau'] = mating['tau']
 
     def _androdioecy(self, mating):
@@ -210,16 +210,13 @@ class Config(object):
             self._params['tau'] = mating['tau']
             self._params['a'] = mating['a']
             self._params['sigma'] = mating['sigma']
-            self._params['N_hermaphrodites'] = mating['N_hermaphrodites']
+        self._params['N_hermaphrodites'] = mating['N_hermaphrodites']
 
     def __getattr__(self, name):
         """
         Makes self._params[X] accessible as self.X.
         """
-        try:
-            return self._params[name]
-        except KeyError:
-            sys.exit('Unrecognized parameter: {}'.format(name))
+        return self._params[name]
 
 
 # Selectively import simuPOP with an appropriate alleleType.  Because

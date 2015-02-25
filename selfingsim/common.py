@@ -53,8 +53,8 @@ def pick_pure_hermaphrodite_parents(simu, config):
                     yield [first, second]
         return compound_generator
     except KeyError:
-        stilde = mating['s tilde']
-        tau = mating['tau']
+        stilde = config.stilde
+        tau = config.tau
         def fundamental_generator(pop):
             """
             Generates parents under pure hermaphroditism using fundamental parameters.
@@ -107,7 +107,7 @@ def pick_androdioecious_parents(simu, config):
     except KeyError:
         stilde = config.stilde
         tau = config.tau
-        def fundamental_generator(pop):
+        def compound_generator(pop):
             """
             Picks up parent(s) under androdioecy using fundamental parameters.
             """
@@ -172,7 +172,7 @@ def pick_gynodioecious_parents(simu, config):
                     else:           # female seed parent
                         yield [h.individual(rint(Nh)), f.individual(rint(Nf))]
         return compound_generator
-    try KeyError:
+    except KeyError:
         a = config.a
         sigma = config.sigma
         tau = config.tau
@@ -205,7 +205,7 @@ def pick_gynodioecious_parents(simu, config):
                         yield [h.individual(first), h.individual(second)]
                 else: # female seed parent
                     if runif() < tau:
-                        yield [h.individual(uint(Nh)), f.individual(uint(Nf))]
+                        yield [h.individual(rint(Nh)), f.individual(rint(Nf))]
         return fundamental_generator
 
 
@@ -267,11 +267,11 @@ def get_androdioecious_mating(simu, r_rate, parents_chooser,
                            generator=simu.OffspringGenerator(
                                ops=[simu.Recombinator(rates=r_rate, loci=rec_sites),
                                     selfing_tagger],
-                               sexMode=sexMode),
+                               sexMode=sex_mode),
                            subPopSize=size)
 
 
-def get_gynodioecious_mating(simu, r_rate, parent_choosers,
+def get_gynodioecious_mating(simu, r_rate, parents_chooser,
                              size, sex_seq, rec_sites, field='self_gen'):
     """
     Constructs a mating operator under gynodioecy.
@@ -369,7 +369,7 @@ def gynodioecy(simu, execute_func, config):
                                          r_rate=config.r,
                                          parents_chooser=parents_chooser,
                                          size=config.N,
-                                         sex_seq=seq_seq,
+                                         sex_seq=sex_seq,
                                          rec_sites=rec_loci)
 
     execute_func(config, pop, mating_op)
