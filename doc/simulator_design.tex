@@ -97,10 +97,9 @@ However, the number of hermaphrodites, \m {N_h}, is mandatory
 under andro- and gynodioecy.
 
 Internally, if fundamental parameters are provided, those parameters are
-converted to the corresponding composite parameters \m {s^*} and \m {H}
-before starting a simulation.
-Then, {\sc SelfingSim} only uses the composite parameters during a
-simulation.
+directly used to determine parents in simulations.
+On the other hand, if composite parameters are provided, those parameters
+are used in simulations.
 
 \startsubsubsection[title={Pure-Hermaphroditism}]
 Under pure hermaphroditism, a selfing parent is randomly chosen from the
