@@ -4,16 +4,14 @@ selfingsim.analyze
 
 Analyze simulation data.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+
 
 # standard imports
 import argparse
 
 # within-package imports
 from . import data
+
 
 def run():
     """
@@ -25,6 +23,7 @@ def run():
     args = parser.parse_args()
     args.func(args)
 
+
 def setup_command_line(subparsers):
     """
     Sets up command line interface.
@@ -34,11 +33,11 @@ def setup_command_line(subparsers):
     sharedparser.add_argument(
         "samplefile",
         type=str,
-        help="file containing samples (output of (sub)sample command")
+        help="file containing samples (output of (sub)sample command",
+    )
     sharedparser.add_argument(
-        "--with-header",
-        action="store_true",
-        help="set this flag to print headder line")
+        "--with-header", action="store_true", help="set this flag to print headder line"
+    )
 
     # setup command line arguments for indiviudal subcommands
     subparser = subparsers.add_parser("inbcoeff", parents=[sharedparser])
@@ -46,6 +45,7 @@ def setup_command_line(subparsers):
 
     subparser = subparsers.add_parser("inbtime", parents=[sharedparser])
     subparser.set_defaults(func=inbtime)
+
 
 def inbcoeff(config):
     """
@@ -60,17 +60,22 @@ def inbcoeff(config):
     src = sample.source
 
     if config.with_header:
-        print("dataset\tlocus\thetero.obs\thetero.exp\tFis\tFis.corrected\tnumber.of.alleles")
+        print(
+            "dataset\tlocus\thetero.obs\thetero.exp\tFis\tFis.corrected\tnumber.of.alleles"
+        )
     for entry in coeffs:
-        print("{}\t{}\t{}\t{}\t{}\t{}\t{}".
-              format(
-                  src,
-                  entry["key"],
-                  entry["hobs"],
-                  entry["hexp"],
-                  entry["fis"],
-                  entry["fisc"],
-                  entry["nalleles"]))
+        print(
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}".format(
+                src,
+                entry["key"],
+                entry["hobs"],
+                entry["hexp"],
+                entry["fis"],
+                entry["fisc"],
+                entry["nalleles"],
+            )
+        )
+
 
 def inbtime(config):
     """
@@ -88,5 +93,6 @@ def inbtime(config):
     for i, tselfing in zip(sample.ids, sample.tselfing):
         print("{}\tsample.{}\t{}".format(src, i, tselfing))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     run()

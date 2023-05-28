@@ -4,28 +4,17 @@ selfingsim.data
 
 Representation of samples and its associated methods.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
-try:
-    _str = str
-    str = unicode
-except NameError:
-    _str = str
-    pass
 
-# standeard imports
-from collections import Counter
 import csv
-import io
-from itertools import groupby, izip
 import json
 import os.path
 import random
 
-from . import utils
+# standeard imports
+from collections import Counter
+from itertools import groupby
+
 
 def createsample(fname, gen=None):
     """
@@ -35,7 +24,7 @@ def createsample(fname, gen=None):
     tsv file.
     """
     suffix = os.path.splitext(fname)[1]
-    if suffix == ".tsv": # original simulation result
+    if suffix == ".tsv":  # original simulation result
         return FullSample.fromtsv(fname, gen)
     elif suffix == ".json":
         return FullSample.fromjson(fname)
@@ -49,6 +38,7 @@ class BasicSample(object):
     This class holds genotypic information of sample, and it also provides
     serialization to various formats (currently RMES, PHASE, and NEXUS).
     """
+
     def __init__(self, src, ids, genos):
         self._src = src
         self._ids = ids
@@ -115,7 +105,7 @@ class BasicSample(object):
         """
         # Sanity check: test if specified loci all exist.
         if locs == None:
-            ret = range(len(self._genos[0]))
+            ret = list(range(len(self._genos[0])))
         else:
             nloc = len(self._genos[0])
             if len([True for i in locs if i >= nloc]) > 0:
@@ -123,19 +113,18 @@ class BasicSample(object):
             ret = locs
         return ret
 
-
     def _drawindividuals(self, newnsam):
         """
         Draw n individuals without replacement from the current sample.
         """
-        return random.sample(xrange(self._nsam), newnsam)
+        return random.sample(range(self._nsam), newnsam)
 
     @staticmethod
     def fromphase(fname):
         """
         Create an instance of BasicSample.
         """
-        with io.open(fname, "rU") as fhandle:
+        with open(fname, "r") as fhandle:
             next(fhandle)
             nloc = int(next(fhandle).strip())
             types = next(fhandle).strip()
@@ -153,7 +142,7 @@ class BasicSample(object):
                 ids.append(elems[0])
 
                 ielems = iter(elems[1:])
-                genos.append([[i, j] for i, j in izip(ielems, ielems)])
+                genos.append([[i, j] for i, j in zip(ielems, ielems)])
 
         return BasicSample(fname, ids, genos)
 
@@ -186,15 +175,22 @@ class BasicSample(object):
         """
         Return allele frequency spectrum per-locus.
         """
-        alleles = [[gene for ind in self._genos for gene in ind[loc]] for loc in xrange(self._nloc)]
-        return [[v / (2 * self._nsam) for v in Counter(a).values()] for a in alleles]
+        alleles = [
+            [gene for ind in self._genos for gene in ind[loc]]
+            for loc in range(self._nloc)
+        ]
+        return [
+            [v / (2 * self._nsam) for v in list(Counter(a).values())] for a in alleles
+        ]
 
     def _hobs(self):
         """
         Obtains per-locus observed heterozygosity.
         """
-        genos = [[ind[loc] for ind in self._genos] for loc in xrange(self._nloc)]
-        return [sum(1 if g[0] != g[1] else 0 for g in geno) / self.nsam for geno in genos]
+        genos = [[ind[loc] for ind in self._genos] for loc in range(self._nloc)]
+        return [
+            sum(1 if g[0] != g[1] else 0 for g in geno) / self.nsam for geno in genos
+        ]
 
     @staticmethod
     def _hexp(afreqs):
@@ -209,11 +205,17 @@ class BasicSample(object):
         """
         ngenes = 2 * self._nsam
         if correct:
-            fis = [(exp - obs + obs / ngenes) / (exp - obs / ngenes)
-                   if exp - obs / ngenes != 0. else float('nan')
-                   for obs, exp in zip(hobs, hexp)]
+            fis = [
+                (exp - obs + obs / ngenes) / (exp - obs / ngenes)
+                if exp - obs / ngenes != 0.0
+                else float("nan")
+                for obs, exp in zip(hobs, hexp)
+            ]
         else:
-            fis = [1 - obs / exp if exp != 0. else float('nan') for obs, exp in zip(hobs, hexp)]
+            fis = [
+                1 - obs / exp if exp != 0.0 else float("nan")
+                for obs, exp in zip(hobs, hexp)
+            ]
 
         return fis
 
@@ -241,26 +243,31 @@ class BasicSample(object):
         hexp.append(sum(hexp) / len(hexp))
         nalleles.append(sum(nalleles) / len(nalleles))
 
-        keys = [i for i in xrange(self.nloc)]
+        keys = [i for i in range(self.nloc)]
         keys.append("overall")
 
         data = []
         for vals in zip(keys, hobs, hexp, fis, fis2, nalleles):
-            data.append({
-                "key": vals[0],
-                "hobs": vals[1],
-                "hexp": vals[2],
-                "fis": vals[3],
-                "fisc": vals[4],
-                "nalleles": vals[5]})
+            data.append(
+                {
+                    "key": vals[0],
+                    "hobs": vals[1],
+                    "hexp": vals[2],
+                    "fis": vals[3],
+                    "fisc": vals[4],
+                    "nalleles": vals[5],
+                }
+            )
 
         return data
+
 
 class FullSample(BasicSample):
     """
     In addition to what BasicSample holds, this class also holds the number
     of generations until the last outcrossing event.
     """
+
     def __init__(self, src, ids, genos, inbgens):
         super(FullSample, self).__init__(src, ids, genos)
         self._inbgens = inbgens
@@ -301,7 +308,7 @@ class FullSample(BasicSample):
         If specified generations are not recorded, this returns an empty list.
         """
         samples = []
-        with io.open(fname, utils.getmode("r")) as fhandle:
+        with open(fname, "r") as fhandle:
             reader = csv.reader(fhandle, delimiter=_str("\t"))
             # Throw out a header row
             next(fhandle)
@@ -312,21 +319,25 @@ class FullSample(BasicSample):
             if len(rows) % 2 != 0:
                 raise ValueError("Number of chromosomes not mulitple of 2")
 
-
             for _, rawdata in groupby(rows, lambda x: x[0]):
                 irawdata = iter(rawdata)
 
                 ids = []
                 inbgens = []
                 genos = []
-                for vals in izip(irawdata, irawdata):
+                for vals in zip(irawdata, irawdata):
                     # sanity check 2: a pair of chromosomes has to be from a single
                     # individual.
                     if vals[0][2] != vals[1][2]:
                         raise ValueError("Chromosomes come from different individual")
                     ids.append(vals[0][2])
                     inbgens.append(int(float(vals[0][3])))
-                    genos.append([[gvals[0], gvals[1]] for gvals in zip(vals[0][5:], vals[1][5:])])
+                    genos.append(
+                        [
+                            [gvals[0], gvals[1]]
+                            for gvals in zip(vals[0][5:], vals[1][5:])
+                        ]
+                    )
 
                 samples.append(FullSample(fname, ids, genos, inbgens))
 
@@ -341,7 +352,7 @@ class FullSample(BasicSample):
         This function always return a single FullSample object.
         """
 
-        with io.open(fname, "r") as fhandle:
+        with open(fname, "r") as fhandle:
             data = json.load(fhandle)
         ids = [val[0] for val in data]
         inbgens = [val[1] for val in data]
@@ -356,6 +367,7 @@ class FullSample(BasicSample):
         data = [[i, j, k] for i, j, k in zip(self._ids, self._inbgens, self._genos)]
 
         return str(json.dumps(data))
+
 
 def tonexus(samples, miss, sep):
     """
@@ -372,7 +384,8 @@ def tonexus(samples, miss, sep):
         "begin gdadata",
         "dimensions npops={} nloci={};".format(npops, samples[0].nloc),
         "format missing={} separator={};".format(miss, sep),
-        "matrix"]
+        "matrix",
+    ]
 
     for pop, sample in enumerate(samples):
         lines.append("{}:".format(sample.source))
@@ -387,6 +400,7 @@ def tonexus(samples, miss, sep):
     lines.append("end;")
 
     return lines
+
 
 def tormes(samples):
     """
@@ -407,7 +421,8 @@ def tormes(samples):
 
     for sample in samples:
         for genotype in sample.genotypes:
-            lines.append(" ".join(["1" if geno[0] != geno[1] else "0" for geno in genotype]))
+            lines.append(
+                " ".join(["1" if geno[0] != geno[1] else "0" for geno in genotype])
+            )
 
     return lines
-
