@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "selfingsim"
+version = "1.1.0"
+authors = [
+    { name="Seiji Kumagai", email="seiji.kumagai@gmail.com" }
+]
+description = "A forward simulator for partially selfing population based on simuPOP"
+readme = "README.rst"
+requires-python = ">=3.8"
+license = {text = "GPLv3"}
+keywords = ["biology", "simulation", "population genetics", "selfing"]
+classifiers=[
+   "Development Status :: 5 - Production/Stable",
+   "Intended Audience :: Science/Research",
+   "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+   "Environment :: Console",
+   "Programming Language :: Python :: 3",
+   "Topic :: Scientific/Engineering :: Bio-Informatics"
+]
+dependencies = [
+    "simuPOP"
+]
+
+[project.scripts]
+selfingsim = "selfingsim:run"
+
+[project.urls]
+"Repository" = "https://github.com/skumagai/selfingsim.git"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/selfingsim",
+    "/examples"
+]
+
