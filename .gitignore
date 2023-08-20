@@ -12,3 +12,10 @@ results/
 *.swp
 *.tuc
 *.egg-info/
+
+dist
+result
+.devenv
+.direnv
+.envrc
+.pre-commit-config.yaml
